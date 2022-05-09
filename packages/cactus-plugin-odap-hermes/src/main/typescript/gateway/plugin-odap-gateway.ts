@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+import fs from "fs-extra";
 import type { Server } from "http";
 import type { Server as SecureServer } from "https";
 import { Optional } from "typescript-optional";
@@ -946,6 +947,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     this.updateLastMessageReceivedTimestamp(request.sessionID);
     await checkValidTransferCompleteRequest(request, this);
     //this.deleteDatabaseEntries(request.sessionID);
+    fs.appendFileSync(
+      "packages/cactus-plugin-odap-hermes/src/test/typescript/integration/odap-steps/odap-1-1.txt",
+      "AFTER P3:" + Number(Date.now()).toString() + "\n",
+    );
   }
 
   //Client-side
@@ -962,6 +967,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
     await checkValidInitializationResponse(request, this);
+    fs.appendFileSync(
+      "packages/cactus-plugin-odap-hermes/src/test/typescript/integration/odap-steps/odap-1-1.txt",
+      "AFTER P1:" + Number(Date.now()).toString() + "\n",
+    );
     await sendTransferCommenceRequest(request.sessionID, this, true);
   }
 
@@ -995,6 +1004,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
     await checkValidLockEvidenceResponse(request, this);
+    fs.appendFileSync(
+      "packages/cactus-plugin-odap-hermes/src/test/typescript/integration/odap-steps/odap-1-1.txt",
+      "AFTER P2:" + Number(Date.now()).toString() + "\n",
+    );
     await sendCommitPreparationRequest(request.sessionID, this, true);
   }
 
