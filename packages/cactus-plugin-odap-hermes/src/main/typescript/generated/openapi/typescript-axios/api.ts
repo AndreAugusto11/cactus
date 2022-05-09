@@ -117,13 +117,13 @@ export interface ClientV1Request {
      * @type {string}
      * @memberof ClientV1Request
      */
-    fabricAssetID?: string;
+    fabricAssetID: string;
     /**
      * 
      * @type {string}
      * @memberof ClientV1Request
      */
-    besuAssetID?: string;
+    besuAssetID: string;
     /**
      * 
      * @type {string}

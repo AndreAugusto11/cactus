@@ -1052,6 +1052,8 @@
                 },
                 "required": [
                     "version",
+                    "fabricAssetID",
+                    "besuAssetID",
                     "loggingProfile",
                     "accessControlProfile",
                     "assetControlProfile",
