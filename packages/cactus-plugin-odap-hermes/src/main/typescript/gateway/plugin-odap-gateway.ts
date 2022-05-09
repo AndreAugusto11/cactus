@@ -181,9 +181,7 @@ export interface IPluginOdapGatewayConstructorOptions {
   besuContractName?: string;
   besuWeb3SigningCredential?: Web3SigningCredential;
   besuKeychainId?: string;
-  fabricAssetID?: string;
   fabricAssetSize?: string;
-  besuAssetID?: string;
 
   knexConfig?: Knex.Config;
 }
@@ -232,8 +230,6 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
   public besuWeb3SigningCredential?: Web3SigningCredential;
   public besuKeychainId?: string;
 
-  public fabricAssetID?: string;
-  public besuAssetID?: string;
   public constructor(options: IPluginOdapGatewayConstructorOptions) {
     const fnTag = `${this.className}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);
@@ -302,8 +298,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     const notEnoughFabricParams: boolean =
       options.fabricSigningCredential == undefined ||
       options.fabricChannelName == undefined ||
-      options.fabricContractName == undefined ||
-      options.fabricAssetID == undefined;
+      options.fabricContractName == undefined;
     if (notEnoughFabricParams) {
       throw new Error(
         `${fnTag}, fabric params missing should have: signing credentials, contract name, channel name, asset ID`,
@@ -312,7 +307,6 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     this.fabricSigningCredential = options.fabricSigningCredential;
     this.fabricChannelName = options.fabricChannelName;
     this.fabricContractName = options.fabricContractName;
-    this.fabricAssetID = options.fabricAssetID;
     this.fabricAssetSize = options.fabricAssetSize
       ? options.fabricAssetSize
       : "1";
@@ -329,8 +323,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     const notEnoughBesuParams: boolean =
       options.besuContractName == undefined ||
       options.besuWeb3SigningCredential == undefined ||
-      options.besuKeychainId == undefined ||
-      options.besuAssetID == undefined;
+      options.besuKeychainId == undefined;
     if (notEnoughBesuParams) {
       throw new Error(
         `${fnTag}, besu params missing. Should have: signing credentials, contract name, key chain ID, asset ID`,
@@ -339,7 +332,6 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     this.besuContractName = options.besuContractName;
     this.besuWeb3SigningCredential = options.besuWeb3SigningCredential;
     this.besuKeychainId = options.besuKeychainId;
-    this.besuAssetID = options.besuAssetID;
   }
 
   public get className(): string {
@@ -1168,6 +1160,9 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     sessionData.rollbackProofs = [];
     sessionData.lastMessageReceivedTimestamp = Date.now().toString();
 
+    sessionData.fabricAssetID = request.fabricAssetID;
+    sessionData.besuAssetID = request.besuAssetID;
+
     sessionData.maxRetries = request.maxRetries;
     sessionData.maxTimeout = request.maxTimeout;
 
@@ -1195,28 +1190,29 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     });
 
     if (this.fabricApi != undefined) {
-      const response = await this.fabricApi.runTransactionV1({
+      await this.fabricApi.runTransactionV1({
         signingCredential: this.fabricSigningCredential,
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "LockAsset",
-        params: [this.fabricAssetID],
+        params: [sessionData.fabricAssetID],
       } as FabricRunTransactionRequest);
 
-      const receiptLockRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
-        {
-          signingCredential: this.fabricSigningCredential,
-          channelName: this.fabricChannelName,
-          contractName: "qscc",
-          invocationType: FabricContractInvocationType.Call,
-          methodName: "GetBlockByTxID",
-          params: [this.fabricChannelName, response.data.transactionId],
-        } as FabricRunTransactionRequest,
-      );
+      // const receiptLockRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
+      //   {
+      //     signingCredential: this.fabricSigningCredential,
+      //     channelName: this.fabricChannelName,
+      //     contractName: "qscc",
+      //     invocationType: FabricContractInvocationType.Call,
+      //     methodName: "GetBlockByTxID",
+      //     params: [this.fabricChannelName, response.data.transactionId],
+      //   } as FabricRunTransactionRequest,
+      // );
 
-      this.log.warn(receiptLockRes.data);
-      fabricLockAssetProof = JSON.stringify(receiptLockRes.data);
+      // this.log.warn(receiptLockRes.data);
+      // fabricLockAssetProof = JSON.stringify(receiptLockRes.data);
+      fabricLockAssetProof = "proof";
     }
 
     sessionData.lockEvidenceClaim = fabricLockAssetProof;
@@ -1271,7 +1267,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "UnlockAsset",
-        params: [this.fabricAssetID],
+        params: [sessionData.fabricAssetID],
       } as FabricRunTransactionRequest);
 
       const receiptUnlock = await this.fabricApi.getTransactionReceiptByTxIDV1({
@@ -1322,7 +1318,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
     if (
       sessionData == undefined ||
-      this.fabricAssetID == undefined ||
+      sessionData.fabricAssetID == undefined ||
       this.fabricChannelName == undefined ||
       this.fabricContractName == undefined ||
       this.fabricSigningCredential == undefined ||
@@ -1342,26 +1338,27 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     });
 
     if (this.fabricApi != undefined) {
-      const response = await this.fabricApi.runTransactionV1({
+      await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [this.fabricAssetID, "19"],
+        params: [sessionData.fabricAssetID, "19"],
         methodName: "CreateAsset",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
       });
 
-      const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
-        contractName: "qscc",
-        invocationType: FabricContractInvocationType.Call,
-        methodName: "GetBlockByTxID",
-        params: [this.fabricChannelName, response.data.transactionId],
-      } as FabricRunTransactionRequest);
+      // const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
+      //   signingCredential: this.fabricSigningCredential,
+      //   channelName: this.fabricChannelName,
+      //   contractName: "qscc",
+      //   invocationType: FabricContractInvocationType.Call,
+      //   methodName: "GetBlockByTxID",
+      //   params: [this.fabricChannelName, response.data.transactionId],
+      // } as FabricRunTransactionRequest);
 
-      this.log.warn(receiptCreate.data);
-      fabricCreateAssetProof = JSON.stringify(receiptCreate.data);
+      // this.log.warn(receiptCreate.data);
+      // fabricCreateAssetProof = JSON.stringify(receiptCreate.data);
+      fabricCreateAssetProof = "eee";
     }
 
     sessionData.rollbackActionsPerformed.push(
@@ -1412,28 +1409,29 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     });
 
     if (this.fabricApi != undefined) {
-      const deleteRes = await this.fabricApi.runTransactionV1({
+      await this.fabricApi.runTransactionV1({
         signingCredential: this.fabricSigningCredential,
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "DeleteAsset",
-        params: [this.fabricAssetID],
+        params: [sessionData.fabricAssetID],
       } as FabricRunTransactionRequest);
 
-      const receiptDeleteRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
-        {
-          signingCredential: this.fabricSigningCredential,
-          channelName: this.fabricChannelName,
-          contractName: "qscc",
-          invocationType: FabricContractInvocationType.Call,
-          methodName: "GetBlockByTxID",
-          params: [this.fabricChannelName, deleteRes.data.transactionId],
-        } as FabricRunTransactionRequest,
-      );
+      // const receiptDeleteRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
+      //   {
+      //     signingCredential: this.fabricSigningCredential,
+      //     channelName: this.fabricChannelName,
+      //     contractName: "qscc",
+      //     invocationType: FabricContractInvocationType.Call,
+      //     methodName: "GetBlockByTxID",
+      //     params: [this.fabricChannelName, deleteRes.data.transactionId],
+      //   } as FabricRunTransactionRequest,
+      // );
 
-      this.log.warn(receiptDeleteRes.data);
-      fabricDeleteAssetProof = JSON.stringify(receiptDeleteRes.data);
+      // this.log.warn(receiptDeleteRes.data);
+      // fabricDeleteAssetProof = JSON.stringify(receiptDeleteRes.data);
+      fabricDeleteAssetProof = "proof";
     }
 
     sessionData.commitFinalClaim = fabricDeleteAssetProof;
@@ -1485,7 +1483,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         invocationType: EthContractInvocationType.Send,
         methodName: "createAsset",
         gas: 1000000,
-        params: [this.besuAssetID, 100], //the second is size, may need to pass this from client?
+        params: [sessionData.besuAssetID, 100], //the second is size, may need to pass this from client?
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -1566,7 +1564,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         invocationType: EthContractInvocationType.Send,
         methodName: "lockAsset",
         gas: 1000000,
-        params: [this.besuAssetID],
+        params: [sessionData.besuAssetID],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -1576,7 +1574,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         invocationType: EthContractInvocationType.Send,
         methodName: "deleteAsset",
         gas: 1000000,
-        params: [this.besuAssetID],
+        params: [sessionData.besuAssetID],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -1656,7 +1654,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         this.fabricApi == undefined ||
         this.fabricContractName == undefined ||
         this.fabricChannelName == undefined ||
-        this.fabricAssetID == undefined ||
+        sessionData.fabricAssetID == undefined ||
         this.fabricSigningCredential == undefined
       )
         return;
@@ -1666,7 +1664,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
           this,
           this.fabricContractName,
           this.fabricChannelName,
-          this.fabricAssetID,
+          sessionData.fabricAssetID,
           this.fabricSigningCredential,
         )
       ) {
@@ -1675,7 +1673,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
             this,
             this.fabricContractName,
             this.fabricChannelName,
-            this.fabricAssetID,
+            sessionData.fabricAssetID,
             this.fabricSigningCredential,
           )
         ) {
@@ -1691,7 +1689,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         this.besuApi == undefined ||
         this.besuContractName == undefined ||
         this.besuKeychainId == undefined ||
-        this.besuAssetID == undefined ||
+        sessionData.besuAssetID == undefined ||
         this.besuWeb3SigningCredential == undefined
       )
         return;
@@ -1701,7 +1699,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
           this,
           this.besuContractName,
           this.besuKeychainId,
-          this.besuAssetID,
+          sessionData.besuAssetID,
           this.besuWeb3SigningCredential,
         )
       ) {

@@ -16,12 +16,9 @@ contract LockAsset {
   mapping (string => Asset) assets;
   mapping (string => bool) assetExists;
 
-  function createAsset( string calldata id, uint size) public{
-      require(size>0);
-      assets[id].size= size;
-      assets[id].creator = msg.sender;
-      assets[id].isLock = false;
-      assetExists[id] = true;
+  function createAsset(string calldata id, uint size) public view returns (Asset memory) {
+      require(size > 0);
+      return assets[id];
   }
 
   function getAsset(string calldata id) public view returns (Asset memory) {

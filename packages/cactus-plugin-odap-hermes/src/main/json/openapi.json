@@ -970,6 +970,12 @@
                     "version":{
                         "type":"string"
                     },
+                    "fabricAssetID": {
+                        "type": "string"
+                    },
+                    "besuAssetID": {
+                        "type": "string"
+                    },
                     "loggingProfile":{
                         "type":"string"
                     },

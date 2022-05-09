@@ -117,6 +117,18 @@ export interface ClientV1Request {
      * @type {string}
      * @memberof ClientV1Request
      */
+    fabricAssetID?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ClientV1Request
+     */
+    besuAssetID?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ClientV1Request
+     */
     loggingProfile: string;
     /**
      * 
