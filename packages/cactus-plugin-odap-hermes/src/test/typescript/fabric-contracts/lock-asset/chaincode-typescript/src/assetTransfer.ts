@@ -89,7 +89,12 @@ export class AssetTransferContract extends Contract {
   // DeleteAsset deletes an given asset from the world state.
   @Transaction()
   public async DeleteAsset(ctx: Context, id: string): Promise<void> {
-    this.AssetExists(ctx, id);
+    const exists = await this.AssetExists(ctx, id);
+    if (!exists) {
+      throw new Error(`The asset ${id} does not exist`);
+    }
+
+    return ctx.stub.deleteState(id);
   }
 
   // AssetExists returns true when asset with given ID exists in world state.
@@ -117,7 +122,20 @@ export class AssetTransferContract extends Contract {
   @Transaction(false)
   @Returns("boolean")
   public async LockAsset(ctx: Context, id: string): Promise<boolean> {
-    await this.AssetExists(ctx, id);
+    const exists = await this.AssetExists(ctx, id);
+
+    if (!exists) {
+      throw new Error(`The asset ${id} does not exist`);
+    }
+
+    // if (this.IsAssetLocked(ctx, id)) {
+    //   throw new Error(`The asset ${id} is already locked`);
+    // }
+
+    const assetString = await this.ReadAsset(ctx, id);
+    const asset: Asset = JSON.parse(assetString);
+    asset.isLocked = true;
+    await ctx.stub.putState(id, Buffer.from(JSON.stringify(asset)));
     return true;
   }
 

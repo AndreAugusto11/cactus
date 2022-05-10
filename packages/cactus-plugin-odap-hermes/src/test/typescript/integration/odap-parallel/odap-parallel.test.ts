@@ -104,6 +104,12 @@ const MAX_TIMEOUT = 5000;
 
 const MAX_TRANSFERS = 2;
 
+const FABRIC_ASSET_IDS: string[] = new Array(MAX_TRANSFERS);
+
+for (let i = 0; i < MAX_TRANSFERS; i++) {
+  FABRIC_ASSET_IDS[i] = uuidv4();
+}
+
 const log = LoggerProvider.getOrCreate({
   level: "INFO",
   label: "odapEvaluationTest",
@@ -408,26 +414,34 @@ beforeAll(async () => {
       keychainRef: keychainEntryKey,
     };
 
-    const createResponse = await fabricApiClient.runTransactionV1({
-      contractName: fabricContractName,
-      channelName: fabricChannelName,
-      params: [uuidv4(), "19"],
-      methodName: "CreateAsset",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: fabricSigningCredential,
-    });
+    for (let i = 0; i < MAX_TRANSFERS; i++) {
+      const createResponse = await fabricApiClient.runTransactionV1({
+        contractName: fabricContractName,
+        channelName: fabricChannelName,
+        params: [FABRIC_ASSET_IDS[i], "19"],
+        methodName: "CreateAsset",
+        invocationType: FabricContractInvocationType.Send,
+        signingCredential: fabricSigningCredential,
+      });
 
-    expect(createResponse).not.toBeUndefined();
-    expect(createResponse.status).toBeGreaterThan(199);
-    expect(createResponse.status).toBeLessThan(300);
+      expect(createResponse).not.toBeUndefined();
+      expect(createResponse.status).toBeGreaterThan(199);
+      expect(createResponse.status).toBeLessThan(300);
 
-    log.info(
-      `BassicAssetTransfer.Create(): ${JSON.stringify(createResponse.data)}`,
-    );
+      log.info(
+        `BassicAssetTransfer.Create(): ${JSON.stringify(createResponse.data)}`,
+      );
+      log.info(`number: ${i + 1}/${MAX_TRANSFERS}`);
+    }
   }
   {
     // Besu ledger connection
-    besuTestLedger = new BesuTestLedger();
+    besuTestLedger = new BesuTestLedger({
+      envVars: [
+        "BESU_TARGET_GAS_LIMIT=0x1fffffffffffff",
+        "BESU_MIN_GAS_PRICE=0",
+      ],
+    });
     await besuTestLedger.start();
 
     const rpcApiHttpHost = await besuTestLedger.getRpcApiHttpHost();
@@ -560,7 +574,6 @@ test("runs ODAP between two gateways via openApi", async () => {
       fabricSigningCredential: fabricSigningCredential,
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
-      fabricAssetID: uuidv4(),
       knexConfig: knexClientConnection,
     };
 
@@ -569,7 +582,6 @@ test("runs ODAP between two gateways via openApi", async () => {
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
       ipfsPath: ipfsApiHost,
-      besuAssetID: uuidv4(),
       besuPath: besuPath,
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
@@ -634,45 +646,47 @@ test("runs ODAP between two gateways via openApi", async () => {
   });
   const apiClient = new OdapApi(odapApiConfig);
 
-  const expiryDate = new Date(2060, 11, 24).toString();
-  const assetProfile: AssetProfile = { expirationDate: expiryDate };
-
-  const odapClientRequest: ClientV1Request = {
-    clientGatewayConfiguration: {
-      apiHost: odapClientGatewayApiHost,
-    },
-    serverGatewayConfiguration: {
-      apiHost: odapServerGatewayApiHost,
-    },
-    version: "0.0.0",
-    loggingProfile: "dummyLoggingProfile",
-    accessControlProfile: "dummyAccessControlProfile",
-    applicationProfile: "dummyApplicationProfile",
-    payloadProfile: {
-      assetProfile: assetProfile,
-      capabilities: "",
-    },
-    assetProfile: assetProfile,
-    assetControlProfile: "dummyAssetControlProfile",
-    beneficiaryPubkey: "dummyPubKey",
-    clientDltSystem: "DLT1",
-    originatorPubkey: "dummyPubKey",
-    recipientGatewayDltSystem: "DLT2",
-    recipientGatewayPubkey: pluginRecipientGateway.pubKey,
-    serverDltSystem: "DLT2",
-    sourceGatewayDltSystem: "DLT1",
-    clientIdentityPubkey: "",
-    serverIdentityPubkey: "",
-    maxRetries: MAX_RETRIES,
-    maxTimeout: MAX_TIMEOUT,
-  };
-
   fs.writeFileSync(
     path.join(__dirname, "odap-parallel.txt"),
     `INIT: ${Date.now()}\n`,
   );
 
   for (let i = 0; i < MAX_TRANSFERS; i++) {
+    const expiryDate = new Date(2060, 11, 24).toString();
+    const assetProfile: AssetProfile = { expirationDate: expiryDate };
+
+    const odapClientRequest: ClientV1Request = {
+      clientGatewayConfiguration: {
+        apiHost: odapClientGatewayApiHost,
+      },
+      serverGatewayConfiguration: {
+        apiHost: odapServerGatewayApiHost,
+      },
+      version: "0.0.0",
+      loggingProfile: "dummyLoggingProfile",
+      accessControlProfile: "dummyAccessControlProfile",
+      applicationProfile: "dummyApplicationProfile",
+      payloadProfile: {
+        assetProfile: assetProfile,
+        capabilities: "",
+      },
+      assetProfile: assetProfile,
+      assetControlProfile: "dummyAssetControlProfile",
+      beneficiaryPubkey: "dummyPubKey",
+      clientDltSystem: "DLT1",
+      originatorPubkey: "dummyPubKey",
+      recipientGatewayDltSystem: "DLT2",
+      recipientGatewayPubkey: pluginRecipientGateway.pubKey,
+      serverDltSystem: "DLT2",
+      sourceGatewayDltSystem: "DLT1",
+      clientIdentityPubkey: "",
+      serverIdentityPubkey: "",
+      maxRetries: MAX_RETRIES,
+      maxTimeout: MAX_TIMEOUT,
+      fabricAssetID: FABRIC_ASSET_IDS[i],
+      besuAssetID: uuidv4(),
+    };
+
     fs.appendFileSync(
       path.join(__dirname, "odap-parallel.txt"),
       `Sending request: ${i}: ${Date.now()}\n`,
@@ -682,7 +696,7 @@ test("runs ODAP between two gateways via openApi", async () => {
       .then(() =>
         fs.appendFileSync(
           path.join(__dirname, "odap-parallel.txt"),
-          `Response received: ${Date.now()}\n`,
+          `Response received: ${i}: ${Date.now()}\n`,
         ),
       );
   }

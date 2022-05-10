@@ -198,6 +198,8 @@ export interface IOdapLogIPFS {
 }
 
 export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
+  static gas = 1000000;
+  static nonce = 1783849593825528;
   name: string;
   sessions: Map<string, SessionData>;
   pubKey: string;
@@ -1483,9 +1485,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         invocationType: EthContractInvocationType.Send,
         methodName: "createAsset",
         gas: 1000000,
-        params: [sessionData.besuAssetID, 100], //the second is size, may need to pass this from client?
+        params: [uuidV4(), 100], //the second is size, may need to pass this from client?
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
+        nonce: ++PluginOdapGateway.nonce,
       } as BesuInvokeContractV1Request);
 
       if (besuCreateRes.status != 200) {
@@ -1564,7 +1567,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         invocationType: EthContractInvocationType.Send,
         methodName: "lockAsset",
         gas: 1000000,
-        params: [sessionData.besuAssetID],
+        params: [uuidV4()],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -1573,7 +1576,6 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "deleteAsset",
-        gas: 1000000,
         params: [sessionData.besuAssetID],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
