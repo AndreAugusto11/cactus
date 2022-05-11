@@ -1,3 +1,4 @@
+import fs from "fs-extra";
 import { RecoverV1Message } from "../../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
 import { PluginOdapGateway } from "../plugin-odap-gateway";
@@ -14,7 +15,10 @@ export async function sendRecoverMessage(
   remote: boolean,
 ): Promise<void | RecoverV1Message> {
   const fnTag = `${odap.className}#sendRecoverMessage()`;
-
+  fs.appendFileSync(
+    "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+    "INIT RECOVERY:" + Number(Date.now()).toString() + "\n",
+  );
   const sessionData = odap.sessions.get(sessionID);
 
   if (

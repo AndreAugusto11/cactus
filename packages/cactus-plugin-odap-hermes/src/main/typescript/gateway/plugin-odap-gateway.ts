@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+import fs from "fs-extra";
 import type { Server } from "http";
 import type { Server as SecureServer } from "https";
 import { Optional } from "typescript-optional";
@@ -780,8 +781,21 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
     // if the other gateway made the rollback, we will do it as well
     if (sessionData.rollback) {
+      fs.appendFileSync(
+        "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+
+        "END RECOVERY:" + Number(Date.now()).toString() + "\n",
+      );
+      fs.appendFileSync(
+        "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+        "INIT ROLLBACK:" + Number(Date.now()).toString() + "\n",
+      );
       await this.rollback(sessionID);
       await sendRollbackAckMessage(sessionID, this, true);
+      fs.appendFileSync(
+        "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+        "END ROLLBACK:" + Number(Date.now()).toString() + "\n",
+      );
       return;
     }
 
@@ -1740,6 +1754,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       await new Promise((resolve) =>
         setTimeout(resolve, sessionData.maxTimeout),
       ).then(async () => {
+        fs.appendFileSync(
+          "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+          "INIT ROLLBACK:" + Number(Date.now()).toString() + "\n",
+        );
         // we check if a message was received, otherwise we have a timeout and rollback
         const sessionData = this.sessions.get(sessionID);
 
@@ -1760,6 +1778,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         if (differenceOfTime > sessionData.maxTimeout) {
           this.log.info(`${fnTag}, no response received, rolling back`);
           await this.Revert(sessionID);
+          fs.appendFileSync(
+            "/home/andre_9a/cactus/packages/cactus-plugin-odap-hermes/src/test/typescript/integration/rollback-influence/odap-1-1.txt",
+            "END ROLLBACK:" + Number(Date.now()).toString() + "\n",
+          );
           throw new Error(
             `${fnTag}, ${message} message failed. Timeout exceeded. Check connection with server gateway.`,
           );

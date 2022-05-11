@@ -9,7 +9,7 @@ import { create } from "ipfs-http-client";
 import bodyParser from "body-parser";
 import express from "express";
 import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import { AssetProfile } from "../../../main/typescript/generated/openapi/typescript-axios";
+import { AssetProfile } from "../../../../main/typescript/generated/openapi/typescript-axios";
 import {
   IListenOptions,
   LoggerProvider,
@@ -26,8 +26,8 @@ import {
   BesuTestLedger,
 } from "@hyperledger/cactus-test-tooling";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
-import { ClientV1Request } from "../../../main/typescript/public-api";
-import LockAssetContractJson from "../../solidity/lock-asset-contract/LockAsset.json";
+import { ClientV1Request } from "../../../../main/typescript/public-api";
+import LockAssetContractJson from "../../../solidity/lock-asset-contract/LockAsset.json";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import {
   Configuration,
@@ -37,7 +37,7 @@ import {
 import {
   IPluginOdapGatewayConstructorOptions,
   PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
+} from "../../../../main/typescript/gateway/plugin-odap-gateway";
 import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
@@ -57,46 +57,45 @@ import {
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import Web3 from "web3";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
-import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
-import {
-  sendLockEvidenceRequest,
-  checkValidLockEvidenceResponse,
-} from "../../../main/typescript/gateway/client/lock-evidence";
+import { knexClientConnection, knexServerConnection } from "../../knex.config";
 import {
   sendTransferCommenceRequest,
   checkValidTransferCommenceResponse,
-} from "../../../main/typescript/gateway/client/transfer-commence";
+} from "../../../../main/typescript/gateway/client/transfer-commence";
 import {
   sendTransferInitializationRequest,
   checkValidInitializationResponse,
-} from "../../../main/typescript/gateway/client/transfer-initialization";
-import {
-  checkValidLockEvidenceRequest,
-  sendLockEvidenceResponse,
-} from "../../../main/typescript/gateway/server/lock-evidence";
+} from "../../../../main/typescript/gateway/client/transfer-initialization";
 import {
   checkValidtransferCommenceRequest,
   sendTransferCommenceResponse,
-} from "../../../main/typescript/gateway/server/transfer-commence";
+} from "../../../../main/typescript/gateway/server/transfer-commence";
 import {
   checkValidInitializationRequest,
   sendTransferInitializationResponse,
-} from "../../../main/typescript/gateway/server/transfer-initialization";
+} from "../../../../main/typescript/gateway/server/transfer-initialization";
+import { sendCommitFinalRequest } from "../../../../main/typescript/gateway/client/commit-final";
 import {
   sendCommitPreparationRequest,
   checkValidCommitPreparationResponse,
-} from "../../../main/typescript/gateway/client/commit-preparation";
+} from "../../../../main/typescript/gateway/client/commit-preparation";
 import {
-  checkValidCommitPreparationRequest,
-  sendCommitPreparationResponse,
-} from "../../../main/typescript/gateway/server/commit-preparation";
+  sendLockEvidenceRequest,
+  checkValidLockEvidenceResponse,
+} from "../../../../main/typescript/gateway/client/lock-evidence";
 import {
   checkValidCommitFinalRequest,
   sendCommitFinalResponse,
-} from "../../../main/typescript/gateway/server/commit-final";
-import { sendCommitFinalRequest } from "../../../main/typescript/gateway/client/commit-final";
-
+} from "../../../../main/typescript/gateway/server/commit-final";
+import {
+  checkValidCommitPreparationRequest,
+  sendCommitPreparationResponse,
+} from "../../../../main/typescript/gateway/server/commit-preparation";
+import {
+  checkValidLockEvidenceRequest,
+  sendLockEvidenceResponse,
+} from "../../../../main/typescript/gateway/server/lock-evidence";
+import { fabricAssetExists, besuAssetExists } from "../../make-checks-ledgers";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -136,7 +135,6 @@ let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
 
 let odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -146,7 +144,7 @@ const BESU_ASSET_ID = uuidv4();
 
 const log = LoggerProvider.getOrCreate({
   level: "INFO",
-  label: "odap-rollback-after-crash-test",
+  label: "odapEvaluationTest",
 });
 
 beforeAll(async () => {
@@ -202,7 +200,6 @@ beforeAll(async () => {
     await pluginIpfs.getOrCreateWebServices();
     await pluginIpfs.registerWebServices(expressApp);
   }
-
   {
     // Fabric ledger connection
     const channelId = "mychannel";
@@ -326,7 +323,7 @@ beforeAll(async () => {
 
     fabricContractName = "basic-asset-transfer-2";
     const contractRelPath =
-      "../fabric-contracts/lock-asset/chaincode-typescript";
+      "../../fabric-contracts/lock-asset/chaincode-typescript";
     const contractDir = path.join(__dirname, contractRelPath);
 
     // ├── package.json
@@ -601,11 +598,10 @@ beforeAll(async () => {
       knexConfig: knexClientConnection,
     };
 
-    odapServerGatewayPluginOptions = {
+    const odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
-      keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       ipfsPath: ipfsApiHost,
       besuAssetID: BESU_ASSET_ID,
       besuPath: besuPath,
@@ -668,7 +664,7 @@ beforeAll(async () => {
   }
 });
 
-test("client sends rollback message at the end of the protocol", async () => {
+test("runs ODAP between two gateways via openApi", async () => {
   const expiryDate = new Date(2060, 11, 24).toString();
   const assetProfile: AssetProfile = { expirationDate: expiryDate };
 
@@ -701,6 +697,16 @@ test("client sends rollback message at the end of the protocol", async () => {
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
   };
+
+  fs.writeFileSync(
+    path.join(__dirname, "odap-1-1.txt"),
+    "INIT:" + Number(Date.now()).toString() + "\n",
+  );
+
+  fs.appendFileSync(
+    path.join(__dirname, "odap-1-1.txt"),
+    "BEGIN ODAP:" + Number(Date.now()).toString() + "\n",
+  );
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
@@ -854,6 +860,11 @@ test("client sends rollback message at the end of the protocol", async () => {
 
   await pluginRecipientGateway.createBesuAsset(sessionID);
 
+  fs.appendFileSync(
+    path.join(__dirname, "odap-1-1.txt"),
+    "CRASHING:" + Number(Date.now()).toString() + "\n",
+  );
+
   // now we simulate the crash of the client gateway
   pluginSourceGateway.database?.destroy();
   await Servers.shutdown(sourceGatewayServer);
@@ -881,7 +892,13 @@ test("client sends rollback message at the end of the protocol", async () => {
   pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(expressApp);
 
+  // client gateway self-healed, is back online and will rollback
   await pluginSourceGateway.recoverOpenSessions(true);
+
+  fs.appendFileSync(
+    path.join(__dirname, "odap-1-1.txt"),
+    "AFTER RUN:" + Number(Date.now()).toString() + "\n",
+  );
 
   await expect(
     fabricAssetExists(
@@ -912,8 +929,8 @@ afterAll(async () => {
   await besuTestLedger.stop();
   await besuTestLedger.destroy();
 
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.database?.destroy();
+  pluginRecipientGateway.database?.destroy();
 
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(besuServer);
