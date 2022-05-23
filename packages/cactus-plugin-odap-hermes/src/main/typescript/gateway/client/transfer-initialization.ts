@@ -65,6 +65,8 @@ export async function sendTransferInitializationRequest(
     sequenceNumber: sessionData.lastSequenceNumber,
     sourceGatewayPath: sessionData.sourceBasePath,
     recipientBasePath: sessionData.recipientBasePath,
+    sourceAssetID: sessionData.fabricAssetID,
+    recipientAssetID: sessionData.besuAssetID,
     // escrow type
     // expiry time (related to the escrow)
     // multiple claims allowed

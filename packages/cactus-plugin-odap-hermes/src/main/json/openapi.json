@@ -419,6 +419,12 @@
                     "recipientGatewayDltSystem":{
                         "type":"string"
                     },
+                    "sourceAssetID":{
+                        "type":"string"
+                    },
+                    "recipientAssetID":{
+                        "type":"string"
+                    },
                     "escrowType":{
                         "type":"string",
                         "enum":[
@@ -1067,8 +1073,6 @@
                     "serverIdentityPubkey",
                     "clientDltSystem",
                     "serverDltSystem",
-                    "besuAssetID",
-                    "fabricAssetID",
                     "serverGatewayInstanceID",
                     "clientGatewayConfiguration",
                     "serverGatewayConfiguration",

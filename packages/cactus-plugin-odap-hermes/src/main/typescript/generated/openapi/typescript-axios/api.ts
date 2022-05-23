@@ -1778,6 +1778,18 @@ export interface TransferInitializationV1Request {
      * @type {string}
      * @memberof TransferInitializationV1Request
      */
+    sourceAssetID?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TransferInitializationV1Request
+     */
+    recipientAssetID?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TransferInitializationV1Request
+     */
     escrowType?: TransferInitializationV1RequestEscrowTypeEnum;
     /**
      * 
