@@ -204,6 +204,18 @@ export interface ClientV1Request {
     serverDltSystem: string;
     /**
      * 
+     * @type {string}
+     * @memberof ClientV1Request
+     */
+    besuAssetID: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ClientV1Request
+     */
+    fabricAssetID: string;
+    /**
+     * 
      * @type {ClientV1RequestClientGatewayConfiguration}
      * @memberof ClientV1Request
      */

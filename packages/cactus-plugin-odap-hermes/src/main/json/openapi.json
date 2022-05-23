@@ -1015,6 +1015,12 @@
                     "serverDltSystem": {
                         "type":"string"
                     },
+                    "besuAssetID": {
+                        "type":"string"
+                    },
+                    "fabricAssetID": {
+                        "type":"string"
+                    },
                     "clientGatewayConfiguration": {
                         "type":"object",
                         "properties": {
@@ -1061,6 +1067,8 @@
                     "serverIdentityPubkey",
                     "clientDltSystem",
                     "serverDltSystem",
+                    "besuAssetID",
+                    "fabricAssetID",
                     "serverGatewayInstanceID",
                     "clientGatewayConfiguration",
                     "serverGatewayConfiguration",
