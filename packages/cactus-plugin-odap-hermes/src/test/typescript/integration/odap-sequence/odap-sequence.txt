@@ -1,0 +1,9 @@
+INIT: 0
+Run number 18: 334580
+Run number 19: 352613
+Run number 20: 385001
+Run number 21: 495896
+Run number 22: 435873
+Run number 23: 512049
+Run number 24: 484224
+Run number 25: 514637

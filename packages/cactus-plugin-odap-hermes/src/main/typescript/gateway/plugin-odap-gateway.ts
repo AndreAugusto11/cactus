@@ -305,7 +305,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       options.fabricAssetID == undefined;
     if (notEnoughFabricParams) {
       throw new Error(
-        `${fnTag}, fabric params missing should have: signing credentials, contract name, channel name, asset ID`,
+        `${fnTag}, fabric params missing should have: signing credentials, contract name, channel name, asset ID ${options}`,
       );
     }
     this.fabricSigningCredential = options.fabricSigningCredential;
