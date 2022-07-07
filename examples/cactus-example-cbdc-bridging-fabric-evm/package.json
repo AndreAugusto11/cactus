@@ -1,0 +1,98 @@
+{
+  "name": "@hyperledger/cactus-example-cbdc-bridging-fabric-besu",
+  "version": "1.0.0",
+  "description": "An example application showing how to use Cactus when implementing a CBDC bridging application between Hyperledger Fabric and Hyperledger Besu.",
+  "keywords": [
+    "Hyperledger",
+    "Cactus",
+    "ODAP",
+    "Fabric",
+    "Besu",
+    "Blockchain",
+    "Distributed Ledger Technology"
+  ],
+  "homepage": "https://github.com/hyperledger/cactus#readme",
+  "bugs": {
+    "url": "https://github.com/hyperledger/cactus/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperledger/cactus.git"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Hyperledger Cactus Contributors",
+    "email": "cactus@lists.hyperledger.org",
+    "url": "https://www.hyperledger.org/use/cactus"
+  },
+  "contributors": [
+    {
+      "name": "André Augusto",
+      "email": "andre.augusto@tecnico.ulisboa.pt"
+    }
+  ],
+  "main": "dist/lib/main/typescript/index.js",
+  "module": "dist/lib/main/typescript/index.js",
+  "browser": "dist/cactus-example-cbdc-bridging-fabric-evm.web.umd.js",
+  "types": "dist/lib/main/typescript/index.d.ts",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "solidity": "hardhat compile",
+    "start": "CONFIG_FILE=./example-config.json node dist/lib/main/typescript/cbdc-bridging-app-cli.js",
+    "watch": "npm-watch",
+    "webpack": "npm-run-all webpack:dev",
+    "webpack:dev": "npm-run-all webpack:dev:node webpack:dev:web",
+    "webpack:dev:node": "webpack --env=dev --target=node --config ../../webpack.config.js",
+    "webpack:dev:web": "webpack --env=dev --target=web --config ../../webpack.config.js"
+  },
+  "dependencies": {
+    "@hyperledger/cactus-api-client": "1.0.0",
+    "@hyperledger/cactus-cmd-api-server": "1.0.0",
+    "@hyperledger/cactus-common": "1.0.0",
+    "@hyperledger/cactus-core": "1.0.0",
+    "@hyperledger/cactus-core-api": "1.0.0",
+    "@hyperledger/cactus-example-carbon-accounting-business-logic-plugin": "1.0.0",
+    "@hyperledger/cactus-plugin-keychain-memory": "1.0.0",
+    "@hyperledger/cactus-plugin-ledger-connector-fabric": "1.0.0",
+    "@hyperledger/cactus-plugin-ledger-connector-xdai": "1.0.0",
+    "@hyperledger/cactus-test-tooling": "1.0.0",
+    "@openzeppelin/contracts": "4.4.2",
+    "@openzeppelin/contracts-upgradeable": "4.4.2",
+    "async-exit-hook": "2.0.1",
+    "fabric-network": "2.2.10",
+    "fs-extra": "10.0.0",
+    "openapi-types": "9.1.0",
+    "typescript-optional": "2.0.1",
+    "uuid": "8.3.2",
+    "web3-core": "1.5.2",
+    "web3-utils": "1.5.2"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.13",
+    "@types/express-jwt": "6.0.2",
+    "@types/fs-extra": "9.0.12",
+    "@types/uuid": "8.3.1",
+    "hardhat": "2.6.0",
+    "http-status-codes": "2.1.4",
+    "jose": "4.1.0"
+  },
+  "engines": {
+    "node": ">=10",
+    "npm": ">=6"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "browserMinified": "dist/cactus-example-cbdc-bridging-fabric-evm.web.umd.min.js",
+  "mainMinified": "dist/cactus-example-cbdc-bridging-fabric-evm.node.umd.min.js",
+  "watch": {
+    "solidity": {
+      "patterns": [
+        "./src/main/solidity/"
+      ],
+      "extensions": "sol"
+    }
+  }
+}
