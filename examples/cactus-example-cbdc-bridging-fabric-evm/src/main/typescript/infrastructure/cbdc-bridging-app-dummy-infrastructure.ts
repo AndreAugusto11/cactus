@@ -1,25 +1,33 @@
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 import fs from "fs-extra";
 // import { Optional } from "typescript-optional";
-// import { Account } from "web3-core";
+import { Account } from "web3-core";
 import {
   Logger,
   Checks,
   LogLevelDesc,
   LoggerProvider,
 } from "@hyperledger/cactus-common";
-
 import {
+  BesuTestLedger,
   FabricTestLedgerV1,
-  // OpenEthereumTestLedger,
 } from "@hyperledger/cactus-test-tooling";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
   ChainCodeProgrammingLanguage,
+  DefaultEventHandlerStrategy,
   DeploymentTargetOrgFabric2x,
   FileBase64,
   PluginLedgerConnectorFabric,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+import {
+  PluginLedgerConnectorBesu,
+  Web3SigningCredentialType,
+} from "@hyperledger/cactus-plugin-ledger-connector-besu";
+import { PluginRegistry } from "@hyperledger/cactus-core";
+import { PluginOdapGateway } from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { knexClientConnection, knexServerConnection } from "../knex.config";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -42,10 +50,14 @@ export class CbdcBridgingAppDummyInfrastructure {
   // TODO: Move this to the FabricTestLedger class where it belongs.
   public static readonly FABRIC_2_AIO_CLI_CFG_DIR =
     "/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/";
-  //public readonly xdai: OpenEthereumTestLedger;
+
+  public readonly besu: BesuTestLedger;
   public readonly fabric: FabricTestLedgerV1;
-  private readonly log: Logger;
   private readonly keychain: PluginKeychainMemory;
+
+  private _besuAccount?: Account;
+
+  private readonly log: Logger;
   // private _xdaiAccount: Account | undefined;
 
   // public get xdaiAccount(): Optional<Account> {
@@ -54,6 +66,14 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public get className(): string {
     return CbdcBridgingAppDummyInfrastructure.CLASS_NAME;
+  }
+
+  public get besuAccount(): Account {
+    if (!this._besuAccount) {
+      throw new Error(`Besu account not defined yet.`);
+    } else {
+      return this._besuAccount;
+    }
   }
 
   public get orgCfgDir(): string {
@@ -103,12 +123,15 @@ export class CbdcBridgingAppDummyInfrastructure {
 
     const level = this.options.logLevel || "INFO";
     const label = this.className;
-    this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.keychain = options.keychain;
-    // this.xdai = new OpenEthereumTestLedger({
-    //   logLevel: this.options.logLevel || "INFO",
-    // });
+    this.log = LoggerProvider.getOrCreate({ level, label });
+
+    this.besu = new BesuTestLedger({
+      logLevel: level || "INFO",
+      emitContainerLogs: true,
+    });
+
     this.fabric = new FabricTestLedgerV1({
       publishAllPorts: true,
       imageName: "ghcr.io/hyperledger/cactus-fabric2-all-in-one",
@@ -121,7 +144,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     try {
       this.log.info(`Stopping...`);
       await Promise.all([
-        //this.xdai.stop().then(() => this.xdai.destroy()),
+        this.besu.stop().then(() => this.besu.destroy()),
         this.fabric.stop().then(() => this.fabric.destroy()),
       ]);
       this.log.info(`Stopped OK`);
@@ -134,7 +157,7 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async start(): Promise<void> {
     try {
       this.log.info(`Starting dummy infrastructure...`);
-      await Promise.all([/*this.xdai.start(), */ this.fabric.start()]);
+      await Promise.all([this.besu.start(), this.fabric.start()]);
       this.log.info(`Started dummy infrastructure OK`);
     } catch (ex) {
       this.log.error(`Starting of dummy infrastructure crashed: `, ex);
@@ -142,60 +165,129 @@ export class CbdcBridgingAppDummyInfrastructure {
     }
   }
 
+  public async createFabricLedgerConnector(): Promise<
+    PluginLedgerConnectorFabric
+  > {
+    const connectionProfile = await this.fabric.getConnectionProfileOrg1();
+    const sshConfig = await this.fabric.getSshConfig();
+    const enrollAdminOut = await this.fabric.enrollAdmin();
+    const adminWallet = enrollAdminOut[1];
+    const [userIdentity] = await this.fabric.enrollUser(adminWallet);
+    const keychainEntryKey = "fabric_user2";
+    const keychainEntryValue = JSON.stringify(userIdentity);
+    await this.keychain.set(keychainEntryKey, keychainEntryValue);
+
+    const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
+
+    this.log.info(`Creating Fabric Connector...`);
+    return new PluginLedgerConnectorFabric({
+      instanceId: uuidv4(),
+      dockerBinary: "/usr/local/bin/docker",
+      peerBinary: "/fabric-samples/bin/peer",
+      goBinary: "/usr/local/go/bin/go",
+      pluginRegistry,
+      cliContainerEnv: this.org1Env,
+      sshConfig,
+      connectionProfile,
+      logLevel: this.options.logLevel || "INFO",
+      discoveryOptions: {
+        enabled: true,
+        asLocalhost: true,
+      },
+      eventHandlerOptions: {
+        strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
+        commitTimeout: 300,
+      },
+    });
+  }
+
+  public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
+    this._besuAccount = await this.besu.createEthTestAccount(2000000);
+    const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
+    const rpcApiWsHost = await this.besu.getRpcApiWsHost();
+
+    const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
+
+    this.log.info(`Creating Besu Connector...`);
+    return new PluginLedgerConnectorBesu({
+      instanceId: "PluginLedgerConnectorBesu_Contract_Deployment",
+      rpcApiHttpHost,
+      rpcApiWsHost,
+      logLevel: this.options.logLevel,
+      pluginRegistry,
+    });
+  }
+
+  public async createClientGateway(
+    nodeApiHost: string,
+  ): Promise<PluginOdapGateway> {
+    this.log.info(`Creating Source Gateway...`);
+    return new PluginOdapGateway({
+      name: "cactus-plugin-source#odapGateway",
+      dltIDs: ["DLT2"],
+      instanceId: uuidv4(),
+      ipfsPath: "localhost:4334",
+      fabricPath: nodeApiHost,
+      fabricSigningCredential: {
+        keychainId: this.keychain.getInstanceId(),
+        keychainRef: "user_fabric2",
+      },
+      fabricChannelName: "channel1",
+      fabricContractName: "contract1",
+      fabricAssetID: uuidv4(),
+      knexConfig: knexClientConnection,
+    });
+  }
+
+  public async createServerGateway(
+    nodeApiHost: string,
+  ): Promise<PluginOdapGateway> {
+    const besuWeb3SigningCredential = {
+      ethAccount: this.besuAccount,
+      secret: this.besuAccount.privateKey,
+      type: Web3SigningCredentialType.PrivateKeyHex,
+    };
+
+    this.log.info(`Creating Target Gateway...`);
+    return new PluginOdapGateway({
+      name: "cactus-plugin-recipient#odapGateway",
+      dltIDs: ["DLT1"],
+      instanceId: uuidv4(),
+      ipfsPath: "localhost:4334",
+      besuAssetID: uuidv4(),
+      besuPath: nodeApiHost,
+      besuWeb3SigningCredential: besuWeb3SigningCredential,
+      besuContractName: "contract1",
+      besuKeychainId: this.keychain.getKeychainId(),
+      knexConfig: knexServerConnection,
+    });
+  }
+
   public async deployFabricContracts(
-    keychainPlugin: PluginKeychainMemory,
     fabricPlugin: PluginLedgerConnectorFabric,
   ): Promise<void> {
     try {
       this.log.info(`Deploying smart contracts...`);
 
       const ccVersion = "1.0.0";
-      const ccName = "utility-emissions-channel";
+      const ccName = "assetTransfer";
       const ccLabel = `${ccName}_${ccVersion}`;
       const channelId = "mychannel";
 
-      const contractRelPath = "../../../utility-emissions-channel/typescript/";
+      const contractRelPath =
+        "../../../fabric-contracts/lock-asset/chaincode-typescript";
       this.log.debug("__dirname: %o", __dirname);
       this.log.debug("contractRelPath: %o", contractRelPath);
       const contractDir = path.join(__dirname, contractRelPath);
       this.log.debug("contractDir: %o", contractDir);
 
-      // const orgCfgDir = "/fabric-samples/test-network/organizations/";
-      // This is the directory structure of the Fabirc 2.x CLI container (fabric-tools image)
-      // const orgCfgDir =
-      //   "/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/";
-
-      // .
-      // ├── Dockerfile
       // ├── package.json
       // ├── src
-      // │   ├── index.ts
-      // │   ├── lib
-      // │   │   ├── emissions-calc.ts
-      // │   │   ├── emissionsRecordContract.ts
-      // │   │   ├── emissions.ts
-      // │   │   ├── utilityEmissionsFactor.ts
-      // │   │   └── utilityLookupItem.ts
-      // │   └── util
-      // │       ├── const.ts
-      // │       ├── state.ts
-      // │       ├── util.ts
-      // │       └── worldstate.ts
-      // ├── test
-      // │   └── lib
-      // └── tsconfig.json
+      // │   ├── assetTransfer.ts
+      // │   ├── asset.ts
+      // │   └── index.ts
+      // ├── tsconfig.json
       const sourceFiles: FileBase64[] = [];
-      {
-        const filename = "./index.ts";
-        const relativePath = "./src/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
       {
         const filename = "./tsconfig.json";
         const relativePath = "./";
@@ -219,8 +311,8 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
       {
-        const filename = "./worldstate.ts";
-        const relativePath = "./src/util/";
+        const filename = "./index.ts";
+        const relativePath = "./src/";
         const filePath = path.join(contractDir, relativePath, filename);
         const buffer = await fs.readFile(filePath);
         sourceFiles.push({
@@ -230,8 +322,8 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
       {
-        const filename = "./util.ts";
-        const relativePath = "./src/util/";
+        const filename = "./asset.ts";
+        const relativePath = "./src/";
         const filePath = path.join(contractDir, relativePath, filename);
         const buffer = await fs.readFile(filePath);
         sourceFiles.push({
@@ -241,74 +333,8 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
       {
-        const filename = "./state.ts";
-        const relativePath = "./src/util/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./const.ts";
-        const relativePath = "./src/util/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./utilityLookupItem.ts";
-        const relativePath = "./src/lib/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./utilityEmissionsFactor.ts";
-        const relativePath = "./src/lib/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./emissions.ts";
-        const relativePath = "./src/lib/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./emissionsRecordContract.ts";
-        const relativePath = "./src/lib/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./emissions-calc.ts";
-        const relativePath = "./src/lib/";
+        const filename = "./assetTransfer.ts";
+        const relativePath = "./src/";
         const filePath = path.join(contractDir, relativePath, filename);
         const buffer = await fs.readFile(filePath);
         sourceFiles.push({

@@ -979,7 +979,7 @@ export interface RecoverV1Message {
      * @type {string}
      * @memberof RecoverV1Message
      */
-    lastLogEntryTimestamp?: string;
+    lastLogEntryTimestamp: string;
     /**
      * 
      * @type {boolean}

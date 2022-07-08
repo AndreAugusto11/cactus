@@ -1,36 +1,31 @@
 import { AddressInfo } from "net";
 import { Server } from "http";
 import { Server as SecureServer } from "https";
-
 import { v4 as uuidv4 } from "uuid";
 import exitHook, { IAsyncExitHookDoneCallback } from "async-exit-hook";
-
 import { PluginRegistry } from "@hyperledger/cactus-core";
-//import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes";
-
 import {
   LogLevelDesc,
   Logger,
   LoggerProvider,
   Servers,
 } from "@hyperledger/cactus-common";
-
 import {
   ApiServer,
+  AuthorizationProtocol,
   ConfigService,
   // Configuration,
   ICactusApiServerOptions,
 } from "@hyperledger/cactus-cmd-api-server";
-
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
-
-import {
-  PluginLedgerConnectorFabric,
-  // DefaultApi as FabricApi,
-  DefaultEventHandlerStrategy,
-} from "@hyperledger/cactus-plugin-ledger-connector-fabric";
-
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
+// import {
+//   DefaultApi as FabricApi,
+//   FabricSigningCredential,
+// } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+// import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
+// import { PluginOdapGateway } from "../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+// import { knexClientConnection, knexServerConnection } from "./knex.config";
 
 export interface ICbdcBridgingApp {
   logLevel?: LogLevelDesc;
@@ -46,7 +41,7 @@ export type ShutdownHook = () => Promise<void>;
 export class CbdcBridgingApp {
   private readonly log: Logger;
   private readonly shutdownHooks: ShutdownHook[];
-  private readonly ledgers: CbdcBridgingAppDummyInfrastructure;
+  private readonly infrastructure: CbdcBridgingAppDummyInfrastructure;
   private readonly keychainId: string;
   private readonly keychain: PluginKeychainMemory;
 
@@ -56,13 +51,13 @@ export class CbdcBridgingApp {
     if (!options) {
       throw new Error(`${fnTag} options parameter is falsy`);
     }
-    const { logLevel, keychainId } = options;
+    const { logLevel } = options;
 
     const level = logLevel || "INFO";
     const label = "cbdc-bridging-app";
     this.log = LoggerProvider.getOrCreate({ level, label });
 
-    this.keychainId = keychainId || uuidv4();
+    this.keychainId = options.keychainId || uuidv4();
 
     this.shutdownHooks = [];
     this.keychain =
@@ -72,8 +67,9 @@ export class CbdcBridgingApp {
         instanceId: uuidv4(),
         logLevel: logLevel || "INFO",
       });
+    this.log.info("KeychainID=%o", this.keychain.getKeychainId());
 
-    this.ledgers = new CbdcBridgingAppDummyInfrastructure({
+    this.infrastructure = new CbdcBridgingAppDummyInfrastructure({
       logLevel: logLevel || "INFO",
       keychain: this.keychain,
     });
@@ -89,19 +85,13 @@ export class CbdcBridgingApp {
       this.log.debug(`Registered signal handlers for graceful auto-shutdown`);
     }
 
-    await this.ledgers.start();
-    this.onShutdown(() => this.ledgers.stop());
+    await this.infrastructure.start();
+    this.onShutdown(() => this.infrastructure.stop());
 
-    //const xdaiAccount = await this.ledgers.xdai.createEthTestAccount();
+    const fabricPlugin = await this.infrastructure.createFabricLedgerConnector();
+    const besuPlugin = await this.infrastructure.createBesuLedgerConnector();
 
-    const sshConfig = await this.ledgers.fabric.getSshConfig();
-    const connectionProfile = await this.ledgers.fabric.getConnectionProfileOrg1();
-    const enrollAdminOut = await this.ledgers.fabric.enrollAdmin();
-    const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await this.ledgers.fabric.enrollUser(adminWallet);
-    const keychainEntryKey = "fabric_user2";
-    const keychainEntryValue = JSON.stringify(userIdentity);
-    await this.keychain.set(keychainEntryKey, keychainEntryValue);
+    await this.infrastructure.deployFabricContracts(fabricPlugin);
 
     let httpApi;
     if (this.options.httpApi) {
@@ -117,66 +107,28 @@ export class CbdcBridgingApp {
       httpGui = await Servers.startOnPort(3000, "0.0.0.0");
     }
 
-    // const addressInfo = httpApi.address() as AddressInfo;
-    // const nodeApiHost = `http://localhost:${addressInfo.port}`;
+    const addressInfo = httpApi.address() as AddressInfo;
+    const nodeApiHost = `http://localhost:${addressInfo.port}`;
 
     // const config = new Configuration({ basePath: nodeApiHost });
 
-    //const xdaiApiClient = new XdaiApi(config);
+    // const besuApiClient = new BesuApi(config);
     // const fabricApiClient = new FabricApi(config);
 
-    this.log.info(`Configuring Cactus Node for Ledger A...`);
-    // const rpcApiHostA = await this.ledgers.xdai.getRpcApiHttpHost();
+    const odapClientPlugin = await this.infrastructure.createClientGateway(
+      nodeApiHost,
+    );
 
-    // await this.keychain.set(xdaiAccount.address, xdaiAccount.privateKey);
+    const odapServerPlugin = await this.infrastructure.createServerGateway(
+      nodeApiHost,
+    );
 
     const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
 
-    this.log.info(`Creating Fabric Connector...`);
-    const fabricPlugin = new PluginLedgerConnectorFabric({
-      instanceId: uuidv4(),
-      dockerBinary: "/usr/local/bin/docker",
-      peerBinary: "/fabric-samples/bin/peer",
-      goBinary: "/usr/local/go/bin/go",
-      pluginRegistry,
-      cliContainerEnv: this.ledgers.org1Env,
-      sshConfig,
-      connectionProfile,
-      logLevel: this.options.logLevel || "INFO",
-      discoveryOptions: {
-        enabled: true,
-        asLocalhost: true,
-      },
-      eventHandlerOptions: {
-        strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
-        commitTimeout: 300,
-      },
-    });
-
-    // const fabricContracts = await this.ledgers.deployFabricContracts(
-    //   this.keychain,
-    //   fabricPlugin,
-    // );
-
-    // const businessLogicPluginODAP1 = new PluginOdapGateway({
-    //   name: "cactus-plugin#odapGateway",
-    //   dltIDs: ["DLT2"],
-    //   instanceId: uuidv4(),
-    //   ipfsPath: ipfsApiHost,
-    //   fabricPath: fabricApiClient,
-    //   fabricSigningCredential: {
-    //     keychainId: this.keychainId,
-    //     keychainEntryKey
-    //   },
-    //   fabricChannelName: fabricChannelName,
-    //   fabricContractName: fabricContractName,
-    //   fabricAssetID: FABRIC_ASSET_ID,
-    //   knexConfig: knexClientConnection,
-    // });
-
-    //pluginRegistry.add(xdaiPlugin);
+    pluginRegistry.add(besuPlugin);
     pluginRegistry.add(fabricPlugin);
-    // pluginRegistry.add(businessLogicPluginODAP1);
+    pluginRegistry.add(odapClientPlugin);
+    pluginRegistry.add(odapServerPlugin);
 
     await this.startNode(httpApi, httpGui, pluginRegistry);
   }
@@ -216,6 +168,7 @@ export class CbdcBridgingApp {
       config.cockpitPort = addressInfoCockpit.port;
       config.grpcPort = 0; // TODO - make this configurable as well
       config.logLevel = this.options.logLevel || "INFO";
+      config.authorizationProtocol = AuthorizationProtocol.NONE;
     }
 
     const apiServer = new ApiServer({
