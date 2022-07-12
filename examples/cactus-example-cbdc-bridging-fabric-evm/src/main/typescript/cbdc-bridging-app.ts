@@ -14,18 +14,13 @@ import {
   ApiServer,
   AuthorizationProtocol,
   ConfigService,
-  // Configuration,
+  Configuration,
   ICactusApiServerOptions,
 } from "@hyperledger/cactus-cmd-api-server";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
-// import {
-//   DefaultApi as FabricApi,
-//   FabricSigningCredential,
-// } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
-// import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-// import { PluginOdapGateway } from "../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
-// import { knexClientConnection, knexServerConnection } from "./knex.config";
+import { DefaultApi as FabricApi } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 
 export interface ICbdcBridgingApp {
   logLevel?: LogLevelDesc;
@@ -41,7 +36,7 @@ export type ShutdownHook = () => Promise<void>;
 export class CbdcBridgingApp {
   private readonly log: Logger;
   private readonly shutdownHooks: ShutdownHook[];
-  private readonly infrastructure: CbdcBridgingAppDummyInfrastructure;
+  readonly infrastructure: CbdcBridgingAppDummyInfrastructure;
   private readonly keychainId: string;
   private readonly keychain: PluginKeychainMemory;
 
@@ -75,7 +70,7 @@ export class CbdcBridgingApp {
     });
   }
 
-  public async start(): Promise<void> {
+  public async start(): Promise<IStartInfo> {
     this.log.debug(`Starting CBDC Bridging App...`);
 
     if (!this.options.disableSignalHandlers) {
@@ -110,27 +105,30 @@ export class CbdcBridgingApp {
     const addressInfo = httpApi.address() as AddressInfo;
     const nodeApiHost = `http://localhost:${addressInfo.port}`;
 
-    // const config = new Configuration({ basePath: nodeApiHost });
-
-    // const besuApiClient = new BesuApi(config);
-    // const fabricApiClient = new FabricApi(config);
-
     const odapClientPlugin = await this.infrastructure.createClientGateway(
       nodeApiHost,
     );
 
-    const odapServerPlugin = await this.infrastructure.createServerGateway(
-      nodeApiHost,
-    );
+    // const odapServerPlugin = await this.infrastructure.createServerGateway(
+    //   nodeApiHost,
+    // );
 
     const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
 
     pluginRegistry.add(besuPlugin);
     pluginRegistry.add(fabricPlugin);
     pluginRegistry.add(odapClientPlugin);
-    pluginRegistry.add(odapServerPlugin);
+    // pluginRegistry.add(odapServerPlugin);
 
-    await this.startNode(httpApi, httpGui, pluginRegistry);
+    const apiServer = await this.startNode(httpApi, httpGui, pluginRegistry);
+
+    return {
+      apiServer,
+      besuApiClient: new BesuApi(new Configuration({ basePath: nodeApiHost })),
+      fabricApiClient: new FabricApi(
+        new Configuration({ basePath: nodeApiHost }),
+      ),
+    };
   }
 
   public async stop(): Promise<void> {
@@ -184,4 +182,10 @@ export class CbdcBridgingApp {
 
     return apiServer;
   }
+}
+
+export interface IStartInfo {
+  readonly apiServer: ApiServer;
+  readonly besuApiClient: BesuApi;
+  readonly fabricApiClient: FabricApi;
 }
