@@ -33,7 +33,7 @@
       "path": "../../packages/cactus-plugin-ledger-connector-besu/tsconfig.json"
     },
     {
-      "path": "../../packages/cactus-plugin-odap-hermes"
+      "path": "../../packages/cactus-plugin-odap-hermes/tsconfig.json"
     },
     {
       "path": "../../packages/cactus-test-tooling/tsconfig.json"
@@ -41,6 +41,7 @@
   ],
   "include": [
     "./src",
+    "src/**/*.json"
   ],
   "exclude": [
   ]

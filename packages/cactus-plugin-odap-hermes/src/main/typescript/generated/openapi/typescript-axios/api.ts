@@ -330,7 +330,7 @@ export interface CommitFinalV1Response {
      * @type {string}
      * @memberof CommitFinalV1Response
      */
-    clientIdentityPubkey?: string;
+    clientIdentityPubkey: string;
     /**
      * 
      * @type {string}
@@ -1826,7 +1826,7 @@ export interface TransferInitializationV1Request {
      * @type {string}
      * @memberof TransferInitializationV1Request
      */
-    sourceGatewayPath?: string;
+    sourceBasePath: string;
     /**
      * 
      * @type {string}

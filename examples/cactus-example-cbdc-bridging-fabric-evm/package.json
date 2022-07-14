@@ -58,6 +58,7 @@
     "@hyperledger/cactus-plugin-ledger-connector-fabric": "1.0.0",
     "@hyperledger/cactus-plugin-ledger-connector-xdai": "1.0.0",
     "@hyperledger/cactus-test-tooling": "1.0.0",
+    "@hyperledger/cactus-plugin-odap-hermes": "1.0.0",
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.4.2",
     "async-exit-hook": "2.0.1",

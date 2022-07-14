@@ -75,7 +75,7 @@
         "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
       },
       "args": [
-        "../cactus-example-cbdc-bridging-fabric-evm/src/main/typescript/cbdc-bridging-app-cli.ts",
+        "${workspaceFolder}/examples/cactus-example-cbdc-bridging-fabric-evm/src/main/typescript/cbdc-bridging-app-cli.ts",
         "dotenv_config_path=process.env"
       ],
       "runtimeArgs": [
@@ -86,7 +86,6 @@
       ],
       "console": "integratedTerminal",
       "sourceMaps": true,
-      "cwd": "${workspaceFolder}/examples/supply-chain-app/",
       "outFiles": [
         "${workspaceFolder}/**/*.js",
         "!**/node_modules/**"

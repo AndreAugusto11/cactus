@@ -6,6 +6,7 @@ import {
   IPluginOdapGatewayConstructorOptions,
   PluginOdapGateway,
 } from "./plugin-odap-gateway";
+
 export class PluginFactoryOdapGateway extends PluginFactory<
   PluginOdapGateway,
   IPluginOdapGatewayConstructorOptions,

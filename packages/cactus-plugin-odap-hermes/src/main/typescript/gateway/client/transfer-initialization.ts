@@ -29,6 +29,7 @@ export async function sendTransferInitializationRequest(
     sessionData.maxTimeout == undefined ||
     sessionData.payloadProfile == undefined ||
     sessionData.loggingProfile == undefined ||
+    sessionData.sourceBasePath == undefined ||
     sessionData.recipientBasePath == undefined ||
     sessionData.accessControlProfile == undefined ||
     sessionData.applicationProfile == undefined ||
@@ -63,7 +64,7 @@ export async function sendTransferInitializationRequest(
     recipientGatewayPubkey: sessionData.recipientGatewayPubkey,
     recipientGatewayDltSystem: sessionData.recipientGatewayDltSystem,
     sequenceNumber: sessionData.lastSequenceNumber,
-    sourceGatewayPath: sessionData.sourceBasePath,
+    sourceBasePath: sessionData.sourceBasePath,
     recipientBasePath: sessionData.recipientBasePath,
     // escrow type
     // expiry time (related to the escrow)

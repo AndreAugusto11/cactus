@@ -1,8 +1,8 @@
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs-extra";
-// import { Optional } from "typescript-optional";
 import { Account } from "web3-core";
+import { create } from "ipfs-http-client";
 import {
   Logger,
   Checks,
@@ -12,6 +12,7 @@ import {
 import {
   BesuTestLedger,
   FabricTestLedgerV1,
+  GoIpfsTestContainer,
 } from "@hyperledger/cactus-test-tooling";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
@@ -20,14 +21,22 @@ import {
   DeploymentTargetOrgFabric2x,
   FileBase64,
   PluginLedgerConnectorFabric,
+  DefaultApi as FabricApi,
+  FabricContractInvocationType,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import {
   PluginLedgerConnectorBesu,
+  Web3SigningCredential,
   Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
-import { PluginOdapGateway } from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import {
+  IOdapGatewayKeyPairs,
+  PluginOdapGateway,
+} from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
+import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
+import LockAssetContractJson from "../../solidity/lock-asset-contract/LockAsset.json";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -53,27 +62,18 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public readonly besu: BesuTestLedger;
   public readonly fabric: FabricTestLedgerV1;
+  public readonly ipfs: GoIpfsTestContainer;
   private readonly keychain: PluginKeychainMemory;
+  private readonly fabricAssetId: string;
+  private readonly ipfsParentPath: string;
+  private besuWeb3SigningCredential?: Web3SigningCredential;
 
-  private _besuAccount?: Account;
+  private besuAccount?: Account;
 
   private readonly log: Logger;
-  // private _xdaiAccount: Account | undefined;
-
-  // public get xdaiAccount(): Optional<Account> {
-  //   return Optional.ofNullable(this._xdaiAccount);
-  // }
 
   public get className(): string {
     return CbdcBridgingAppDummyInfrastructure.CLASS_NAME;
-  }
-
-  public get besuAccount(): Account {
-    if (!this._besuAccount) {
-      throw new Error(`Besu account not defined yet.`);
-    } else {
-      return this._besuAccount;
-    }
   }
 
   public get orgCfgDir(): string {
@@ -125,6 +125,10 @@ export class CbdcBridgingAppDummyInfrastructure {
     const label = this.className;
 
     this.keychain = options.keychain;
+
+    this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
+    this.fabricAssetId = uuidv4();
+
     this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.besu = new BesuTestLedger({
@@ -138,6 +142,10 @@ export class CbdcBridgingAppDummyInfrastructure {
       envVars: new Map([["FABRIC_VERSION", "2.2.0"]]),
       logLevel: this.options.logLevel || "INFO",
     });
+
+    this.ipfs = new GoIpfsTestContainer({
+      logLevel: this.options.logLevel || "INFO",
+    });
   }
 
   public async stop(): Promise<void> {
@@ -146,6 +154,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       await Promise.all([
         this.besu.stop().then(() => this.besu.destroy()),
         this.fabric.stop().then(() => this.fabric.destroy()),
+        this.ipfs.stop().then(() => this.ipfs.destroy()),
       ]);
       this.log.info(`Stopped OK`);
     } catch (ex) {
@@ -157,7 +166,11 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async start(): Promise<void> {
     try {
       this.log.info(`Starting dummy infrastructure...`);
-      await Promise.all([this.besu.start(), this.fabric.start()]);
+      await Promise.all([
+        this.besu.start(),
+        this.fabric.start(),
+        this.ipfs.start(),
+      ]);
       this.log.info(`Started dummy infrastructure OK`);
     } catch (ex) {
       this.log.error(`Starting of dummy infrastructure crashed: `, ex);
@@ -169,15 +182,23 @@ export class CbdcBridgingAppDummyInfrastructure {
     PluginLedgerConnectorFabric
   > {
     const connectionProfile = await this.fabric.getConnectionProfileOrg1();
-    const sshConfig = await this.fabric.getSshConfig();
     const enrollAdminOut = await this.fabric.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
     const [userIdentity] = await this.fabric.enrollUser(adminWallet);
-    const keychainEntryKey = "fabric_user2";
-    const keychainEntryValue = JSON.stringify(userIdentity);
-    await this.keychain.set(keychainEntryKey, keychainEntryValue);
 
-    const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
+    const sshConfig = await this.fabric.getSshConfig();
+
+    const keychainEntryKey = "user_fabric2";
+    const keychainEntryValue = JSON.stringify(userIdentity);
+
+    const keychainPlugin = new PluginKeychainMemory({
+      instanceId: this.keychain.getInstanceId(),
+      keychainId: this.keychain.getKeychainId(),
+      logLevel: undefined,
+      backend: new Map([[keychainEntryKey, keychainEntryValue]]),
+    });
+
+    const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
 
     this.log.info(`Creating Fabric Connector...`);
     return new PluginLedgerConnectorFabric({
@@ -202,69 +223,111 @@ export class CbdcBridgingAppDummyInfrastructure {
   }
 
   public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
-    this._besuAccount = await this.besu.createEthTestAccount(2000000);
+    this.besuAccount = await this.besu.createEthTestAccount(2000000);
+
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
 
-    const pluginRegistry = new PluginRegistry({ plugins: [this.keychain] });
+    const keychainEntryKey = LockAssetContractJson.contractName;
+    const keychainEntryValue = JSON.stringify(LockAssetContractJson);
+
+    const keychainPlugin = new PluginKeychainMemory({
+      instanceId: this.keychain.getInstanceId(),
+      keychainId: this.keychain.getKeychainId(),
+      logLevel: undefined,
+      backend: new Map([[keychainEntryKey, keychainEntryValue]]),
+    });
+
+    const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
+
+    this.besuWeb3SigningCredential = {
+      ethAccount: this.besuAccount.address,
+      secret: this.besuAccount.privateKey,
+      type: Web3SigningCredentialType.PrivateKeyHex,
+    };
 
     this.log.info(`Creating Besu Connector...`);
-    return new PluginLedgerConnectorBesu({
+    const connectorBesu = new PluginLedgerConnectorBesu({
       instanceId: "PluginLedgerConnectorBesu_Contract_Deployment",
       rpcApiHttpHost,
       rpcApiWsHost,
       logLevel: this.options.logLevel,
       pluginRegistry,
     });
+
+    return connectorBesu;
+  }
+
+  public async createIPFSConnector(): Promise<PluginObjectStoreIpfs> {
+    this.log.info(`Creating Besu Connector...`);
+
+    const ipfsClientOrOptions = create({
+      url: await this.ipfs.getApiUrl(),
+    });
+
+    return new PluginObjectStoreIpfs({
+      parentDir: this.ipfsParentPath,
+      logLevel: this.options.logLevel,
+      instanceId: uuidv4(),
+      ipfsClientOrOptions,
+    });
   }
 
   public async createClientGateway(
     nodeApiHost: string,
+    keyPair: IOdapGatewayKeyPairs,
   ): Promise<PluginOdapGateway> {
     this.log.info(`Creating Source Gateway...`);
-    return new PluginOdapGateway({
+    const pluginSourceGateway = new PluginOdapGateway({
       name: "cactus-plugin-source#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
-      ipfsPath: "localhost:4334",
+      keyPair: keyPair,
+      ipfsPath: "http://localhost:4000",
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
-        keychainId: this.keychain.getInstanceId(),
+        keychainId: this.keychain.getKeychainId(),
         keychainRef: "user_fabric2",
       },
-      fabricChannelName: "channel1",
-      fabricContractName: "contract1",
-      fabricAssetID: uuidv4(),
+      fabricChannelName: "mychannel",
+      fabricContractName: "assetTransfer",
+      fabricAssetID: this.fabricAssetId,
       knexConfig: knexClientConnection,
     });
+
+    await pluginSourceGateway.database?.migrate.rollback();
+    await pluginSourceGateway.database?.migrate.latest();
+
+    return pluginSourceGateway;
   }
 
   public async createServerGateway(
     nodeApiHost: string,
+    keyPair: IOdapGatewayKeyPairs,
   ): Promise<PluginOdapGateway> {
-    const besuWeb3SigningCredential = {
-      ethAccount: this.besuAccount,
-      secret: this.besuAccount.privateKey,
-      type: Web3SigningCredentialType.PrivateKeyHex,
-    };
-
     this.log.info(`Creating Target Gateway...`);
-    return new PluginOdapGateway({
+    const pluginRecipientGateway = new PluginOdapGateway({
       name: "cactus-plugin-recipient#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
-      ipfsPath: "localhost:4334",
+      keyPair: keyPair,
+      ipfsPath: "http://localhost:4100",
       besuAssetID: uuidv4(),
       besuPath: nodeApiHost,
-      besuWeb3SigningCredential: besuWeb3SigningCredential,
-      besuContractName: "contract1",
+      besuWeb3SigningCredential: this.besuWeb3SigningCredential,
+      besuContractName: LockAssetContractJson.contractName,
       besuKeychainId: this.keychain.getKeychainId(),
       knexConfig: knexServerConnection,
     });
+
+    await pluginRecipientGateway.database?.migrate.rollback();
+    await pluginRecipientGateway.database?.migrate.latest();
+
+    return pluginRecipientGateway;
   }
 
   public async deployFabricContracts(
-    fabricPlugin: PluginLedgerConnectorFabric,
+    fabricApiClient: FabricApi,
   ): Promise<void> {
     try {
       this.log.info(`Deploying smart contracts...`);
@@ -344,7 +407,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
 
-      const res = await fabricPlugin.deployContract({
+      const res = await fabricApiClient.deployContractV1({
         channelId,
         ccVersion,
         sourceFiles,
@@ -359,7 +422,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         connTimeout: 60,
       });
 
-      const { packageIds, success } = res;
+      const { packageIds, success } = res.data;
       this.log.debug(`Success: %o`, success);
       this.log.debug(`Package IDs: %o`, packageIds);
 
@@ -368,5 +431,37 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.error(`Deployment of smart contracts crashed: `, ex);
       throw ex;
     }
+  }
+
+  public async createFabricAsset(fabricApiClient: FabricApi): Promise<void> {
+    await fabricApiClient.runTransactionV1({
+      contractName: "assetTransfer",
+      channelName: "mychannel",
+      params: [this.fabricAssetId, "19"],
+      methodName: "CreateAsset",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.keychain.getKeychainId(),
+        keychainRef: "user_fabric2",
+      },
+    });
+  }
+
+  public async deployBesuSmartContract(
+    besuConnector: PluginLedgerConnectorBesu,
+  ): Promise<void> {
+    if (!this.besuWeb3SigningCredential) {
+      throw new Error(`Besu account not defined yet.`);
+    }
+
+    await besuConnector.deployContract({
+      keychainId: this.keychain.getKeychainId(),
+      contractName: LockAssetContractJson.contractName,
+      contractAbi: LockAssetContractJson.abi,
+      constructorArgs: [],
+      web3SigningCredential: this.besuWeb3SigningCredential,
+      bytecode: LockAssetContractJson.bytecode,
+      gas: 1000000,
+    });
   }
 }

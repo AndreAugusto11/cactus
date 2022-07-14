@@ -1720,8 +1720,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
     let response = undefined;
 
     while (numberOfTries < sessionData.maxRetries) {
-      response = await request.catch(() => {
-        this.log.info(`${fnTag}, ${message} message failed. Trying again...`);
+      response = await request.catch((ex) => {
+        this.log.info(
+          `${fnTag}, ${message} message failed. Trying again...${ex}`,
+        );
         numberOfTries++;
       });
 

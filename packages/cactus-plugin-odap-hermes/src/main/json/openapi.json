@@ -461,7 +461,7 @@
                     "sequenceNumber":{
                         "type":"integer"
                     },
-                    "sourceGatewayPath": {
+                    "sourceBasePath": {
                         "type": "string"
                     },
                     "recipientBasePath": {
@@ -913,7 +913,7 @@
                 "required": [
                     "sessionID",
                     "messageType",
-                    "ClientIdentityPubkey",
+                    "clientIdentityPubkey",
                     "serverIdentityPubkey",
                     "commitAcknowledgementClaim",
                     "hashCommitFinal",
@@ -1061,7 +1061,6 @@
                     "serverIdentityPubkey",
                     "clientDltSystem",
                     "serverDltSystem",
-                    "serverGatewayInstanceID",
                     "clientGatewayConfiguration",
                     "serverGatewayConfiguration",
                     "maxRetries",

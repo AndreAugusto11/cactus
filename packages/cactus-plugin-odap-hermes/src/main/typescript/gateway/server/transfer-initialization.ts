@@ -163,7 +163,7 @@ async function storeSessionData(
   sessionData.allowedSourceBackupGateways = request.backupGatewaysAllowed;
   sessionData.allowedRecipientBackupGateways = odap.backupGatewaysAllowed;
 
-  sessionData.sourceBasePath = request.sourceGatewayPath;
+  sessionData.sourceBasePath = request.sourceBasePath;
   sessionData.recipientBasePath = request.recipientBasePath;
   sessionData.lastSequenceNumber = request.sequenceNumber;
   sessionData.loggingProfile = request.loggingProfile;

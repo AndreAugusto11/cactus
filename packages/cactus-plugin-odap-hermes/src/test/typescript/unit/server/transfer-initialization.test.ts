@@ -82,7 +82,7 @@ test("valid transfer initiation request", async () => {
     recipientGatewayDltSystem: "DLT2",
     sequenceNumber: sequenceNumber,
     recipientBasePath: "",
-    sourceGatewayPath: "",
+    sourceBasePath: "",
     backupGatewaysAllowed: [],
   };
 
@@ -148,7 +148,7 @@ test("transfer initiation request invalid because of incompatible DLTs", async (
     recipientGatewayDltSystem: "DLT1",
     sequenceNumber: sequenceNumber,
     recipientBasePath: "",
-    sourceGatewayPath: "",
+    sourceBasePath: "",
     backupGatewaysAllowed: [],
   };
 
@@ -196,7 +196,7 @@ test("transfer initiation request invalid because of asset expired", async () =>
     recipientGatewayDltSystem: "DLT2",
     sequenceNumber: sequenceNumber,
     recipientBasePath: "",
-    sourceGatewayPath: "",
+    sourceBasePath: "",
     backupGatewaysAllowed: [],
   };
 
