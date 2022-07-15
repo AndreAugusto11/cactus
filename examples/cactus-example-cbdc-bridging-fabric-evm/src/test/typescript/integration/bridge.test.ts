@@ -21,9 +21,8 @@ import {
 } from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/index";
 
 const API_HOST = "localhost";
-const CLIENT_GATEWAY_API_PORT = 4000;
-const SERVER_GATEWAY_API_PORT = 4100;
-const IPFS_API_PORT = 4200;
+const API_SERVER_1_PORT = 4000;
+const API_SERVER_2_PORT = 4100;
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -76,9 +75,8 @@ beforeAll(async () => {
 
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
-    clientGatewayApiPort: CLIENT_GATEWAY_API_PORT,
-    serverGatewayApiPort: SERVER_GATEWAY_API_PORT,
-    ipfsApiPort: IPFS_API_PORT,
+    apiServer1Port: API_SERVER_1_PORT,
+    apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
     logLevel,
@@ -100,17 +98,18 @@ test("infrastructure is set up correctly", async () => {
     apiServer2,
     odapClientApi,
     odapServerApi,
-    // ipfsApiClient,
+    ipfsApiClient,
     besuApiClient,
     fabricApiClient,
   } = startResult;
+
   Checks.truthy(apiServer1, "ApiServer1 truthy OK");
   Checks.truthy(apiServer2, "ApiServer2 truthy OK");
 
   Checks.truthy(odapClientApi, "OdapClientApi truthy OK");
   Checks.truthy(odapServerApi, "OdapServerApi truthy OK");
 
-  // Checks.truthy(ipfsApiClient, "OdapServerApi truthy OK");
+  Checks.truthy(ipfsApiClient, "OdapServerApi truthy OK");
 
   Checks.truthy(besuApiClient, "BesuApiClient truthy OK");
   Checks.truthy(fabricApiClient, "FabricApiClient truthy OK");
@@ -148,10 +147,10 @@ test("transfer asset correctly from fabric to besu", async () => {
 
   const odapClientRequest: ClientV1Request = {
     clientGatewayConfiguration: {
-      apiHost: "http://" + API_HOST + ":" + CLIENT_GATEWAY_API_PORT,
+      apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
     },
     serverGatewayConfiguration: {
-      apiHost: "http://" + API_HOST + ":" + SERVER_GATEWAY_API_PORT,
+      apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
     },
     version: "0.0.0",
     loggingProfile: "dummyLoggingProfile",
@@ -178,12 +177,8 @@ test("transfer asset correctly from fabric to besu", async () => {
     maxTimeout: MAX_TIMEOUT,
   };
 
-  try {
-    await odapClientApi.clientRequestV1(odapClientRequest);
-  } catch (ex) {
-    console.log(ex);
-  }
-  await new Promise((f) => setTimeout(f, 1000));
+  const res = await odapClientApi.clientRequestV1(odapClientRequest);
+  expect(res.status).toBe(200);
 });
 
 afterAll(async () => {

@@ -1,7 +1,6 @@
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs-extra";
-import { Account } from "web3-core";
 import { create } from "ipfs-http-client";
 import {
   Logger,
@@ -40,7 +39,8 @@ import LockAssetContractJson from "../../solidity/lock-asset-contract/LockAsset.
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
-  keychain: PluginKeychainMemory;
+  apiServer1Keychain: PluginKeychainMemory;
+  apiServer2Keychain: PluginKeychainMemory;
 }
 
 /**
@@ -63,12 +63,11 @@ export class CbdcBridgingAppDummyInfrastructure {
   public readonly besu: BesuTestLedger;
   public readonly fabric: FabricTestLedgerV1;
   public readonly ipfs: GoIpfsTestContainer;
-  private readonly keychain: PluginKeychainMemory;
+  private readonly apiServer1Keychain: PluginKeychainMemory;
+  private readonly apiServer2Keychain: PluginKeychainMemory;
   private readonly fabricAssetId: string;
   private readonly ipfsParentPath: string;
   private besuWeb3SigningCredential?: Web3SigningCredential;
-
-  private besuAccount?: Account;
 
   private readonly log: Logger;
 
@@ -78,6 +77,42 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public get orgCfgDir(): string {
     return CbdcBridgingAppDummyInfrastructure.FABRIC_2_AIO_CLI_CFG_DIR;
+  }
+
+  constructor(
+    public readonly options: ICbdcBridgingAppDummyInfrastructureOptions,
+  ) {
+    const fnTag = `${this.className}#constructor()`;
+    Checks.truthy(options, `${fnTag} arg options`);
+    Checks.truthy(options.apiServer1Keychain, `${fnTag} arg options,keychain1`);
+    Checks.truthy(options.apiServer2Keychain, `${fnTag} arg options,keychain2`);
+
+    const level = this.options.logLevel || "INFO";
+    const label = this.className;
+
+    this.apiServer1Keychain = options.apiServer1Keychain;
+    this.apiServer2Keychain = options.apiServer2Keychain;
+
+    this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
+    this.fabricAssetId = uuidv4();
+
+    this.log = LoggerProvider.getOrCreate({ level, label });
+
+    this.besu = new BesuTestLedger({
+      logLevel: level || "INFO",
+      emitContainerLogs: true,
+    });
+
+    this.fabric = new FabricTestLedgerV1({
+      publishAllPorts: true,
+      imageName: "ghcr.io/hyperledger/cactus-fabric2-all-in-one",
+      envVars: new Map([["FABRIC_VERSION", "2.2.0"]]),
+      logLevel: level || "INFO",
+    });
+
+    this.ipfs = new GoIpfsTestContainer({
+      logLevel: level || "INFO",
+    });
   }
 
   public get org1Env(): NodeJS.ProcessEnv & DeploymentTargetOrgFabric2x {
@@ -114,38 +149,19 @@ export class CbdcBridgingAppDummyInfrastructure {
     };
   }
 
-  constructor(
-    public readonly options: ICbdcBridgingAppDummyInfrastructureOptions,
-  ) {
-    const fnTag = `${this.className}#constructor()`;
-    Checks.truthy(options, `${fnTag} arg options`);
-    Checks.truthy(options.keychain, `${fnTag} arg options,keychain`);
-
-    const level = this.options.logLevel || "INFO";
-    const label = this.className;
-
-    this.keychain = options.keychain;
-
-    this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
-    this.fabricAssetId = uuidv4();
-
-    this.log = LoggerProvider.getOrCreate({ level, label });
-
-    this.besu = new BesuTestLedger({
-      logLevel: level || "INFO",
-      emitContainerLogs: true,
-    });
-
-    this.fabric = new FabricTestLedgerV1({
-      publishAllPorts: true,
-      imageName: "ghcr.io/hyperledger/cactus-fabric2-all-in-one",
-      envVars: new Map([["FABRIC_VERSION", "2.2.0"]]),
-      logLevel: this.options.logLevel || "INFO",
-    });
-
-    this.ipfs = new GoIpfsTestContainer({
-      logLevel: this.options.logLevel || "INFO",
-    });
+  public async start(): Promise<void> {
+    try {
+      this.log.info(`Starting dummy infrastructure...`);
+      await Promise.all([
+        this.besu.start(),
+        this.fabric.start(),
+        this.ipfs.start(),
+      ]);
+      this.log.info(`Started dummy infrastructure OK`);
+    } catch (ex) {
+      this.log.error(`Starting of dummy infrastructure crashed: `, ex);
+      throw ex;
+    }
   }
 
   public async stop(): Promise<void> {
@@ -159,21 +175,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.info(`Stopped OK`);
     } catch (ex) {
       this.log.error(`Stopping crashed: `, ex);
-      throw ex;
-    }
-  }
-
-  public async start(): Promise<void> {
-    try {
-      this.log.info(`Starting dummy infrastructure...`);
-      await Promise.all([
-        this.besu.start(),
-        this.fabric.start(),
-        this.ipfs.start(),
-      ]);
-      this.log.info(`Started dummy infrastructure OK`);
-    } catch (ex) {
-      this.log.error(`Starting of dummy infrastructure crashed: `, ex);
       throw ex;
     }
   }
@@ -192,8 +193,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     const keychainEntryValue = JSON.stringify(userIdentity);
 
     const keychainPlugin = new PluginKeychainMemory({
-      instanceId: this.keychain.getInstanceId(),
-      keychainId: this.keychain.getKeychainId(),
+      instanceId: this.apiServer1Keychain.getInstanceId(),
+      keychainId: this.apiServer1Keychain.getKeychainId(),
       logLevel: undefined,
       backend: new Map([[keychainEntryKey, keychainEntryValue]]),
     });
@@ -223,7 +224,7 @@ export class CbdcBridgingAppDummyInfrastructure {
   }
 
   public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
-    this.besuAccount = await this.besu.createEthTestAccount(2000000);
+    const besuAccount = await this.besu.createEthTestAccount(2000000);
 
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
@@ -232,8 +233,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     const keychainEntryValue = JSON.stringify(LockAssetContractJson);
 
     const keychainPlugin = new PluginKeychainMemory({
-      instanceId: this.keychain.getInstanceId(),
-      keychainId: this.keychain.getKeychainId(),
+      instanceId: this.apiServer2Keychain.getInstanceId(),
+      keychainId: this.apiServer2Keychain.getKeychainId(),
       logLevel: undefined,
       backend: new Map([[keychainEntryKey, keychainEntryValue]]),
     });
@@ -241,8 +242,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
 
     this.besuWeb3SigningCredential = {
-      ethAccount: this.besuAccount.address,
-      secret: this.besuAccount.privateKey,
+      ethAccount: besuAccount.address,
+      secret: besuAccount.privateKey,
       type: Web3SigningCredentialType.PrivateKeyHex,
     };
 
@@ -276,6 +277,7 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createClientGateway(
     nodeApiHost: string,
     keyPair: IOdapGatewayKeyPairs,
+    ipfsPath: string,
   ): Promise<PluginOdapGateway> {
     this.log.info(`Creating Source Gateway...`);
     const pluginSourceGateway = new PluginOdapGateway({
@@ -283,10 +285,10 @@ export class CbdcBridgingAppDummyInfrastructure {
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
       keyPair: keyPair,
-      ipfsPath: "http://localhost:4000",
+      ipfsPath: ipfsPath,
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
-        keychainId: this.keychain.getKeychainId(),
+        keychainId: this.apiServer1Keychain.getKeychainId(),
         keychainRef: "user_fabric2",
       },
       fabricChannelName: "mychannel",
@@ -304,19 +306,20 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createServerGateway(
     nodeApiHost: string,
     keyPair: IOdapGatewayKeyPairs,
+    ipfsPath: string,
   ): Promise<PluginOdapGateway> {
-    this.log.info(`Creating Target Gateway...`);
+    this.log.info(`Creating Recipient Gateway...`);
     const pluginRecipientGateway = new PluginOdapGateway({
       name: "cactus-plugin-recipient#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
       keyPair: keyPair,
-      ipfsPath: "http://localhost:4100",
+      ipfsPath: ipfsPath,
       besuAssetID: uuidv4(),
       besuPath: nodeApiHost,
       besuWeb3SigningCredential: this.besuWeb3SigningCredential,
       besuContractName: LockAssetContractJson.contractName,
-      besuKeychainId: this.keychain.getKeychainId(),
+      besuKeychainId: this.apiServer2Keychain.getKeychainId(),
       knexConfig: knexServerConnection,
     });
 
@@ -441,7 +444,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       methodName: "CreateAsset",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: this.keychain.getKeychainId(),
+        keychainId: this.apiServer1Keychain.getKeychainId(),
         keychainRef: "user_fabric2",
       },
     });
@@ -455,7 +458,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     }
 
     await besuConnector.deployContract({
-      keychainId: this.keychain.getKeychainId(),
+      keychainId: this.apiServer2Keychain.getKeychainId(),
       contractName: LockAssetContractJson.contractName,
       contractAbi: LockAssetContractJson.abi,
       constructorArgs: [],

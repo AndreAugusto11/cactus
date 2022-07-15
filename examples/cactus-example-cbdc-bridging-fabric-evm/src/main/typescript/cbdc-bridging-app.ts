@@ -18,20 +18,18 @@ import {
 import {
   Configuration,
   DefaultApi as OdapApi,
-} from "../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/index";
-//import { DefaultApi as OdapApi } from "@hyperledger/cactus-plugin-odap-hermes";
+} from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/index";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
 import { DefaultApi as FabricApi } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { IOdapGatewayKeyPairs } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
-// import { DefaultApi as IpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
+import { DefaultApi as IpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 
 export interface ICbdcBridgingApp {
   apiHost: string;
-  clientGatewayApiPort: number;
-  serverGatewayApiPort: number;
-  ipfsApiPort: number;
+  apiServer1Port: number;
+  apiServer2Port: number;
   clientGatewayKeyPair: IOdapGatewayKeyPairs;
   serverGatewayKeyPair: IOdapGatewayKeyPairs;
   logLevel?: LogLevelDesc;
@@ -44,7 +42,8 @@ export class CbdcBridgingApp {
   private readonly log: Logger;
   private readonly shutdownHooks: ShutdownHook[];
   readonly infrastructure: CbdcBridgingAppDummyInfrastructure;
-  private readonly keychain: PluginKeychainMemory;
+  private readonly apiServer1Keychain: PluginKeychainMemory;
+  private readonly apiServer2Keychain: PluginKeychainMemory;
 
   public constructor(public readonly options: ICbdcBridgingApp) {
     const fnTag = "CbdcBridgingApp#constructor()";
@@ -59,16 +58,24 @@ export class CbdcBridgingApp {
     this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.shutdownHooks = [];
-    this.keychain = new PluginKeychainMemory({
+
+    this.apiServer1Keychain = new PluginKeychainMemory({
       keychainId: uuidv4(),
       instanceId: uuidv4(),
       logLevel: logLevel || "INFO",
     });
-    this.log.info("KeychainID=%o", this.keychain.getKeychainId());
+    this.apiServer2Keychain = new PluginKeychainMemory({
+      keychainId: uuidv4(),
+      instanceId: uuidv4(),
+      logLevel: logLevel || "INFO",
+    });
+    this.log.info("Keychain1ID=%o", this.apiServer1Keychain.getKeychainId());
+    this.log.info("Keychain2ID=%o", this.apiServer2Keychain.getKeychainId());
 
     this.infrastructure = new CbdcBridgingAppDummyInfrastructure({
       logLevel: logLevel || "INFO",
-      keychain: this.keychain,
+      apiServer1Keychain: this.apiServer1Keychain,
+      apiServer2Keychain: this.apiServer2Keychain,
     });
   }
 
@@ -92,11 +99,11 @@ export class CbdcBridgingApp {
 
     // Reserve the ports where the API Servers will run
     const httpApiA = await Servers.startOnPort(
-      this.options.clientGatewayApiPort,
+      this.options.apiServer1Port,
       this.options.apiHost,
     );
     const httpApiB = await Servers.startOnPort(
-      this.options.serverGatewayApiPort,
+      this.options.apiServer2Port,
       this.options.apiHost,
     );
     const httpGuiA = await Servers.startOnPort(3000, this.options.apiHost);
@@ -111,18 +118,20 @@ export class CbdcBridgingApp {
     const odapClientPlugin = await this.infrastructure.createClientGateway(
       nodeApiHostA,
       this.options.clientGatewayKeyPair,
+      `http://${this.options.apiHost}:${addressInfoA.port}`,
     );
 
     const odapServerPlugin = await this.infrastructure.createServerGateway(
       nodeApiHostB,
       this.options.serverGatewayKeyPair,
+      `http://${this.options.apiHost}:${addressInfoB.port}`,
     );
 
     const clientPluginRegistry = new PluginRegistry({
-      plugins: [this.keychain],
+      plugins: [this.apiServer1Keychain],
     });
     const serverPluginRegistry = new PluginRegistry({
-      plugins: [this.keychain],
+      plugins: [this.apiServer2Keychain],
     });
 
     clientPluginRegistry.add(fabricPlugin);
@@ -153,15 +162,15 @@ export class CbdcBridgingApp {
     );
 
     await this.infrastructure.deployFabricContracts(fabricApiClient);
-    await this.infrastructure.createFabricAsset(fabricApiClient);
     await this.infrastructure.deployBesuSmartContract(besuPlugin);
+    await this.infrastructure.createFabricAsset(fabricApiClient);
 
     return {
       apiServer1,
       apiServer2,
       odapClientApi: new OdapApi(new Configuration({ basePath: nodeApiHostA })),
       odapServerApi: new OdapApi(new Configuration({ basePath: nodeApiHostB })),
-      // ipfsApiClient: new IpfsApi(new Configuration({ basePath: nodeApiHostA})),
+      ipfsApiClient: new IpfsApi(new Configuration({ basePath: nodeApiHostA })),
       fabricApiClient,
       besuApiClient,
     };
@@ -225,7 +234,7 @@ export interface IStartInfo {
   readonly apiServer2: ApiServer;
   readonly odapClientApi: OdapApi;
   readonly odapServerApi: OdapApi;
-  // readonly ipfsApiClient: IpfsApi,
+  readonly ipfsApiClient: IpfsApi;
   readonly besuApiClient: BesuApi;
   readonly fabricApiClient: FabricApi;
 }

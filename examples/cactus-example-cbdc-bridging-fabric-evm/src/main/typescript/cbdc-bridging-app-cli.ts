@@ -1,33 +1,58 @@
 #!/usr/bin/env node
 
-// import { ConfigService } from "@hyperledger/cactus-cmd-api-server";
-// import { LoggerProvider } from "@hyperledger/cactus-common";
+import {
+  AuthorizationProtocol,
+  ConfigService,
+  IAuthorizationConfig,
+} from "@hyperledger/cactus-cmd-api-server";
+import { LoggerProvider } from "@hyperledger/cactus-common";
 import { Secp256k1Keys } from "@hyperledger/cactus-common";
+import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
 
-export async function launchApp(): Promise<void> {
-  // const configService = new ConfigService();
-  // const config = await configService.getOrCreate();
-  // const serverOptions = config.getProperties();
-  // LoggerProvider.setLogLevel(serverOptions.logLevel);
+export async function launchApp(
+  env?: NodeJS.ProcessEnv,
+  args?: string[],
+): Promise<void> {
+  const configService = new ConfigService();
+  const exampleConfig = await configService.newExampleConfig();
+  exampleConfig.configFile = "";
+  exampleConfig.authorizationConfigJson = (JSON.stringify(
+    exampleConfig.authorizationConfigJson,
+  ) as unknown) as IAuthorizationConfig;
+  exampleConfig.authorizationProtocol = AuthorizationProtocol.NONE;
+
+  const convictConfig = await configService.newExampleConfigConvict(
+    exampleConfig,
+  );
+
+  env = await configService.newExampleConfigEnv(convictConfig.getProperties());
+
+  const config = await configService.getOrCreate({ args, env });
+  const serverOptions = config.getProperties();
+
+  LoggerProvider.setLogLevel(serverOptions.logLevel);
+
   const API_HOST = "localhost";
-  const CLIENT_GATEWAY_API_PORT = 4000;
-  const SERVER_GATEWAY_API_PORT = 4100;
-  const IPFS_API_PORT = 4200;
+  const API_SERVER_1_PORT = 4000;
+  const API_SERVER_2_PORT = 4100;
 
   const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
   const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
-    clientGatewayApiPort: CLIENT_GATEWAY_API_PORT,
-    serverGatewayApiPort: SERVER_GATEWAY_API_PORT,
-    ipfsApiPort: IPFS_API_PORT,
+    apiServer1Port: API_SERVER_1_PORT,
+    apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
     logLevel: "INFO",
   };
-  // const serverkey = new TextDecoder().decode(clientGatewayKeyPair.publicKey);
+
+  const serverkey = PluginOdapGateway.bufArray2HexStr(
+    serverGatewayKeyPair.publicKey,
+  );
+  console.log(serverkey);
   const cbdcBridgingApp = new CbdcBridgingApp(appOptions);
   try {
     await cbdcBridgingApp.start();
