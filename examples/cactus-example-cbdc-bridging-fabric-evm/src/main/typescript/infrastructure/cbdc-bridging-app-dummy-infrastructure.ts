@@ -292,8 +292,12 @@ export class CbdcBridgingAppDummyInfrastructure {
         keychainRef: "user_fabric2",
       },
       fabricChannelName: "mychannel",
-      fabricContractName: "assetTransfer",
+      fabricContractName: "asset-reference-contract",
       fabricAssetID: this.fabricAssetId,
+      fabricLockMethodName: "LockAssetReference",
+      fabricUnlockMethodName: "UnlockAssetReference",
+      fabricCreateMethodName: "CreateAssetReference",
+      fabricDeleteMethodName: "DeleteAssetReference",
       knexConfig: knexClientConnection,
     });
 
@@ -336,12 +340,12 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.info(`Deploying smart contracts...`);
 
       const ccVersion = "1.0.0";
-      const ccName = "assetTransfer";
+      const ccName = "asset-reference-contract";
       const ccLabel = `${ccName}_${ccVersion}`;
       const channelId = "mychannel";
 
       const contractRelPath =
-        "../../../fabric-contracts/lock-asset/chaincode-typescript";
+        "../../../fabric-contracts/asset-reference/typescript";
       this.log.debug("__dirname: %o", __dirname);
       this.log.debug("contractRelPath: %o", contractRelPath);
       const contractDir = path.join(__dirname, contractRelPath);
@@ -349,8 +353,8 @@ export class CbdcBridgingAppDummyInfrastructure {
 
       // ├── package.json
       // ├── src
-      // │   ├── assetTransfer.ts
-      // │   ├── asset.ts
+      // │   ├── asset-reference.ts
+      // │   ├── assetReferenceContract.ts
       // │   └── index.ts
       // ├── tsconfig.json
       const sourceFiles: FileBase64[] = [];
@@ -388,7 +392,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
       {
-        const filename = "./asset.ts";
+        const filename = "./asset-reference.ts";
         const relativePath = "./src/";
         const filePath = path.join(contractDir, relativePath, filename);
         const buffer = await fs.readFile(filePath);
@@ -399,7 +403,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         });
       }
       {
-        const filename = "./assetTransfer.ts";
+        const filename = "./assetReferenceContract.ts";
         const relativePath = "./src/";
         const filePath = path.join(contractDir, relativePath, filename);
         const buffer = await fs.readFile(filePath);
@@ -438,10 +442,10 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public async createFabricAsset(fabricApiClient: FabricApi): Promise<void> {
     await fabricApiClient.runTransactionV1({
-      contractName: "assetTransfer",
+      contractName: "asset-reference-contract",
       channelName: "mychannel",
       params: [this.fabricAssetId, "19"],
-      methodName: "CreateAsset",
+      methodName: "CreateAssetReference",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),

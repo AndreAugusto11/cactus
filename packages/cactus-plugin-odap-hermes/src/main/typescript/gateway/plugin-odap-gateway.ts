@@ -175,13 +175,18 @@ export interface IPluginOdapGatewayConstructorOptions {
   besuPath?: string;
 
   fabricSigningCredential?: FabricSigningCredential;
+  fabricLockMethodName?: string;
+  fabricUnlockMethodName?: string;
+  fabricCreateMethodName?: string;
+  fabricDeleteMethodName?: string;
   fabricChannelName?: string;
   fabricContractName?: string;
+  fabricAssetSize?: string;
+  fabricAssetID?: string;
+
   besuContractName?: string;
   besuWeb3SigningCredential?: Web3SigningCredential;
   besuKeychainId?: string;
-  fabricAssetID?: string;
-  fabricAssetSize?: string;
   besuAssetID?: string;
 
   knexConfig?: Knex.Config;
@@ -220,19 +225,22 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
   public backupGatewaysAllowed: string[];
 
   private odapSigner: JsObjectSigner;
-  public fabricAssetLocked: boolean;
-  public fabricAssetDeleted: boolean;
+
   public fabricAssetSize?: string;
-  public besuAssetCreated: boolean;
   public fabricSigningCredential?: FabricSigningCredential;
   public fabricChannelName?: string;
   public fabricContractName?: string;
+  public fabricAssetID?: string;
+  public fabricLockMethodName: string;
+  public fabricUnlockMethodName: string;
+  public fabricCreateMethodName: string;
+  public fabricDeleteMethodName: string;
+
   public besuContractName?: string;
   public besuWeb3SigningCredential?: Web3SigningCredential;
   public besuKeychainId?: string;
-
-  public fabricAssetID?: string;
   public besuAssetID?: string;
+
   public constructor(options: IPluginOdapGatewayConstructorOptions) {
     const fnTag = `${this.className}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);
@@ -260,9 +268,15 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       logLevel: "debug",
     };
     this.odapSigner = new JsObjectSigner(odapSignerOptions);
-    this.fabricAssetDeleted = false;
-    this.fabricAssetLocked = false;
-    this.besuAssetCreated = false;
+
+    // if not specified just keep the defaults
+    this.fabricLockMethodName = options.fabricLockMethodName || "LockAsset";
+    this.fabricUnlockMethodName =
+      options.fabricUnlockMethodName || "UnlockAsset";
+    this.fabricCreateMethodName =
+      options.fabricCreateMethodName || "CreateAsset";
+    this.fabricDeleteMethodName =
+      options.fabricDeleteMethodName || "DeleteAsset";
 
     this.pluginRegistry = new PluginRegistry();
 
@@ -1168,7 +1182,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
     const sessionData = this.sessions.get(sessionID);
 
-    if (sessionData == undefined) {
+    if (sessionData == undefined || !this.fabricLockMethodName) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
@@ -1187,7 +1201,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
-        methodName: "LockAsset",
+        methodName: this.fabricLockMethodName,
         params: [this.fabricAssetID],
       } as FabricRunTransactionRequest);
 
@@ -1257,7 +1271,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
-        methodName: "UnlockAsset",
+        methodName: this.fabricUnlockMethodName,
         params: [this.fabricAssetID],
       } as FabricRunTransactionRequest);
 
@@ -1333,7 +1347,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
         params: [this.fabricAssetID, "19"],
-        methodName: "CreateAsset",
+        methodName: this.fabricCreateMethodName,
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
       });
@@ -1404,7 +1418,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
-        methodName: "DeleteAsset",
+        methodName: this.fabricDeleteMethodName,
         params: [this.fabricAssetID],
       } as FabricRunTransactionRequest);
 
