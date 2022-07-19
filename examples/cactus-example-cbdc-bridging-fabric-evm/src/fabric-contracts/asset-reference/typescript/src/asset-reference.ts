@@ -5,16 +5,13 @@
 import { Object, Property } from "fabric-contract-api";
 
 @Object()
-export class Asset {
+export class AssetReference {
   @Property()
-  public docType?: string;
-
-  @Property()
-  public ID: string;
+  public id: string;
 
   @Property()
   public isLocked: boolean;
 
   @Property()
-  public size: number;
+  public numberTokens: number;
 }
