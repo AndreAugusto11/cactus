@@ -356,6 +356,8 @@ class TokenERC20Contract extends Contract {
 
     // Check minter authorization - this sample assumes Org1 is the central banker with privilege to mint new tokens
     const clientMSPID = ctx.clientIdentity.getMSPID();
+    console.log("ACCOUNT - MINTING: " + ctx.clientIdentity.getID());
+
     if (clientMSPID !== "Org1MSP") {
       throw new Error("client is not authorized to mint new tokens");
     }
@@ -475,6 +477,7 @@ class TokenERC20Contract extends Contract {
 
     // Get ID of submitting client identity
     const clientAccountID = ctx.clientIdentity.getID();
+    console.log("ACCOUNT - CLIENT ACCOUNT BALANCE: " + clientAccountID);
 
     const balanceKey = ctx.stub.createCompositeKey(balancePrefix, [
       clientAccountID,
@@ -540,7 +543,7 @@ class TokenERC20Contract extends Contract {
     ) {
       // this means that the transfer was made to the bridging entity
       await ctx.stub.invokeChaincode(
-        "AssetReferenceContract",
+        "asset-reference-contract",
         ["CreateAssetReference", id, value],
         ctx.stub.getChannelID(),
       );

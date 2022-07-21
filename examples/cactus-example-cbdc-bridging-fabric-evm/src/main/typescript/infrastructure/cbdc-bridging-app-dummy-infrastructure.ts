@@ -189,7 +189,7 @@ export class CbdcBridgingAppDummyInfrastructure {
 
     const sshConfig = await this.fabric.getSshConfig();
 
-    const keychainEntryKey = "user_fabric2";
+    const keychainEntryKey = "user2";
     const keychainEntryValue = JSON.stringify(userIdentity);
 
     const keychainPlugin = new PluginKeychainMemory({
@@ -289,15 +289,15 @@ export class CbdcBridgingAppDummyInfrastructure {
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user_fabric2",
+        keychainRef: "user2",
       },
       fabricChannelName: "mychannel",
       fabricContractName: "asset-reference-contract",
       fabricAssetID: this.fabricAssetId,
       fabricLockMethodName: "LockAssetReference",
-      fabricUnlockMethodName: "UnlockAssetReference",
       fabricCreateMethodName: "CreateAssetReference",
       fabricDeleteMethodName: "DeleteAssetReference",
+      fabricUnlockMethodName: "UnlockAssetReference",
       knexConfig: knexClientConnection,
     });
 
@@ -333,142 +333,355 @@ export class CbdcBridgingAppDummyInfrastructure {
     return pluginRecipientGateway;
   }
 
-  public async deployFabricContracts(
+  public async deployFabricAssetReferenceContract(
     fabricApiClient: FabricApi,
   ): Promise<void> {
-    try {
-      this.log.info(`Deploying smart contracts...`);
+    const channelId = "mychannel";
+    const channelName = channelId;
 
-      const ccVersion = "1.0.0";
-      const ccName = "asset-reference-contract";
-      const ccLabel = `${ccName}_${ccVersion}`;
-      const channelId = "mychannel";
+    const contractName = "asset-reference-contract";
 
-      const contractRelPath =
-        "../../../fabric-contracts/asset-reference/typescript";
-      this.log.debug("__dirname: %o", __dirname);
-      this.log.debug("contractRelPath: %o", contractRelPath);
-      const contractDir = path.join(__dirname, contractRelPath);
-      this.log.debug("contractDir: %o", contractDir);
+    const contractRelPath =
+      "../../../fabric-contracts/asset-reference/typescript";
+    const contractDir = path.join(__dirname, contractRelPath);
 
-      // ├── package.json
-      // ├── src
-      // │   ├── asset-reference.ts
-      // │   ├── assetReferenceContract.ts
-      // │   └── index.ts
-      // ├── tsconfig.json
-      const sourceFiles: FileBase64[] = [];
-      {
-        const filename = "./tsconfig.json";
-        const relativePath = "./";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./package.json";
-        const relativePath = "./";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./index.ts";
-        const relativePath = "./src/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./asset-reference.ts";
-        const relativePath = "./src/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-      {
-        const filename = "./assetReferenceContract.ts";
-        const relativePath = "./src/";
-        const filePath = path.join(contractDir, relativePath, filename);
-        const buffer = await fs.readFile(filePath);
-        sourceFiles.push({
-          body: buffer.toString("base64"),
-          filepath: relativePath,
-          filename,
-        });
-      }
-
-      const res = await fabricApiClient.deployContractV1({
-        channelId,
-        ccVersion,
-        sourceFiles,
-        ccName,
-        targetOrganizations: [this.org1Env, this.org2Env],
-        caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
-        ccLabel,
-        ccLang: ChainCodeProgrammingLanguage.Typescript,
-        ccSequence: 1,
-        orderer: "orderer.example.com:7050",
-        ordererTLSHostnameOverride: "orderer.example.com",
-        connTimeout: 60,
+    // ├── package.json
+    // ├── src
+    // │   ├── assetTransfer.ts
+    // │   ├── asset.ts
+    // │   └── index.ts
+    // ├── tsconfig.json
+    // └── tslint.json
+    const sourceFiles: FileBase64[] = [];
+    {
+      const filename = "./tsconfig.json";
+      const relativePath = "./";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
       });
-
-      const { packageIds, success } = res.data;
-      this.log.debug(`Success: %o`, success);
-      this.log.debug(`Package IDs: %o`, packageIds);
-
-      this.log.info(`Deployed Fabric smart contract(s) OK`);
-    } catch (ex) {
-      this.log.error(`Deployment of smart contracts crashed: `, ex);
-      throw ex;
     }
-  }
+    {
+      const filename = "./package.json";
+      const relativePath = "./";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
+    {
+      const filename = "./index.ts";
+      const relativePath = "./src/";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
+    {
+      const filename = "./asset-reference.ts";
+      const relativePath = "./src/";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
+    {
+      const filename = "./assetReferenceContract.ts";
+      const relativePath = "./src/";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
 
-  public async createFabricAsset(fabricApiClient: FabricApi): Promise<void> {
+    const res = await fabricApiClient.deployContractV1({
+      channelId,
+      ccVersion: "1.0.0",
+      // constructorArgs: { Args: ["john", "99"] },
+      sourceFiles,
+      ccName: contractName,
+      targetOrganizations: [this.org1Env, this.org2Env],
+      caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
+      ccLabel: "asset-reference-contract",
+      ccLang: ChainCodeProgrammingLanguage.Typescript,
+      ccSequence: 1,
+      orderer: "orderer.example.com:7050",
+      ordererTLSHostnameOverride: "orderer.example.com",
+      connTimeout: 60,
+    });
+
+    const { packageIds, lifecycle } = res.data;
+
+    const {
+      approveForMyOrgList,
+      installList,
+      queryInstalledList,
+      commit,
+      packaging,
+      queryCommitted,
+    } = lifecycle;
+
+    Checks.truthy(packageIds, `packageIds truthy OK`);
+    Checks.truthy(
+      Array.isArray(packageIds),
+      `Array.isArray(packageIds) truthy OK`,
+    );
+    Checks.truthy(approveForMyOrgList, `approveForMyOrgList truthy OK`);
+    Checks.truthy(
+      Array.isArray(approveForMyOrgList),
+      `Array.isArray(approveForMyOrgList) truthy OK`,
+    );
+    Checks.truthy(installList, `installList truthy OK`);
+    Checks.truthy(
+      Array.isArray(installList),
+      `Array.isArray(installList) truthy OK`,
+    );
+    Checks.truthy(queryInstalledList, `queryInstalledList truthy OK`);
+    Checks.truthy(
+      Array.isArray(queryInstalledList),
+      `Array.isArray(queryInstalledList) truthy OK`,
+    );
+    Checks.truthy(commit, `commit truthy OK`);
+    Checks.truthy(packaging, `packaging truthy OK`);
+    Checks.truthy(queryCommitted, `queryCommitted truthy OK`);
+
+    // FIXME - without this wait it randomly fails with an error claiming that
+    // the endorsement was impossible to be obtained. The fabric-samples script
+    // does the same thing, it just waits 10 seconds for good measure so there
+    // might not be a way for us to avoid doing this, but if there is a way we
+    // absolutely should not have timeouts like this, anywhere...
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    const assetId = uuidv4();
+
+    // CreateAsset(id string, color string, size int, owner string, appraisedValue int)
     await fabricApiClient.runTransactionV1({
-      contractName: "asset-reference-contract",
-      channelName: "mychannel",
-      params: [this.fabricAssetId, "19"],
+      contractName,
+      channelName,
+      params: [assetId, "9999"],
       methodName: "CreateAssetReference",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user_fabric2",
+        keychainRef: "user2",
+      },
+    });
+
+    await fabricApiClient.runTransactionV1({
+      contractName,
+      channelName,
+      params: [assetId],
+      methodName: "ReadAssetReference",
+      invocationType: FabricContractInvocationType.Call,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
       },
     });
   }
 
-  public async deployBesuSmartContract(
-    besuConnector: PluginLedgerConnectorBesu,
+  public async deployFabricCbdcContract(
+    fabricApiClient: FabricApi,
   ): Promise<void> {
-    if (!this.besuWeb3SigningCredential) {
-      throw new Error(`Besu account not defined yet.`);
+    const channelId = "mychannel";
+    const channelName = channelId;
+
+    const contractName = "cbdc-erc20";
+
+    const contractRelPath = "../../../fabric-contracts/cbdc-erc-20/javascript";
+    const contractDir = path.join(__dirname, contractRelPath);
+
+    // ├── package.json
+    // ├── src
+    // │   ├── assetTransfer.ts
+    // │   ├── asset.ts
+    // │   └── index.ts
+    // ├── tsconfig.json
+    // └── tslint.json
+    const sourceFiles: FileBase64[] = [];
+    {
+      const filename = "./package.json";
+      const relativePath = "./";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
+    {
+      const filename = "./index.js";
+      const relativePath = "./";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
+    {
+      const filename = "./tokenERC20.js";
+      const relativePath = "./lib/";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
     }
 
-    await besuConnector.deployContract({
-      keychainId: this.apiServer2Keychain.getKeychainId(),
-      contractName: LockAssetContractJson.contractName,
-      contractAbi: LockAssetContractJson.abi,
-      constructorArgs: [],
-      web3SigningCredential: this.besuWeb3SigningCredential,
-      bytecode: LockAssetContractJson.bytecode,
-      gas: 1000000,
+    const res = await fabricApiClient.deployContractV1({
+      channelId,
+      ccVersion: "1.0.0",
+      // constructorArgs: { Args: ["john", "99"] },
+      sourceFiles,
+      ccName: contractName,
+      targetOrganizations: [this.org1Env, this.org2Env],
+      caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
+      ccLabel: "cbdc-erc20",
+      ccLang: ChainCodeProgrammingLanguage.Javascript,
+      ccSequence: 1,
+      orderer: "orderer.example.com:7050",
+      ordererTLSHostnameOverride: "orderer.example.com",
+      connTimeout: 60,
+    });
+
+    const { packageIds, lifecycle } = res.data;
+
+    const {
+      approveForMyOrgList,
+      installList,
+      queryInstalledList,
+      commit,
+      packaging,
+      queryCommitted,
+    } = lifecycle;
+
+    Checks.truthy(packageIds, `packageIds truthy OK`);
+    Checks.truthy(
+      Array.isArray(packageIds),
+      `Array.isArray(packageIds) truthy OK`,
+    );
+    Checks.truthy(approveForMyOrgList, `approveForMyOrgList truthy OK`);
+    Checks.truthy(
+      Array.isArray(approveForMyOrgList),
+      `Array.isArray(approveForMyOrgList) truthy OK`,
+    );
+    Checks.truthy(installList, `installList truthy OK`);
+    Checks.truthy(
+      Array.isArray(installList),
+      `Array.isArray(installList) truthy OK`,
+    );
+    Checks.truthy(queryInstalledList, `queryInstalledList truthy OK`);
+    Checks.truthy(
+      Array.isArray(queryInstalledList),
+      `Array.isArray(queryInstalledList) truthy OK`,
+    );
+    Checks.truthy(commit, `commit truthy OK`);
+    Checks.truthy(packaging, `packaging truthy OK`);
+    Checks.truthy(queryCommitted, `queryCommitted truthy OK`);
+
+    // FIXME - without this wait it randomly fails with an error claiming that
+    // the endorsement was impossible to be obtained. The fabric-samples script
+    // does the same thing, it just waits 10 seconds for good measure so there
+    // might not be a way for us to avoid doing this, but if there is a way we
+    // absolutely should not have timeouts like this, anywhere...
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    // CreateAsset(id string, color string, size int, owner string, appraisedValue int)
+    await fabricApiClient.runTransactionV1({
+      contractName,
+      channelName,
+      params: ["name1", "symbol1", "8"],
+      methodName: "Initialize",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
+    });
+
+    await fabricApiClient.runTransactionV1({
+      contractName,
+      channelName,
+      params: ["500"],
+      methodName: "Mint",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    await fabricApiClient.runTransactionV1({
+      contractName: contractName,
+      channelName,
+      params: [],
+      methodName: "ClientAccountID",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
+    });
+
+    await fabricApiClient.runTransactionV1({
+      contractName,
+      channelName,
+      params: [],
+      methodName: "ClientAccountBalance",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
+    });
+
+    const recipient =
+      "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+
+    await fabricApiClient.runTransactionV1({
+      contractName,
+      channelName,
+      params: [recipient, "100", this.fabricAssetId],
+      methodName: "Escrow",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
+    });
+
+    await fabricApiClient.runTransactionV1({
+      contractName: "asset-reference-contract",
+      channelName,
+      params: [this.fabricAssetId],
+      methodName: "ReadAssetReference",
+      invocationType: FabricContractInvocationType.Call,
+      signingCredential: {
+        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainRef: "user2",
+      },
     });
   }
 }

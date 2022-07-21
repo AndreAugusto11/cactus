@@ -1,5 +1,5 @@
 {
-    "name": "token-erc20",
+    "name": "cbdc-erc20",
     "version": "0.0.1",
     "description": "Token-ERC20 contract implemented in JavaScript",
     "main": "index.js",
