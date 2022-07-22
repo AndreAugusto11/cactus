@@ -1445,6 +1445,102 @@ export interface SessionData {
      * @memberof SessionData
      */
     rollbackActionsPerformed?: Array<SessionDataRollbackActionsPerformedEnum>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    fabricLockMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    fabricLockMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    fabricUnlockMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    fabricUnlockMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    fabricCreateMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    fabricCreateMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    fabricDeleteMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    fabricDeleteMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    besuLockMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    besuLockMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    besuUnlockMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    besuUnlockMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    besuCreateMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    besuCreateMethodParams?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionData
+     */
+    besuDeleteMethodName?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SessionData
+     */
+    besuDeleteMethodParams?: Array<string>;
 }
 
 /**
