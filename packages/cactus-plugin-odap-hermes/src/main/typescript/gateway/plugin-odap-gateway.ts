@@ -186,6 +186,10 @@ export interface IPluginOdapGatewayConstructorOptions {
 
   besuContractName?: string;
   besuWeb3SigningCredential?: Web3SigningCredential;
+  besuLockMethodName?: string;
+  besuUnlockMethodName?: string;
+  besuCreateMethodName?: string;
+  besuDeleteMethodName?: string;
   besuKeychainId?: string;
   besuAssetID?: string;
 
@@ -238,6 +242,10 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
 
   public besuContractName?: string;
   public besuWeb3SigningCredential?: Web3SigningCredential;
+  public besuLockMethodName?: string;
+  public besuUnlockMethodName?: string;
+  public besuCreateMethodName?: string;
+  public besuDeleteMethodName?: string;
   public besuKeychainId?: string;
   public besuAssetID?: string;
 
@@ -277,6 +285,11 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       options.fabricCreateMethodName || "CreateAsset";
     this.fabricDeleteMethodName =
       options.fabricDeleteMethodName || "DeleteAsset";
+
+    this.besuLockMethodName = options.besuLockMethodName || "lockAsset";
+    this.besuUnlockMethodName = options.besuUnlockMethodName || "unlockAsset";
+    this.besuCreateMethodName = options.besuCreateMethodName || "createAsset";
+    this.besuDeleteMethodName = options.besuDeleteMethodName || "deleteAsset";
 
     this.pluginRegistry = new PluginRegistry();
 
@@ -1484,9 +1497,13 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "createAsset",
+        methodName: this.besuCreateMethodName,
         gas: 1000000,
-        params: [this.besuAssetID, 100], //the second is size, may need to pass this from client?
+        params: [
+          this.besuAssetID,
+          100,
+          "0x52550D554cf8907b5d09d0dE94e8ffA34763918d",
+        ], //the second is size, may need to pass this from client?
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -1565,7 +1582,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "lockAsset",
+        methodName: this.besuLockMethodName,
         gas: 1000000,
         params: [this.besuAssetID],
         signingCredential: this.besuWeb3SigningCredential,
@@ -1575,7 +1592,7 @@ export class PluginOdapGateway implements ICactusPlugin, IPluginWebService {
       const assetCreationResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "deleteAsset",
+        methodName: this.besuDeleteMethodName,
         gas: 1000000,
         params: [this.besuAssetID],
         signingCredential: this.besuWeb3SigningCredential,

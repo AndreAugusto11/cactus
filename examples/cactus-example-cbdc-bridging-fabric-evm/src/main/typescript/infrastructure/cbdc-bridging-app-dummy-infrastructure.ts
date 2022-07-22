@@ -24,6 +24,8 @@ import {
   FabricContractInvocationType,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import {
+  DefaultApi as BesuApi,
+  DeployContractSolidityBytecodeV1Request,
   PluginLedgerConnectorBesu,
   Web3SigningCredential,
   Web3SigningCredentialType,
@@ -35,7 +37,8 @@ import {
 } from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import LockAssetContractJson from "../../solidity/lock-asset-contract/LockAsset.json";
+import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
+import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -229,14 +232,20 @@ export class CbdcBridgingAppDummyInfrastructure {
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
 
-    const keychainEntryKey = LockAssetContractJson.contractName;
-    const keychainEntryValue = JSON.stringify(LockAssetContractJson);
+    const keychainEntryKey = AssetReferenceContractJson.contractName;
+    const keychainEntryValue = JSON.stringify(AssetReferenceContractJson);
+
+    const keychainEntryKey2 = CBDCcontractJson.contractName;
+    const keychainEntryValue2 = JSON.stringify(CBDCcontractJson);
 
     const keychainPlugin = new PluginKeychainMemory({
       instanceId: this.apiServer2Keychain.getInstanceId(),
       keychainId: this.apiServer2Keychain.getKeychainId(),
       logLevel: undefined,
-      backend: new Map([[keychainEntryKey, keychainEntryValue]]),
+      backend: new Map([
+        [keychainEntryKey, keychainEntryValue],
+        [keychainEntryKey2, keychainEntryValue2],
+      ]),
     });
 
     const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
@@ -322,8 +331,12 @@ export class CbdcBridgingAppDummyInfrastructure {
       besuAssetID: uuidv4(),
       besuPath: nodeApiHost,
       besuWeb3SigningCredential: this.besuWeb3SigningCredential,
-      besuContractName: LockAssetContractJson.contractName,
+      besuContractName: AssetReferenceContractJson.contractName,
       besuKeychainId: this.apiServer2Keychain.getKeychainId(),
+      besuLockMethodName: "lockAssetReference",
+      besuCreateMethodName: "createAssetReference",
+      besuDeleteMethodName: "deleteAssetReference",
+      besuUnlockMethodName: "unlockAssetReference",
       knexConfig: knexServerConnection,
     });
 
@@ -683,5 +696,50 @@ export class CbdcBridgingAppDummyInfrastructure {
         keychainRef: "user2",
       },
     });
+  }
+
+  public async deployBesuContracts(besuApiClient: BesuApi): Promise<void> {
+    const deployCbdcContractResponse = await besuApiClient.deployContractSolBytecodeV1(
+      {
+        keychainId: this.apiServer2Keychain.getKeychainId(),
+        contractName: CBDCcontractJson.contractName,
+        contractAbi: CBDCcontractJson.abi,
+        constructorArgs: [],
+        web3SigningCredential: this.besuWeb3SigningCredential,
+        bytecode: CBDCcontractJson.bytecode,
+        gas: 1000000,
+      } as DeployContractSolidityBytecodeV1Request,
+    );
+
+    expect(deployCbdcContractResponse).not.toBeUndefined();
+    expect(
+      deployCbdcContractResponse.data.transactionReceipt,
+    ).not.toBeUndefined();
+    expect(
+      deployCbdcContractResponse.data.transactionReceipt.contractAddress,
+    ).not.toBeUndefined();
+
+    const deployAssetReferenceContractResponse = await besuApiClient.deployContractSolBytecodeV1(
+      {
+        keychainId: this.apiServer2Keychain.getKeychainId(),
+        contractName: AssetReferenceContractJson.contractName,
+        contractAbi: AssetReferenceContractJson.abi,
+        constructorArgs: [
+          deployCbdcContractResponse.data.transactionReceipt.contractAddress,
+        ],
+        web3SigningCredential: this.besuWeb3SigningCredential,
+        bytecode: AssetReferenceContractJson.bytecode,
+        gas: 1000000,
+      } as DeployContractSolidityBytecodeV1Request,
+    );
+
+    expect(deployAssetReferenceContractResponse).not.toBeUndefined();
+    expect(
+      deployAssetReferenceContractResponse.data.transactionReceipt,
+    ).not.toBeUndefined();
+    expect(
+      deployAssetReferenceContractResponse.data.transactionReceipt
+        .contractAddress,
+    ).not.toBeUndefined();
   }
 }

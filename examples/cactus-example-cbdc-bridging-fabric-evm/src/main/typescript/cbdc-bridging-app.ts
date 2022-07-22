@@ -173,6 +173,8 @@ export class CbdcBridgingApp {
     );
     await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
 
+    await this.infrastructure.deployBesuContracts(besuApiClient);
+
     return {
       apiServer1,
       apiServer2,
