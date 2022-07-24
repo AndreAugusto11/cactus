@@ -559,7 +559,6 @@ beforeAll(async () => {
       fabricSigningCredential: fabricSigningCredential,
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
-      fabricAssetID: FABRIC_ASSET_ID,
       knexConfig: knexClientConnection,
     };
 
@@ -568,7 +567,6 @@ beforeAll(async () => {
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
       ipfsPath: ipfsApiHost,
-      besuAssetID: BESU_ASSET_ID,
       besuPath: besuPath,
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
@@ -666,6 +664,8 @@ test("runs ODAP between two gateways via openApi", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
+    fabricAssetID: FABRIC_ASSET_ID,
+    besuAssetID: BESU_ASSET_ID,
   };
 
   const res = await apiClient.clientRequestV1(odapClientRequest);

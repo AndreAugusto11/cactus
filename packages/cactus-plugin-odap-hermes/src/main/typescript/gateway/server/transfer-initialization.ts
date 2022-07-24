@@ -178,6 +178,7 @@ async function storeSessionData(
   sessionData.rollbackActionsPerformed = [];
   sessionData.rollbackProofs = [];
   sessionData.lastMessageReceivedTimestamp = new Date().toString();
+  sessionData.besuAssetID = request.recipientAssetID;
 
   sessionData.initializationRequestMessageHash = SHA256(
     JSON.stringify(request),
