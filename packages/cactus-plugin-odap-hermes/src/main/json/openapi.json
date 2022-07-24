@@ -1115,77 +1115,11 @@
                     "maxTimeout": {
                         "type": "number"
                     },
-                    "fabricLockMethodName": {
+                    "fabricAssetID": {
                         "type": "string"
                     },
-                    "fabricLockMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "fabricUnlockMethodName": {
+                    "besuAssetID": {
                         "type": "string"
-                    },
-                    "fabricUnlockMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "fabricCreateMethodName": {
-                        "type": "string"
-                    },
-                    "fabricCreateMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "fabricDeleteMethodName": {
-                        "type": "string"
-                    },
-                    "fabricDeleteMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "besuLockMethodName": {
-                        "type": "string"
-                    },
-                    "besuLockMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "besuUnlockMethodName": {
-                        "type": "string"
-                    },
-                    "besuUnlockMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "besuCreateMethodName": {
-                        "type": "string"
-                    },
-                    "besuCreateMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "besuDeleteMethodName": {
-                        "type": "string"
-                    },
-                    "besuDeleteMethodParams": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 },
                 "required": [
@@ -1208,7 +1142,9 @@
                     "clientGatewayConfiguration",
                     "serverGatewayConfiguration",
                     "maxRetries",
-                    "maxTimeout"
+                    "maxTimeout",
+                    "fabricAssetID",
+                    "besuAssetID"
                 ]
             },
             "RecoverV1Message":{

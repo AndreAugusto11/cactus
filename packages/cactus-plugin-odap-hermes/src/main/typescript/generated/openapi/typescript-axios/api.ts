@@ -231,97 +231,13 @@ export interface ClientV1Request {
      * @type {string}
      * @memberof ClientV1Request
      */
-    fabricLockMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    fabricLockMethodParams?: Array<string>;
+    fabricAssetID: string;
     /**
      * 
      * @type {string}
      * @memberof ClientV1Request
      */
-    fabricUnlockMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    fabricUnlockMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    fabricCreateMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    fabricCreateMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    fabricDeleteMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    fabricDeleteMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    besuLockMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    besuLockMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    besuUnlockMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    besuUnlockMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    besuCreateMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    besuCreateMethodParams?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ClientV1Request
-     */
-    besuDeleteMethodName?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ClientV1Request
-     */
-    besuDeleteMethodParams?: Array<string>;
+    besuAssetID: string;
 }
 /**
  * 
