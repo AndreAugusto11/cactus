@@ -1959,6 +1959,12 @@ export interface TransferInitializationV1Request {
      * @memberof TransferInitializationV1Request
      */
     backupGatewaysAllowed: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof TransferInitializationV1Request
+     */
+    recipientAssetID: string;
 }
 
 /**

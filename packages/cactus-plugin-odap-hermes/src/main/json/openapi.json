@@ -550,6 +550,9 @@
                         "items":{
                             "type":"string"
                         }
+                    },
+                    "recipientAssetID": {
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -569,7 +572,8 @@
                     "recipientBasePath",
                     "maxRetries",
                     "maxTimeout",
-                    "backupGatewaysAllowed"
+                    "backupGatewaysAllowed",
+                    "recipientAssetID"
                 ]
             },
             "TransferInitializationV1Response":{
