@@ -32,6 +32,9 @@ import { knexClientConnection, knexServerConnection } from "../knex.config";
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
+const FABRIC_ASSET_ID = uuidv4();
+const BESU_ASSET_ID = uuidv4();
+
 let ipfsApiHost: string;
 let ipfsContainer: GoIpfsTestContainer;
 
@@ -193,6 +196,8 @@ test("runs ODAP between two gateways via openApi", async () => {
       serverIdentityPubkey: "",
       maxRetries: MAX_RETRIES,
       maxTimeout: MAX_TIMEOUT,
+      fabricAssetID: FABRIC_ASSET_ID,
+      besuAssetID: BESU_ASSET_ID,
     };
     const res = await apiClient.clientRequestV1(odapClientRequest);
     expect(res.status).toBe(200);

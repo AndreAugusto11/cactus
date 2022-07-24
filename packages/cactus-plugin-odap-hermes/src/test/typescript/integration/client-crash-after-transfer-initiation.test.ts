@@ -37,6 +37,9 @@ import { knexClientConnection, knexServerConnection } from "../knex.config";
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
+const FABRIC_ASSET_ID = uuidv4();
+const BESU_ASSET_ID = uuidv4();
+
 const logLevel: LogLevelDesc = "TRACE";
 
 let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
@@ -214,6 +217,8 @@ beforeAll(async () => {
       serverIdentityPubkey: "",
       maxRetries: MAX_RETRIES,
       maxTimeout: MAX_TIMEOUT,
+      fabricAssetID: FABRIC_ASSET_ID,
+      besuAssetID: BESU_ASSET_ID,
     };
   }
 });

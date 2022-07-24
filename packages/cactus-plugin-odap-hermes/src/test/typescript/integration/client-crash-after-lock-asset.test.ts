@@ -581,7 +581,6 @@ beforeAll(async () => {
       fabricSigningCredential: fabricSigningCredential,
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
-      fabricAssetID: FABRIC_ASSET_ID,
       knexConfig: knexClientConnection,
     };
 
@@ -591,7 +590,6 @@ beforeAll(async () => {
       instanceId: uuidv4(),
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       ipfsPath: ipfsApiHost,
-      besuAssetID: BESU_ASSET_ID,
       besuPath: besuPath,
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
@@ -684,6 +682,8 @@ test("client gateway crashes after lock fabric asset", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
+    fabricAssetID: FABRIC_ASSET_ID,
+    besuAssetID: BESU_ASSET_ID,
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);

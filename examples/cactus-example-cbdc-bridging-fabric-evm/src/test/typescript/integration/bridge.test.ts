@@ -27,6 +27,9 @@ const API_SERVER_2_PORT = 4100;
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
+const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
+const BESU_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
+
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
@@ -175,6 +178,8 @@ test("transfer asset correctly from fabric to besu", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
+    fabricAssetID: FABRIC_ASSET_ID,
+    besuAssetID: BESU_ASSET_ID,
   };
 
   const res = await odapClientApi.clientRequestV1(odapClientRequest);

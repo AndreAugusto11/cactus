@@ -31,14 +31,12 @@ import {
   Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
-import {
-  IOdapGatewayKeyPairs,
-  PluginOdapGateway,
-} from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
+import { IOdapGatewayKeyPairs } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { PluginOdapGatewayFabricBesu } from "../odap-extension/plugin-odap-gateway-fabric-besu";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -97,7 +95,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     this.apiServer2Keychain = options.apiServer2Keychain;
 
     this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
-    this.fabricAssetId = uuidv4();
+    this.fabricAssetId = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 
     this.log = LoggerProvider.getOrCreate({ level, label });
 
@@ -287,9 +285,9 @@ export class CbdcBridgingAppDummyInfrastructure {
     nodeApiHost: string,
     keyPair: IOdapGatewayKeyPairs,
     ipfsPath: string,
-  ): Promise<PluginOdapGateway> {
+  ): Promise<PluginOdapGatewayFabricBesu> {
     this.log.info(`Creating Source Gateway...`);
-    const pluginSourceGateway = new PluginOdapGateway({
+    const pluginSourceGateway = new PluginOdapGatewayFabricBesu({
       name: "cactus-plugin-source#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
@@ -302,11 +300,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       },
       fabricChannelName: "mychannel",
       fabricContractName: "asset-reference-contract",
-      fabricAssetID: this.fabricAssetId,
-      fabricLockMethodName: "LockAssetReference",
-      fabricCreateMethodName: "CreateAssetReference",
-      fabricDeleteMethodName: "DeleteAssetReference",
-      fabricUnlockMethodName: "UnlockAssetReference",
       knexConfig: knexClientConnection,
     });
 
@@ -320,23 +313,18 @@ export class CbdcBridgingAppDummyInfrastructure {
     nodeApiHost: string,
     keyPair: IOdapGatewayKeyPairs,
     ipfsPath: string,
-  ): Promise<PluginOdapGateway> {
+  ): Promise<PluginOdapGatewayFabricBesu> {
     this.log.info(`Creating Recipient Gateway...`);
-    const pluginRecipientGateway = new PluginOdapGateway({
+    const pluginRecipientGateway = new PluginOdapGatewayFabricBesu({
       name: "cactus-plugin-recipient#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
       keyPair: keyPair,
       ipfsPath: ipfsPath,
-      besuAssetID: uuidv4(),
       besuPath: nodeApiHost,
       besuWeb3SigningCredential: this.besuWeb3SigningCredential,
       besuContractName: AssetReferenceContractJson.contractName,
       besuKeychainId: this.apiServer2Keychain.getKeychainId(),
-      besuLockMethodName: "lockAssetReference",
-      besuCreateMethodName: "createAssetReference",
-      besuDeleteMethodName: "deleteAssetReference",
-      besuUnlockMethodName: "unlockAssetReference",
       knexConfig: knexServerConnection,
     });
 

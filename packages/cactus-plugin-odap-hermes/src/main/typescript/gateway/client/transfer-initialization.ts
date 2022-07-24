@@ -27,6 +27,7 @@ export async function sendTransferInitializationRequest(
     sessionData.version == undefined ||
     sessionData.maxRetries == undefined ||
     sessionData.maxTimeout == undefined ||
+    sessionData.besuAssetID == undefined ||
     sessionData.payloadProfile == undefined ||
     sessionData.loggingProfile == undefined ||
     sessionData.sourceBasePath == undefined ||
@@ -74,6 +75,7 @@ export async function sendTransferInitializationRequest(
     maxRetries: sessionData.maxRetries,
     maxTimeout: sessionData.maxTimeout,
     backupGatewaysAllowed: sessionData.allowedSourceBackupGateways,
+    recipientAssetID: sessionData.besuAssetID,
   };
 
   const messageSignature = PluginOdapGateway.bufArray2HexStr(
