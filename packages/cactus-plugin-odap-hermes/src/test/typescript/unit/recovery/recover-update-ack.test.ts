@@ -22,6 +22,8 @@ import {
 } from "../../../../main/typescript/public-api";
 import { randomInt } from "crypto";
 import { checkValidRecoverUpdateAckMessage } from "../../../../main/typescript/gateway/recovery/recover-update-ack";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const logLevel: LogLevelDesc = "TRACE";
 
@@ -93,8 +95,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||

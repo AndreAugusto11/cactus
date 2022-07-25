@@ -26,6 +26,8 @@ import {
 } from "../../../../main/typescript/public-api";
 import { SHA256 } from "crypto-js";
 import { knexClientConnection, knexServerConnection } from "../../knex.config";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const logLevel: LogLevelDesc = "TRACE";
 
@@ -118,8 +120,8 @@ beforeEach(async () => {
   type = "type1";
   operation = "operation1";
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   sessionData = {
     id: sessionID,
@@ -413,7 +415,7 @@ test("successful recover of sessions after crash", async () => {
 
   // simulate the crash of one gateway
   pluginSourceGateway.database?.destroy();
-  const newPluginSourceGateway = new PluginOdapGateway(
+  const newPluginSourceGateway = new FabricOdapGateway(
     sourceGatewayConstructor,
   );
 

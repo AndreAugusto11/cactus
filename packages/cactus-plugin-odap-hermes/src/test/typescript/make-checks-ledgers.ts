@@ -1,4 +1,3 @@
-import { PluginOdapGateway } from "../../main/typescript/gateway/plugin-odap-gateway";
 import {
   FabricContractInvocationType,
   FabricSigningCredential,
@@ -8,9 +7,11 @@ import {
   InvokeContractV1Request as BesuInvokeContractV1Request,
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
+import { FabricOdapGateway } from "../../main/typescript/gateway/fabric-odap-gateway";
+import { BesuOdapGateway } from "./gateways/besu-odap-gateway";
 
 export async function fabricAssetExists(
-  pluginSourceGateway: PluginOdapGateway,
+  pluginSourceGateway: FabricOdapGateway,
   fabricContractName: string,
   fabricChannelName: string,
   fabricAssetID: string,
@@ -35,7 +36,7 @@ export async function fabricAssetExists(
 }
 
 export async function isFabricAssetLocked(
-  pluginSourceGateway: PluginOdapGateway,
+  pluginSourceGateway: FabricOdapGateway,
   fabricContractName: string,
   fabricChannelName: string,
   fabricAssetID: string,
@@ -60,7 +61,7 @@ export async function isFabricAssetLocked(
 }
 
 export async function besuAssetExists(
-  pluginRecipientGateway: PluginOdapGateway,
+  pluginRecipientGateway: BesuOdapGateway,
   besuContractName: string,
   besuKeychainId: string,
   besuAssetID: string,
@@ -70,6 +71,31 @@ export async function besuAssetExists(
     contractName: besuContractName,
     invocationType: EthContractInvocationType.Call,
     methodName: "isPresent",
+    gas: 1000000,
+    params: [besuAssetID],
+    signingCredential: besuWeb3SigningCredential,
+    keychainId: besuKeychainId,
+  } as BesuInvokeContractV1Request);
+
+  expect(assetExists).not.toBeUndefined();
+
+  expect(assetExists?.status).toBeGreaterThan(199);
+  expect(assetExists?.status).toBeLessThan(300);
+
+  return assetExists?.data.callOutput == true;
+}
+
+export async function isBesuAssetLocked(
+  pluginRecipientGateway: BesuOdapGateway,
+  besuContractName: string,
+  besuKeychainId: string,
+  besuAssetID: string,
+  besuWeb3SigningCredential: Web3SigningCredential,
+): Promise<boolean> {
+  const assetExists = await pluginRecipientGateway.besuApi?.invokeContractV1({
+    contractName: besuContractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "isAssetLocked",
     gas: 1000000,
     params: [besuAssetID],
     signingCredential: besuWeb3SigningCredential,

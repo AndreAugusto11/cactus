@@ -15,6 +15,8 @@ import {
   checkValidtransferCommenceRequest,
   sendTransferCommenceResponse,
 } from "../../../../main/typescript/gateway/server/transfer-commence";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -43,8 +45,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||

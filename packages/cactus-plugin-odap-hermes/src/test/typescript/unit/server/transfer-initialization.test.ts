@@ -14,6 +14,8 @@ import {
   AssetProfile,
   SessionData,
 } from "../../../../main/typescript/public-api";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -39,8 +41,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||
@@ -84,6 +86,8 @@ test("valid transfer initiation request", async () => {
     recipientBasePath: "",
     sourceBasePath: "",
     backupGatewaysAllowed: [],
+    recipientLedgerAssetID: "",
+    sourceLedgerAssetID: "",
   };
 
   initializationRequestMessage.signature = PluginOdapGateway.bufArray2HexStr(
@@ -150,6 +154,8 @@ test("transfer initiation request invalid because of incompatible DLTs", async (
     recipientBasePath: "",
     sourceBasePath: "",
     backupGatewaysAllowed: [],
+    recipientLedgerAssetID: "",
+    sourceLedgerAssetID: "",
   };
 
   initializationRequestMessage.signature = PluginOdapGateway.bufArray2HexStr(
@@ -198,6 +204,8 @@ test("transfer initiation request invalid because of asset expired", async () =>
     recipientBasePath: "",
     sourceBasePath: "",
     backupGatewaysAllowed: [],
+    recipientLedgerAssetID: "",
+    sourceLedgerAssetID: "",
   };
 
   initializationRequestMessage.signature = PluginOdapGateway.bufArray2HexStr(

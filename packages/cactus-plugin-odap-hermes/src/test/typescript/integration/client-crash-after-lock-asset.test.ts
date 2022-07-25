@@ -35,10 +35,6 @@ import {
   Constants,
 } from "@hyperledger/cactus-core-api";
 import {
-  IPluginOdapGatewayConstructorOptions,
-  PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
-import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
@@ -80,6 +76,14 @@ import {
   fabricAssetExists,
   besuAssetExists,
 } from "../make-checks-ledgers";
+import {
+  BesuOdapGateway,
+  IBesuOdapGatewayConstructorOptions,
+} from "../gateways/besu-odap-gateway";
+import {
+  FabricOdapGateway,
+  IFabricOdapGatewayConstructorOptions,
+} from "../../../main/typescript/gateway/fabric-odap-gateway";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -113,10 +117,10 @@ let besuKeychainId: string;
 let fabricConnector: PluginLedgerConnectorFabric;
 let besuConnector: PluginLedgerConnectorBesu;
 
-let odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let pluginSourceGateway: PluginOdapGateway;
-let pluginRecipientGateway: PluginOdapGateway;
+let odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions;
+let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
+let pluginSourceGateway: FabricOdapGateway;
+let pluginRecipientGateway: BesuOdapGateway;
 
 let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
@@ -597,8 +601,8 @@ beforeAll(async () => {
       knexConfig: knexServerConnection,
     };
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -682,8 +686,8 @@ test("client gateway crashes after lock fabric asset", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
-    fabricAssetID: FABRIC_ASSET_ID,
-    besuAssetID: BESU_ASSET_ID,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
@@ -752,7 +756,7 @@ test("client gateway crashes after lock fabric asset", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   // check if asset was successfully locked
   expect(
@@ -780,7 +784,7 @@ test("client gateway crashes after lock fabric asset", async () => {
 
   await Servers.listen(listenOptions);
 
-  pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
+  pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(expressApp);
 
   // client gateway self-healed and is back online

@@ -64,6 +64,8 @@ import { sendTransferCompleteRequest } from "../../../main/typescript/gateway/cl
 import { checkValidTransferCompleteRequest } from "../../../main/typescript/gateway/server/transfer-complete";
 import { makeSessionDataChecks } from "../make-checks";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
+import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -136,8 +138,8 @@ test("successful run ODAP instance", async () => {
     knexConfig: knexServerConnection,
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   expect(pluginSourceGateway.database).not.toBeUndefined();
   expect(pluginRecipientGateway.database).not.toBeUndefined();
@@ -176,6 +178,8 @@ test("successful run ODAP instance", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
+    sourceLedgerAssetID: uuidV4(),
+    recipientLedgerAssetID: uuidV4(),
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
@@ -244,7 +248,7 @@ test("successful run ODAP instance", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   const lockEvidenceRequest = await sendLockEvidenceRequest(
     sessionID,
@@ -310,7 +314,7 @@ test("successful run ODAP instance", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.deleteFabricAsset(sessionID);
+  await pluginSourceGateway.deleteAsset(sessionID);
 
   const commitFinalRequest = await sendCommitFinalRequest(
     sessionID,
@@ -328,7 +332,7 @@ test("successful run ODAP instance", async () => {
     pluginRecipientGateway,
   );
 
-  await pluginRecipientGateway.createBesuAsset(sessionID);
+  await pluginRecipientGateway.createAsset(sessionID);
 
   const commitFinalResponse = await sendCommitFinalResponse(
     lockEvidenceRequest.sessionID,

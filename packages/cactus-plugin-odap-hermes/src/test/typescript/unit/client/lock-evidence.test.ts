@@ -13,6 +13,8 @@ import {
   LockEvidenceV1Response,
   SessionData,
 } from "../../../../main/typescript/public-api";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -40,8 +42,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||
@@ -188,7 +190,7 @@ test("timeout in lock evidence request because no server gateway is connected", 
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   await sendLockEvidenceRequest(sessionID, pluginSourceGateway, true)
     .then(() => {

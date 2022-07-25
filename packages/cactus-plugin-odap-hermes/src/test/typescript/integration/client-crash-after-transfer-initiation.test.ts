@@ -33,6 +33,8 @@ import {
 } from "../../../main/typescript/gateway/server/transfer-initialization";
 import { makeSessionDataChecks } from "../make-checks";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
+import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -137,7 +139,7 @@ beforeAll(async () => {
     const { address, port } = addressInfo;
     odapServerGatewayApiHost = `http://${address}:${port}`;
 
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -175,7 +177,7 @@ beforeAll(async () => {
     const { address, port } = addressInfo;
     odapClientGatewayApiHost = `http://${address}:${port}`;
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
 
     if (pluginSourceGateway.database == undefined) {
       throw new Error("Database is not correctly initialized");
@@ -217,8 +219,8 @@ beforeAll(async () => {
       serverIdentityPubkey: "",
       maxRetries: MAX_RETRIES,
       maxTimeout: MAX_TIMEOUT,
-      fabricAssetID: FABRIC_ASSET_ID,
-      besuAssetID: BESU_ASSET_ID,
+      sourceLedgerAssetID: FABRIC_ASSET_ID,
+      recipientLedgerAssetID: BESU_ASSET_ID,
     };
   }
 });
@@ -292,7 +294,7 @@ test("successful run ODAP after client gateway crashed after after receiving tra
 
   await Servers.listen(listenOptions);
 
-  pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
+  pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(clientExpressApp);
 
   // client gateway self-healed and is back online

@@ -24,6 +24,8 @@ import { RecoverV1Message } from "../../../../main/typescript/public-api";
 import { randomInt } from "crypto";
 import { checkValidRecoverMessage } from "../../../../main/typescript/gateway/recovery/recover";
 import { knexClientConnection, knexServerConnection } from "../../knex.config";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const logLevel: LogLevelDesc = "TRACE";
 
@@ -104,8 +106,8 @@ beforeEach(async () => {
   sessionID = uuidv4();
   sequenceNumber = randomInt(100);
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   const sessionData = {
     lastSequenceNumber: sequenceNumber,

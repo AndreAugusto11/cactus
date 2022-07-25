@@ -11,6 +11,8 @@ import { v4 as uuidV4 } from "uuid";
 import { SHA256 } from "crypto-js";
 import { randomInt } from "crypto";
 import { checkValidTransferCompleteRequest } from "../../../../main/typescript/gateway/server/transfer-complete";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 let sourceGatewayConstructor: IPluginOdapGatewayConstructorOptions;
 let recipientGatewayConstructor: IPluginOdapGatewayConstructorOptions;
@@ -34,8 +36,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||

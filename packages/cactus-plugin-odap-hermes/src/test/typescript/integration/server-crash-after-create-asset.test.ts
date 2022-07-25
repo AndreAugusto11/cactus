@@ -35,10 +35,6 @@ import {
   Constants,
 } from "@hyperledger/cactus-core-api";
 import {
-  IPluginOdapGatewayConstructorOptions,
-  PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
-import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
@@ -94,6 +90,14 @@ import {
 import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
 import { sendCommitFinalRequest } from "../../../main/typescript/gateway/client/commit-final";
 import { checkValidCommitFinalRequest } from "../../../main/typescript/gateway/server/commit-final";
+import {
+  BesuOdapGateway,
+  IBesuOdapGatewayConstructorOptions,
+} from "../gateways/besu-odap-gateway";
+import {
+  FabricOdapGateway,
+  IFabricOdapGatewayConstructorOptions,
+} from "../../../main/typescript/gateway/fabric-odap-gateway";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -127,9 +131,9 @@ let besuKeychainId: string;
 let fabricConnector: PluginLedgerConnectorFabric;
 let besuConnector: PluginLedgerConnectorBesu;
 
-let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let pluginSourceGateway: PluginOdapGateway;
-let pluginRecipientGateway: PluginOdapGateway;
+let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
+let pluginSourceGateway: FabricOdapGateway;
+let pluginRecipientGateway: BesuOdapGateway;
 
 let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
@@ -585,7 +589,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   {
     // Gateways configuration
-    const odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
+    const odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions = {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
@@ -611,8 +615,8 @@ beforeEach(async () => {
       knexConfig: knexServerConnection,
     };
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -696,8 +700,8 @@ test("server gateway crashes after creating besu asset", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
-    fabricAssetID: FABRIC_ASSET_ID,
-    besuAssetID: BESU_ASSET_ID,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
@@ -766,7 +770,7 @@ test("server gateway crashes after creating besu asset", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   const lockEvidenceRequest = await sendLockEvidenceRequest(
     sessionID,
@@ -832,7 +836,7 @@ test("server gateway crashes after creating besu asset", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.deleteFabricAsset(sessionID);
+  await pluginSourceGateway.deleteAsset(sessionID);
 
   const commitFinalRequest = await sendCommitFinalRequest(
     sessionID,
@@ -850,7 +854,7 @@ test("server gateway crashes after creating besu asset", async () => {
     pluginRecipientGateway,
   );
 
-  await pluginRecipientGateway.createBesuAsset(sessionID);
+  await pluginRecipientGateway.createAsset(sessionID);
 
   // now we simulate the crash of the server gateway
   pluginRecipientGateway.database?.destroy();
@@ -867,9 +871,7 @@ test("server gateway crashes after creating besu asset", async () => {
 
   await Servers.listen(listenOptions);
 
-  pluginRecipientGateway = new PluginOdapGateway(
-    odapServerGatewayPluginOptions,
-  );
+  pluginRecipientGateway = new BesuOdapGateway(odapServerGatewayPluginOptions);
   await pluginRecipientGateway.registerWebServices(expressApp);
 
   // client gateway self-healed and is back online

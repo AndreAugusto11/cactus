@@ -37,10 +37,6 @@ import {
   Constants,
 } from "@hyperledger/cactus-core-api";
 import {
-  IPluginOdapGatewayConstructorOptions,
-  PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
-import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
@@ -62,6 +58,14 @@ import Web3 from "web3";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { makeSessionDataChecks } from "../make-checks";
 import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
+import {
+  FabricOdapGateway,
+  IFabricOdapGatewayConstructorOptions,
+} from "../../../main/typescript/gateway/fabric-odap-gateway";
+import {
+  BesuOdapGateway,
+  IBesuOdapGatewayConstructorOptions,
+} from "../gateways/besu-odap-gateway";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -94,8 +98,8 @@ let besuKeychainId: string;
 
 let fabricConnector: PluginLedgerConnectorFabric;
 let besuConnector: PluginLedgerConnectorBesu;
-let pluginSourceGateway: PluginOdapGateway;
-let pluginRecipientGateway: PluginOdapGateway;
+let pluginSourceGateway: FabricOdapGateway;
+let pluginRecipientGateway: BesuOdapGateway;
 
 let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
@@ -550,7 +554,7 @@ beforeAll(async () => {
 
   {
     // Gateways configuration
-    const odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
+    const odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions = {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
@@ -562,7 +566,7 @@ beforeAll(async () => {
       knexConfig: knexClientConnection,
     };
 
-    const odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
+    const odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions = {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
@@ -574,8 +578,8 @@ beforeAll(async () => {
       knexConfig: knexServerConnection,
     };
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -664,8 +668,8 @@ test("runs ODAP between two gateways via openApi", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
-    fabricAssetID: FABRIC_ASSET_ID,
-    besuAssetID: BESU_ASSET_ID,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
   };
 
   const res = await apiClient.clientRequestV1(odapClientRequest);

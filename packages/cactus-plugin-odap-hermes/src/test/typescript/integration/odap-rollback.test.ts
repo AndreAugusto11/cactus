@@ -35,10 +35,6 @@ import {
   Constants,
 } from "@hyperledger/cactus-core-api";
 import {
-  IPluginOdapGatewayConstructorOptions,
-  PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
-import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
@@ -96,6 +92,14 @@ import {
   sendCommitFinalResponse,
 } from "../../../main/typescript/gateway/server/commit-final";
 import { sendCommitFinalRequest } from "../../../main/typescript/gateway/client/commit-final";
+import {
+  IFabricOdapGatewayConstructorOptions,
+  FabricOdapGateway,
+} from "../../../main/typescript/gateway/fabric-odap-gateway";
+import {
+  IBesuOdapGatewayConstructorOptions,
+  BesuOdapGateway,
+} from "../gateways/besu-odap-gateway";
 
 /**
  * Use this to debug issues with the fabric node SDK
@@ -129,14 +133,14 @@ let besuKeychainId: string;
 
 let fabricConnector: PluginLedgerConnectorFabric;
 let besuConnector: PluginLedgerConnectorBesu;
-let pluginSourceGateway: PluginOdapGateway;
-let pluginRecipientGateway: PluginOdapGateway;
 
 let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
 
-let odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
+let odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions;
+let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
+let pluginSourceGateway: FabricOdapGateway;
+let pluginRecipientGateway: BesuOdapGateway;
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -613,8 +617,8 @@ beforeAll(async () => {
       knexConfig: knexServerConnection,
     };
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -698,8 +702,8 @@ test("client sends rollback message at the end of the protocol", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
-    fabricAssetID: FABRIC_ASSET_ID,
-    besuAssetID: BESU_ASSET_ID,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
@@ -768,7 +772,7 @@ test("client sends rollback message at the end of the protocol", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   const lockEvidenceRequest = await sendLockEvidenceRequest(
     sessionID,
@@ -834,7 +838,7 @@ test("client sends rollback message at the end of the protocol", async () => {
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.deleteFabricAsset(sessionID);
+  await pluginSourceGateway.deleteAsset(sessionID);
 
   const commitFinalRequest = await sendCommitFinalRequest(
     sessionID,
@@ -852,7 +856,7 @@ test("client sends rollback message at the end of the protocol", async () => {
     pluginRecipientGateway,
   );
 
-  await pluginRecipientGateway.createBesuAsset(sessionID);
+  await pluginRecipientGateway.createAsset(sessionID);
 
   // now we simulate the crash of the client gateway
   pluginSourceGateway.database?.destroy();
@@ -880,7 +884,7 @@ test("client sends rollback message at the end of the protocol", async () => {
 
   await Servers.listen(listenOptions);
 
-  pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
+  pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(expressApp);
 
   await pluginSourceGateway.recoverOpenSessions(true);

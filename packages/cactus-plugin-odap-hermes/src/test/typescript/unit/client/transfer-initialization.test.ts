@@ -14,6 +14,8 @@ import {
   SessionData,
   AssetProfile,
 } from "../../../../main/typescript/public-api";
+import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -41,8 +43,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
   };
 
-  pluginSourceGateway = new PluginOdapGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new PluginOdapGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
     pluginSourceGateway.database == undefined ||
@@ -216,6 +218,8 @@ test("timeout in transfer initiation request because no server gateway is connec
     rollbackProofs: [],
     rollbackActionsPerformed: [],
     allowedSourceBackupGateways: [],
+    recipientLedgerAssetID: "",
+    sourceLedgerAssetID: "",
   };
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);

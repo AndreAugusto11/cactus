@@ -27,7 +27,6 @@ export async function sendTransferInitializationRequest(
     sessionData.version == undefined ||
     sessionData.maxRetries == undefined ||
     sessionData.maxTimeout == undefined ||
-    sessionData.besuAssetID == undefined ||
     sessionData.payloadProfile == undefined ||
     sessionData.loggingProfile == undefined ||
     sessionData.sourceBasePath == undefined ||
@@ -35,8 +34,10 @@ export async function sendTransferInitializationRequest(
     sessionData.accessControlProfile == undefined ||
     sessionData.applicationProfile == undefined ||
     sessionData.lastSequenceNumber == undefined ||
+    sessionData.sourceLedgerAssetID == undefined ||
     sessionData.sourceGatewayDltSystem == undefined ||
     sessionData.recipientGatewayPubkey == undefined ||
+    sessionData.recipientLedgerAssetID == undefined ||
     sessionData.recipientGatewayDltSystem == undefined ||
     sessionData.allowedSourceBackupGateways == undefined
   ) {
@@ -75,7 +76,8 @@ export async function sendTransferInitializationRequest(
     maxRetries: sessionData.maxRetries,
     maxTimeout: sessionData.maxTimeout,
     backupGatewaysAllowed: sessionData.allowedSourceBackupGateways,
-    recipientAssetID: sessionData.besuAssetID,
+    recipientLedgerAssetID: sessionData.recipientLedgerAssetID,
+    sourceLedgerAssetID: sessionData.sourceLedgerAssetID,
   };
 
   const messageSignature = PluginOdapGateway.bufArray2HexStr(
@@ -190,7 +192,6 @@ function storeSessionData(
   sessionData.serverSignatureInitializationResponseMessage = response.signature;
 
   sessionData.allowedRecipientBackupGateways = response.backupGatewaysAllowed;
-  sessionData.fabricAssetSize = "1";
 
   sessionData.step = 3;
 

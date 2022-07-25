@@ -28,6 +28,8 @@ import {
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
+import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
+import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -107,10 +109,8 @@ test("runs ODAP between two gateways via openApi", async () => {
     knexConfig: knexServerConnection,
   };
 
-  pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-  pluginRecipientGateway = new PluginOdapGateway(
-    odapServerGatewayPluginOptions,
-  );
+  pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+  pluginRecipientGateway = new BesuOdapGateway(odapServerGatewayPluginOptions);
 
   expect(pluginSourceGateway.database).not.toBeUndefined();
   expect(pluginRecipientGateway.database).not.toBeUndefined();
@@ -196,8 +196,8 @@ test("runs ODAP between two gateways via openApi", async () => {
       serverIdentityPubkey: "",
       maxRetries: MAX_RETRIES,
       maxTimeout: MAX_TIMEOUT,
-      fabricAssetID: FABRIC_ASSET_ID,
-      besuAssetID: BESU_ASSET_ID,
+      sourceLedgerAssetID: FABRIC_ASSET_ID,
+      recipientLedgerAssetID: BESU_ASSET_ID,
     };
     const res = await apiClient.clientRequestV1(odapClientRequest);
     expect(res.status).toBe(200);
