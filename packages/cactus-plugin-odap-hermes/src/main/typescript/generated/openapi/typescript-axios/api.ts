@@ -1862,7 +1862,13 @@ export interface TransferInitializationV1Request {
      * @type {string}
      * @memberof TransferInitializationV1Request
      */
-    recipientAssetID: string;
+    recipientLedgerAssetID: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TransferInitializationV1Request
+     */
+    sourceLedgerAssetID: string;
 }
 
 /**

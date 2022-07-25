@@ -476,7 +476,10 @@
                             "type":"string"
                         }
                     },
-                    "recipientAssetID": {
+                    "recipientLedgerAssetID": {
+                        "type": "string"
+                    },
+                    "sourceLedgerAssetID": {
                         "type": "string"
                     }
                 },
@@ -498,7 +501,8 @@
                     "maxRetries",
                     "maxTimeout",
                     "backupGatewaysAllowed",
-                    "recipientAssetID"
+                    "recipientLedgerAssetID",
+                    "sourceLedgerAssetID"
                 ]
             },
             "TransferInitializationV1Response":{
