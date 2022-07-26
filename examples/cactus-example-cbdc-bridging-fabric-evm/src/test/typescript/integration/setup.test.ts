@@ -1,4 +1,5 @@
 import { AuthorizationProtocol } from "@hyperledger/cactus-cmd-api-server";
+import { v4 as uuidv4 } from "uuid";
 import {
   Checks,
   // LoggerProvider,
@@ -14,21 +15,11 @@ import {
 } from "../../../main/typescript/cbdc-bridging-app";
 import { ConfigService } from "@hyperledger/cactus-cmd-api-server";
 import { IAuthorizationConfig } from "@hyperledger/cactus-cmd-api-server";
-import {
-  ClientV1Request,
-  AssetProfile,
-  PluginOdapGateway,
-} from "../../../../../../packages/cactus-plugin-odap-hermes/src/main/typescript/index";
+import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
 const API_SERVER_2_PORT = 4100;
-
-const MAX_RETRIES = 5;
-const MAX_TIMEOUT = 5000;
-
-const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
-const BESU_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
@@ -76,12 +67,25 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
+  const apiServer1Keychain = new PluginKeychainMemory({
+    keychainId: uuidv4(),
+    instanceId: uuidv4(),
+    logLevel: logLevel || "INFO",
+  });
+  const apiServer2Keychain = new PluginKeychainMemory({
+    keychainId: uuidv4(),
+    instanceId: uuidv4(),
+    logLevel: logLevel || "INFO",
+  });
+
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
     apiServer1Port: API_SERVER_1_PORT,
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
+    apiServer1Keychain,
+    apiServer2Keychain,
     logLevel,
   };
 
@@ -99,8 +103,8 @@ test("infrastructure is set up correctly", async () => {
   const {
     apiServer1,
     apiServer2,
-    odapClientApi,
-    odapServerApi,
+    fabricGatewayApi,
+    besuGatewayApi,
     ipfsApiClient,
     besuApiClient,
     fabricApiClient,
@@ -109,10 +113,10 @@ test("infrastructure is set up correctly", async () => {
   Checks.truthy(apiServer1, "ApiServer1 truthy OK");
   Checks.truthy(apiServer2, "ApiServer2 truthy OK");
 
-  Checks.truthy(odapClientApi, "OdapClientApi truthy OK");
-  Checks.truthy(odapServerApi, "OdapServerApi truthy OK");
+  Checks.truthy(fabricGatewayApi, "FabricGatewayApi truthy OK");
+  Checks.truthy(besuGatewayApi, "BesuGatewayApi truthy OK");
 
-  Checks.truthy(ipfsApiClient, "OdapServerApi truthy OK");
+  Checks.truthy(ipfsApiClient, "IpfsApiClient truthy OK");
 
   Checks.truthy(besuApiClient, "BesuApiClient truthy OK");
   Checks.truthy(fabricApiClient, "FabricApiClient truthy OK");
@@ -140,50 +144,6 @@ test("infrastructure is set up correctly", async () => {
     fabricMetrics.status < 300,
     "fabricMetrics.status < 300 true OK",
   );
-});
-
-test("transfer asset correctly from fabric to besu", async () => {
-  const { odapClientApi } = startResult;
-
-  const expiryDate = new Date(2060, 11, 24).toString();
-  const assetProfile: AssetProfile = { expirationDate: expiryDate };
-
-  const odapClientRequest: ClientV1Request = {
-    clientGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
-    },
-    serverGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
-    },
-    version: "0.0.0",
-    loggingProfile: "dummyLoggingProfile",
-    accessControlProfile: "dummyAccessControlProfile",
-    applicationProfile: "dummyApplicationProfile",
-    payloadProfile: {
-      assetProfile: assetProfile,
-      capabilities: "",
-    },
-    assetProfile: assetProfile,
-    assetControlProfile: "dummyAssetControlProfile",
-    beneficiaryPubkey: "dummyPubKey",
-    clientDltSystem: "DLT1",
-    originatorPubkey: "dummyPubKey",
-    recipientGatewayDltSystem: "DLT2",
-    recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
-      serverGatewayKeyPair.publicKey,
-    ),
-    serverDltSystem: "DLT2",
-    sourceGatewayDltSystem: "DLT1",
-    clientIdentityPubkey: "",
-    serverIdentityPubkey: "",
-    maxRetries: MAX_RETRIES,
-    maxTimeout: MAX_TIMEOUT,
-    fabricAssetID: FABRIC_ASSET_ID,
-    besuAssetID: BESU_ASSET_ID,
-  };
-
-  const res = await odapClientApi.clientRequestV1(odapClientRequest);
-  expect(res.status).toBe(200);
 });
 
 afterAll(async () => {

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CBDCcontract is ERC20, Ownable {
      event MyEvent (
-      string date,
+      string action,
       address account,
       uint256 amount
     );
@@ -14,8 +14,8 @@ contract CBDCcontract is ERC20, Ownable {
     constructor() ERC20("CentralBankDigitalCurrency", "CBDC") {
     }
 
-    function mint(address account, uint256 amount) external {
-        emit MyEvent('hello', account, amount);
+    function mint(address account, uint256 amount) external onlyOwner {
+        emit MyEvent('mint', account, amount);
         _mint(account, amount);
     }
 }

@@ -1,45 +1,79 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+import { Knex } from "knex";
+import { Configuration } from "@hyperledger/cactus-core-api";
 import {
+  DefaultApi as FabricApi,
   FabricContractInvocationType,
+  FabricSigningCredential,
   RunTransactionRequest as FabricRunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import {
-  EthContractInvocationType,
-  InvokeContractV1Request as BesuInvokeContractV1Request,
-} from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import {
-  IPluginOdapGatewayConstructorOptions,
+  IOdapPluginKeyPair,
   PluginOdapGateway,
-  SessionDataRollbackActionsPerformedEnum,
-} from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/index";
-import { Logger, LoggerProvider } from "@hyperledger/cactus-common";
+} from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 
-export enum OdapMessageType {
-  InitializationRequest = "urn:ietf:odap:msgtype:init-transfer-msg",
-  InitializationResponse = "urn:ietf:odap:msgtype:init-transfer-ack-msg",
-  TransferCommenceRequest = "urn:ietf:odap:msgtype:transfer-commence-msg",
-  TransferCommenceResponse = "urn:ietf:odap:msgtype:transfer-commence-ack-msg",
-  LockEvidenceRequest = "urn:ietf:odap:msgtype:lock-evidence-req-msg",
-  LockEvidenceResponse = "urn:ietf:odap:msgtype:lock-evidence-ack-msg",
-  CommitPreparationRequest = "urn:ietf:odap:msgtype:commit-prepare-msg",
-  CommitPreparationResponse = "urn:ietf:odap:msgtype:commit-ack-msg",
-  CommitFinalRequest = "urn:ietf:odap:msgtype:commit-final-msg",
-  CommitFinalResponse = "urn:ietf:odap:msgtype:commit-ack-msg",
-  TransferCompleteRequest = "urn:ietf:odap:msgtype:commit-transfer-complete-msg",
+export interface IFabricOdapGatewayConstructorOptions {
+  name: string;
+  dltIDs: string[];
+  instanceId: string;
+  keyPair?: IOdapPluginKeyPair;
+  backupGatewaysAllowed?: string[];
+
+  ipfsPath?: string;
+  fabricPath?: string;
+
+  fabricSigningCredential?: FabricSigningCredential;
+  fabricChannelName?: string;
+  fabricContractName?: string;
+
+  knexConfig?: Knex.Config;
 }
 
-export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
-  private readonly logger: Logger;
+export class FabricOdapGateway extends PluginOdapGateway {
+  public fabricApi?: FabricApi;
+  public fabricSigningCredential?: FabricSigningCredential;
+  public fabricChannelName?: string;
+  public fabricContractName?: string;
 
-  constructor(options: IPluginOdapGatewayConstructorOptions) {
-    super(options);
-    const level = "INFO";
-    const label = this.className;
-    this.logger = LoggerProvider.getOrCreate({ level, label });
+  public constructor(options: IFabricOdapGatewayConstructorOptions) {
+    super({
+      name: options.name,
+      dltIDs: options.dltIDs,
+      instanceId: options.instanceId,
+      keyPair: options.keyPair,
+      backupGatewaysAllowed: options.backupGatewaysAllowed,
+      ipfsPath: options.ipfsPath,
+      knexConfig: options.knexConfig,
+    });
+
+    if (options.fabricPath != undefined) this.defineFabricConnection(options);
   }
 
-  async lockFabricAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#lockFabricAsset()`;
+  private defineFabricConnection(
+    options: IFabricOdapGatewayConstructorOptions,
+  ): void {
+    const fnTag = `${this.className}#defineFabricConnection()`;
+
+    const config = new Configuration({ basePath: options.fabricPath });
+    const apiClient = new FabricApi(config);
+    this.fabricApi = apiClient;
+    const notEnoughFabricParams: boolean =
+      options.fabricSigningCredential == undefined ||
+      options.fabricChannelName == undefined ||
+      options.fabricContractName == undefined;
+    if (notEnoughFabricParams) {
+      throw new Error(
+        `${fnTag}, fabric params missing should have: signing credentials, contract name, channel name, asset ID`,
+      );
+    }
+    this.fabricSigningCredential = options.fabricSigningCredential;
+    this.fabricChannelName = options.fabricChannelName;
+    this.fabricContractName = options.fabricContractName;
+  }
+
+  async lockAsset(sessionID: string, assetId?: string): Promise<string> {
+    const fnTag = `${this.className}#lockAsset()`;
 
     const sessionData = this.sessions.get(sessionID);
 
@@ -48,6 +82,10 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     }
 
     let fabricLockAssetProof = "";
+
+    if (assetId == undefined) {
+      assetId = sessionData.sourceLedgerAssetID;
+    }
 
     await this.storeOdapLog({
       sessionID: sessionID,
@@ -63,7 +101,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "LockAssetReference",
-        params: [sessionData.fabricAssetID],
+        params: [assetId],
       } as FabricRunTransactionRequest);
 
       const receiptLockRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
@@ -77,7 +115,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         } as FabricRunTransactionRequest,
       );
 
-      this.logger.warn(receiptLockRes.data);
+      this.log.warn(receiptLockRes.data);
       fabricLockAssetProof = JSON.stringify(receiptLockRes.data);
     }
 
@@ -85,9 +123,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
 
     this.sessions.set(sessionID, sessionData);
 
-    this.logger.info(
-      `${fnTag}, proof of the asset lock: ${fabricLockAssetProof}`,
-    );
+    this.log.info(`${fnTag}, proof of the asset lock: ${fabricLockAssetProof}`);
 
     await this.storeOdapProof({
       sessionID: sessionID,
@@ -106,8 +142,8 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     return fabricLockAssetProof;
   }
 
-  async unlockFabricAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#unlockFabricAsset()`;
+  async unlockAsset(sessionID: string, assetId?: string): Promise<string> {
+    const fnTag = `${this.className}#unlockAsset()`;
 
     const sessionData = this.sessions.get(sessionID);
 
@@ -134,8 +170,8 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
-        methodName: "CreateAssetReference",
-        params: [sessionData.fabricAssetID],
+        methodName: "UnlockAssetReference",
+        params: [assetId],
       } as FabricRunTransactionRequest);
 
       const receiptUnlock = await this.fabricApi.getTransactionReceiptByTxIDV1({
@@ -147,7 +183,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         params: [this.fabricChannelName, response.data.transactionId],
       } as FabricRunTransactionRequest);
 
-      this.logger.warn(receiptUnlock.data);
+      this.log.warn(receiptUnlock.data);
       fabricUnlockAssetProof = JSON.stringify(receiptUnlock.data);
     }
 
@@ -158,7 +194,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
 
     this.sessions.set(sessionID, sessionData);
 
-    this.logger.info(
+    this.log.info(
       `${fnTag}, proof of the asset unlock: ${fabricUnlockAssetProof}`,
     );
 
@@ -179,14 +215,13 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     return fabricUnlockAssetProof;
   }
 
-  async createFabricAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#createFabricAsset()`;
+  async createAsset(sessionID: string, assetId?: string): Promise<string> {
+    const fnTag = `${this.className}#createAsset()`;
 
     const sessionData = this.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
-      sessionData.fabricAssetID == undefined ||
       this.fabricChannelName == undefined ||
       this.fabricContractName == undefined ||
       this.fabricSigningCredential == undefined ||
@@ -197,6 +232,10 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     }
 
     let fabricCreateAssetProof = "";
+
+    if (assetId == undefined) {
+      assetId = sessionData.recipientLedgerAssetID;
+    }
 
     await this.storeOdapLog({
       sessionID: sessionID,
@@ -209,8 +248,8 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [sessionData.fabricAssetID, "19"],
-        methodName: "DeleteAssetReference",
+        params: [assetId!, "123"],
+        methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
       });
@@ -224,7 +263,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         params: [this.fabricChannelName, response.data.transactionId],
       } as FabricRunTransactionRequest);
 
-      this.logger.warn(receiptCreate.data);
+      this.log.warn(receiptCreate.data);
       fabricCreateAssetProof = JSON.stringify(receiptCreate.data);
     }
 
@@ -236,7 +275,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
 
     this.sessions.set(sessionID, sessionData);
 
-    this.logger.info(
+    this.log.info(
       `${fnTag}, proof of the asset creation: ${fabricCreateAssetProof}`,
     );
 
@@ -257,8 +296,8 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     return fabricCreateAssetProof;
   }
 
-  async deleteFabricAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#deleteFabricAsset()`;
+  async deleteAsset(sessionID: string, assetId?: string): Promise<string> {
+    const fnTag = `${this.className}#deleteAsset()`;
 
     const sessionData = this.sessions.get(sessionID);
 
@@ -267,6 +306,10 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     }
 
     let fabricDeleteAssetProof = "";
+
+    if (assetId == undefined) {
+      assetId = sessionData.sourceLedgerAssetID;
+    }
 
     await this.storeOdapLog({
       sessionID: sessionID,
@@ -281,8 +324,8 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
-        methodName: "UnlockAssetReference",
-        params: [sessionData.fabricAssetID],
+        methodName: "DeleteAssetReference",
+        params: [assetId],
       } as FabricRunTransactionRequest);
 
       const receiptDeleteRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
@@ -296,7 +339,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
         } as FabricRunTransactionRequest,
       );
 
-      this.logger.warn(receiptDeleteRes.data);
+      this.log.warn(receiptDeleteRes.data);
       fabricDeleteAssetProof = JSON.stringify(receiptDeleteRes.data);
     }
 
@@ -304,7 +347,7 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
 
     this.sessions.set(sessionID, sessionData);
 
-    this.logger.info(
+    this.log.info(
       `${fnTag}, proof of the asset deletion: ${fabricDeleteAssetProof}`,
     );
 
@@ -325,176 +368,106 @@ export class PluginOdapGatewayFabricBesu extends PluginOdapGateway {
     return fabricDeleteAssetProof;
   }
 
-  async createBesuAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#createBesuAsset()`;
-
-    const sessionData = this.sessions.get(sessionID);
-
-    if (sessionData == undefined) {
-      throw new Error(`${fnTag}, session data is not correctly initialized`);
-    }
-
-    let besuCreateAssetProof = "";
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "exec",
-      operation: "create-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    if (this.besuApi != undefined) {
-      const besuCreateRes = await this.besuApi.invokeContractV1({
-        contractName: this.besuContractName,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "createAssetReference",
-        gas: 1000000,
-        params: [
-          sessionData.besuAssetID,
-          100,
-          "0x52550D554cf8907b5d09d0dE94e8ffA34763918d",
-        ], //the second is size, may need to pass this from client?
-        signingCredential: this.besuWeb3SigningCredential,
-        keychainId: this.besuKeychainId,
-      } as BesuInvokeContractV1Request);
-
-      if (besuCreateRes.status != 200) {
-        //await this.Revert(sessionID);
-        throw new Error(`${fnTag}, besu create asset error`);
-      }
-
-      const besuCreateResDataJson = JSON.parse(
-        JSON.stringify(besuCreateRes.data),
-      );
-
-      if (besuCreateResDataJson.out == undefined) {
-        throw new Error(`${fnTag}, besu res data out undefined`);
-      }
-
-      if (besuCreateResDataJson.out.transactionReceipt == undefined) {
-        throw new Error(`${fnTag}, undefined besu transact receipt`);
-      }
-
-      const besuCreateAssetReceipt =
-        besuCreateResDataJson.out.transactionReceipt;
-      besuCreateAssetProof = JSON.stringify(besuCreateAssetReceipt);
-    }
-
-    sessionData.commitAcknowledgementClaim = besuCreateAssetProof;
-
-    this.sessions.set(sessionID, sessionData);
-
-    this.logger.info(
-      `${fnTag}, proof of the asset creation: ${besuCreateAssetProof}`,
-    );
-
-    await this.storeOdapProof({
-      sessionID: sessionID,
-      type: "proof",
-      operation: "create",
-      data: besuCreateAssetProof,
-    });
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "done",
-      operation: "create-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    return besuCreateAssetProof;
-  }
-
-  async deleteBesuAsset(sessionID: string): Promise<string> {
-    const fnTag = `${this.className}#deleteBesuAsset()`;
-
+  async rollback(sessionID: string): Promise<void> {
+    const fnTag = `${this.className}#rollback()`;
     const sessionData = this.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
-      sessionData.rollbackActionsPerformed == undefined ||
-      sessionData.rollbackProofs == undefined
+      sessionData.step == undefined ||
+      sessionData.lastSequenceNumber == undefined
     ) {
-      throw new Error(`${fnTag}, session data is not correctly initialized`);
+      throw new Error(`${fnTag}, session data is undefined`);
     }
 
-    let besuDeleteAssetProof = "";
+    sessionData.rollback = true;
 
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "exec-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
-    });
+    this.log.info(`${fnTag}, rolling back session ${sessionID}`);
 
-    if (this.besuApi != undefined) {
-      // we need to lock the asset first
-      await this.besuApi.invokeContractV1({
-        contractName: this.besuContractName,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "lockAssetReference",
-        gas: 1000000,
-        params: [sessionData.besuAssetID],
-        signingCredential: this.besuWeb3SigningCredential,
-        keychainId: this.besuKeychainId,
-      } as BesuInvokeContractV1Request);
-
-      const assetCreationResponse = await this.besuApi.invokeContractV1({
-        contractName: this.besuContractName,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "deleteAssetReference",
-        gas: 1000000,
-        params: [sessionData.besuAssetID],
-        signingCredential: this.besuWeb3SigningCredential,
-        keychainId: this.besuKeychainId,
-      } as BesuInvokeContractV1Request);
-
-      if (assetCreationResponse.status != 200) {
-        throw new Error(`${fnTag}, besu delete asset error`);
-      }
-
-      const assetCreationResponseDataJson = JSON.parse(
-        JSON.stringify(assetCreationResponse.data),
-      );
-
-      if (assetCreationResponseDataJson.out == undefined) {
-        throw new Error(`${fnTag}, besu res data out undefined`);
-      }
-
-      if (assetCreationResponseDataJson.out.transactionReceipt == undefined) {
-        throw new Error(`${fnTag}, undefined besu transact receipt`);
-      }
-
-      const besuCreateAssetReceipt =
-        assetCreationResponseDataJson.out.transactionReceipt;
-      besuDeleteAssetProof = JSON.stringify(besuCreateAssetReceipt);
+    if (
+      this.fabricApi == undefined ||
+      this.fabricContractName == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricSigningCredential == undefined ||
+      sessionData.sourceLedgerAssetID == undefined ||
+      sessionData.recipientLedgerAssetID == undefined
+    ) {
+      return;
     }
 
-    sessionData.rollbackActionsPerformed.push(
-      SessionDataRollbackActionsPerformedEnum.Delete,
-    );
-    sessionData.rollbackProofs.push(besuDeleteAssetProof);
+    if (this.isClientGateway(sessionID)) {
+      if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
+        if (await this.isFabricAssetLocked(sessionData.sourceLedgerAssetID)) {
+          // Rollback locking of the asset
+          await this.unlockAsset(sessionID, sessionData.sourceLedgerAssetID);
+        }
+      } else {
+        // Rollback extinguishment of the asset
+        await this.createAsset(sessionID, sessionData.sourceLedgerAssetID);
+      }
+    } else {
+      if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
+        await this.deleteAsset(sessionID, sessionData.recipientLedgerAssetID);
+      }
+    }
+  }
 
-    this.sessions.set(sessionID, sessionData);
+  /* Helper functions */
+  public async fabricAssetExists(
+    fabricAssetID: string,
+  ): Promise<boolean | undefined> {
+    const fnTag = `${this.className}#fabricAssetExists()`;
 
-    this.logger.info(
-      `${fnTag}, proof of the asset deletion: ${besuDeleteAssetProof}`,
-    );
+    if (
+      this.fabricContractName == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricSigningCredential == undefined
+    ) {
+      throw new Error(`${fnTag} fabric config is not defined`);
+    }
 
-    await this.storeOdapProof({
-      sessionID: sessionID,
-      type: "proof-rollback",
-      operation: "delete",
-      data: besuDeleteAssetProof,
+    const assetExists = await this.fabricApi?.runTransactionV1({
+      contractName: this.fabricContractName,
+      channelName: this.fabricChannelName,
+      params: [fabricAssetID],
+      methodName: "AssetReferenceExists",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: this.fabricSigningCredential,
     });
 
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "done-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
+    if (assetExists == undefined) {
+      throw new Error(`${fnTag} the asset does not exist`);
+    }
+
+    return assetExists?.data.functionOutput == "true";
+  }
+
+  public async isFabricAssetLocked(
+    fabricAssetID: string,
+  ): Promise<boolean | undefined> {
+    const fnTag = `${this.className}#isFabricAssetLocked()`;
+
+    if (
+      this.fabricContractName == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricSigningCredential == undefined
+    ) {
+      throw new Error(`${fnTag} fabric config is not defined`);
+    }
+
+    const assetIsLocked = await this.fabricApi?.runTransactionV1({
+      contractName: this.fabricContractName,
+      channelName: this.fabricChannelName,
+      params: [fabricAssetID],
+      methodName: "IsAssetReferenceLocked",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: this.fabricSigningCredential,
     });
 
-    return besuDeleteAssetProof;
+    if (assetIsLocked == undefined) {
+      throw new Error(`${fnTag} the asset does not exist`);
+    }
+
+    return assetIsLocked?.data.functionOutput == "true";
   }
 }

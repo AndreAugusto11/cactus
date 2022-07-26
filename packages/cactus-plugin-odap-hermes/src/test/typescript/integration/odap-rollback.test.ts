@@ -54,7 +54,6 @@ import {
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import Web3 from "web3";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
-import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
 import {
   sendLockEvidenceRequest,
   checkValidLockEvidenceResponse,
@@ -890,24 +889,12 @@ test("client sends rollback message at the end of the protocol", async () => {
   await pluginSourceGateway.recoverOpenSessions(true);
 
   await expect(
-    fabricAssetExists(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
-  ).resolves.toBe(true);
+    pluginSourceGateway.fabricAssetExists(FABRIC_ASSET_ID),
+  ).resolves.toBe(false);
 
   await expect(
-    besuAssetExists(
-      pluginRecipientGateway,
-      besuContractName,
-      besuKeychainId,
-      BESU_ASSET_ID,
-      besuWeb3SigningCredential,
-    ),
-  ).resolves.toBe(false);
+    pluginRecipientGateway.besuAssetExists(BESU_ASSET_ID),
+  ).resolves.toBe(true);
 });
 
 afterAll(async () => {

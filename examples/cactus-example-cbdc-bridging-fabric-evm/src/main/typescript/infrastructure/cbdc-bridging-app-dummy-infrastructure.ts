@@ -15,28 +15,33 @@ import {
 } from "@hyperledger/cactus-test-tooling";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
+  DefaultApi as FabricApi,
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   DeploymentTargetOrgFabric2x,
+  FabricContractInvocationType,
   FileBase64,
   PluginLedgerConnectorFabric,
-  DefaultApi as FabricApi,
-  FabricContractInvocationType,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import {
   DefaultApi as BesuApi,
   DeployContractSolidityBytecodeV1Request,
+  EthContractInvocationType,
+  PluginFactoryLedgerConnector,
   PluginLedgerConnectorBesu,
   Web3SigningCredential,
   Web3SigningCredentialType,
+  InvokeContractV1Request as BesuInvokeContractV1Request,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
-import { IOdapGatewayKeyPairs } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
-import { PluginOdapGatewayFabricBesu } from "../odap-extension/plugin-odap-gateway-fabric-besu";
+import { IOdapPluginKeyPair } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { FabricOdapGateway } from "../odap-extension/fabric-odap-gateway";
+import { BesuOdapGateway } from "../odap-extension/besu-odap-gateway";
+import { PluginImportType } from "@hyperledger/cactus-core-api";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -44,29 +49,17 @@ export interface ICbdcBridgingAppDummyInfrastructureOptions {
   apiServer2Keychain: PluginKeychainMemory;
 }
 
-/**
- * Contains code that is meant to simulate parts of a production grade deployment
- * that would otherwise not be part of the application itself.
- *
- * The reason for this being in existence is so that we can have tutorials that
- * are self-contained instead of starting with a multi-hour setup process where
- * the user is expected to set up ledgers from scratch with all the bells and
- * whistles.
- * The sole purpose of this is to have people ramp up with Cactus as fast as
- * possible.
- */
 export class CbdcBridgingAppDummyInfrastructure {
   public static readonly CLASS_NAME = "CbdcBridgingAppDummyInfrastructure";
   // TODO: Move this to the FabricTestLedger class where it belongs.
   public static readonly FABRIC_2_AIO_CLI_CFG_DIR =
     "/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/";
 
-  public readonly besu: BesuTestLedger;
-  public readonly fabric: FabricTestLedgerV1;
-  public readonly ipfs: GoIpfsTestContainer;
+  private readonly besu: BesuTestLedger;
+  private readonly fabric: FabricTestLedgerV1;
+  private readonly ipfs: GoIpfsTestContainer;
   private readonly apiServer1Keychain: PluginKeychainMemory;
   private readonly apiServer2Keychain: PluginKeychainMemory;
-  private readonly fabricAssetId: string;
   private readonly ipfsParentPath: string;
   private besuWeb3SigningCredential?: Web3SigningCredential;
 
@@ -95,12 +88,11 @@ export class CbdcBridgingAppDummyInfrastructure {
     this.apiServer2Keychain = options.apiServer2Keychain;
 
     this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
-    this.fabricAssetId = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 
     this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.besu = new BesuTestLedger({
-      logLevel: level || "INFO",
+      logLevel: "DEBUG",
       emitContainerLogs: true,
     });
 
@@ -148,6 +140,10 @@ export class CbdcBridgingAppDummyInfrastructure {
       CORE_PEER_TLS_ROOTCERT_FILE: `${this.orgCfgDir}peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt`,
       ORDERER_TLS_ROOTCERT_FILE: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
     };
+  }
+
+  get getBesuWeb3SigningCredential(): Web3SigningCredential | undefined {
+    return this.besuWeb3SigningCredential;
   }
 
   public async start(): Promise<void> {
@@ -225,7 +221,10 @@ export class CbdcBridgingAppDummyInfrastructure {
   }
 
   public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
-    const besuAccount = await this.besu.createEthTestAccount(2000000);
+    const besuAccount = this.besu.getGenesisAccountPubKey();
+    const besuKeyPair = {
+      privateKey: this.besu.getGenesisAccountPrivKey(),
+    };
 
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
@@ -246,24 +245,25 @@ export class CbdcBridgingAppDummyInfrastructure {
       ]),
     });
 
-    const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
-
     this.besuWeb3SigningCredential = {
-      ethAccount: besuAccount.address,
-      secret: besuAccount.privateKey,
+      ethAccount: besuAccount,
+      secret: besuKeyPair.privateKey,
       type: Web3SigningCredentialType.PrivateKeyHex,
     };
 
     this.log.info(`Creating Besu Connector...`);
-    const connectorBesu = new PluginLedgerConnectorBesu({
-      instanceId: "PluginLedgerConnectorBesu_Contract_Deployment",
-      rpcApiHttpHost,
-      rpcApiWsHost,
-      logLevel: this.options.logLevel,
-      pluginRegistry,
+    const factory = new PluginFactoryLedgerConnector({
+      pluginImportType: PluginImportType.Local,
     });
 
-    return connectorBesu;
+    const besuConnector = await factory.create({
+      rpcApiHttpHost,
+      rpcApiWsHost,
+      instanceId: uuidv4(),
+      pluginRegistry: new PluginRegistry({ plugins: [keychainPlugin] }),
+    });
+
+    return besuConnector;
   }
 
   public async createIPFSConnector(): Promise<PluginObjectStoreIpfs> {
@@ -283,11 +283,11 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public async createClientGateway(
     nodeApiHost: string,
-    keyPair: IOdapGatewayKeyPairs,
+    keyPair: IOdapPluginKeyPair,
     ipfsPath: string,
-  ): Promise<PluginOdapGatewayFabricBesu> {
+  ): Promise<FabricOdapGateway> {
     this.log.info(`Creating Source Gateway...`);
-    const pluginSourceGateway = new PluginOdapGatewayFabricBesu({
+    const pluginSourceGateway = new FabricOdapGateway({
       name: "cactus-plugin-source#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
@@ -311,11 +311,11 @@ export class CbdcBridgingAppDummyInfrastructure {
 
   public async createServerGateway(
     nodeApiHost: string,
-    keyPair: IOdapGatewayKeyPairs,
+    keyPair: IOdapPluginKeyPair,
     ipfsPath: string,
-  ): Promise<PluginOdapGatewayFabricBesu> {
+  ): Promise<BesuOdapGateway> {
     this.log.info(`Creating Recipient Gateway...`);
-    const pluginRecipientGateway = new PluginOdapGatewayFabricBesu({
+    const pluginRecipientGateway = new BesuOdapGateway({
       name: "cactus-plugin-recipient#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
@@ -338,7 +338,6 @@ export class CbdcBridgingAppDummyInfrastructure {
     fabricApiClient: FabricApi,
   ): Promise<void> {
     const channelId = "mychannel";
-    const channelName = channelId;
 
     const contractName = "asset-reference-contract";
 
@@ -413,7 +412,6 @@ export class CbdcBridgingAppDummyInfrastructure {
     const res = await fabricApiClient.deployContractV1({
       channelId,
       ccVersion: "1.0.0",
-      // constructorArgs: { Args: ["john", "99"] },
       sourceFiles,
       ccName: contractName,
       targetOrganizations: [this.org1Env, this.org2Env],
@@ -460,40 +458,6 @@ export class CbdcBridgingAppDummyInfrastructure {
     Checks.truthy(commit, `commit truthy OK`);
     Checks.truthy(packaging, `packaging truthy OK`);
     Checks.truthy(queryCommitted, `queryCommitted truthy OK`);
-
-    // FIXME - without this wait it randomly fails with an error claiming that
-    // the endorsement was impossible to be obtained. The fabric-samples script
-    // does the same thing, it just waits 10 seconds for good measure so there
-    // might not be a way for us to avoid doing this, but if there is a way we
-    // absolutely should not have timeouts like this, anywhere...
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    const assetId = uuidv4();
-
-    // CreateAsset(id string, color string, size int, owner string, appraisedValue int)
-    await fabricApiClient.runTransactionV1({
-      contractName,
-      channelName,
-      params: [assetId, "9999"],
-      methodName: "CreateAssetReference",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
-
-    await fabricApiClient.runTransactionV1({
-      contractName,
-      channelName,
-      params: [assetId],
-      methodName: "ReadAssetReference",
-      invocationType: FabricContractInvocationType.Call,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
   }
 
   public async deployFabricCbdcContract(
@@ -508,12 +472,9 @@ export class CbdcBridgingAppDummyInfrastructure {
     const contractDir = path.join(__dirname, contractRelPath);
 
     // ├── package.json
-    // ├── src
-    // │   ├── assetTransfer.ts
-    // │   ├── asset.ts
-    // │   └── index.ts
-    // ├── tsconfig.json
-    // └── tslint.json
+    // ├── index.js
+    // ├── lib
+    // │   ├── tokenERC20.js
     const sourceFiles: FileBase64[] = [];
     {
       const filename = "./package.json";
@@ -552,7 +513,6 @@ export class CbdcBridgingAppDummyInfrastructure {
     const res = await fabricApiClient.deployContractV1({
       channelId,
       ccVersion: "1.0.0",
-      // constructorArgs: { Args: ["john", "99"] },
       sourceFiles,
       ccName: contractName,
       targetOrganizations: [this.org1Env, this.org2Env],
@@ -600,14 +560,6 @@ export class CbdcBridgingAppDummyInfrastructure {
     Checks.truthy(packaging, `packaging truthy OK`);
     Checks.truthy(queryCommitted, `queryCommitted truthy OK`);
 
-    // FIXME - without this wait it randomly fails with an error claiming that
-    // the endorsement was impossible to be obtained. The fabric-samples script
-    // does the same thing, it just waits 10 seconds for good measure so there
-    // might not be a way for us to avoid doing this, but if there is a way we
-    // absolutely should not have timeouts like this, anywhere...
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    // CreateAsset(id string, color string, size int, owner string, appraisedValue int)
     await fabricApiClient.runTransactionV1({
       contractName,
       channelName,
@@ -620,73 +572,12 @@ export class CbdcBridgingAppDummyInfrastructure {
       },
     });
 
-    await fabricApiClient.runTransactionV1({
-      contractName,
-      channelName,
-      params: ["500"],
-      methodName: "Mint",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    await fabricApiClient.runTransactionV1({
-      contractName: contractName,
-      channelName,
-      params: [],
-      methodName: "ClientAccountID",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
-
-    await fabricApiClient.runTransactionV1({
-      contractName,
-      channelName,
-      params: [],
-      methodName: "ClientAccountBalance",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
-
-    const recipient =
-      "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
-
-    await fabricApiClient.runTransactionV1({
-      contractName,
-      channelName,
-      params: [recipient, "100", this.fabricAssetId],
-      methodName: "Escrow",
-      invocationType: FabricContractInvocationType.Send,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
-
-    await fabricApiClient.runTransactionV1({
-      contractName: "asset-reference-contract",
-      channelName,
-      params: [this.fabricAssetId],
-      methodName: "ReadAssetReference",
-      invocationType: FabricContractInvocationType.Call,
-      signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
-      },
-    });
+    this.log.info(`Chaincode deployed...`);
   }
 
   public async deployBesuContracts(besuApiClient: BesuApi): Promise<void> {
+    const fnTag = `${this.className}#deployBesuContracts()`;
+
     const deployCbdcContractResponse = await besuApiClient.deployContractSolBytecodeV1(
       {
         keychainId: this.apiServer2Keychain.getKeychainId(),
@@ -699,13 +590,9 @@ export class CbdcBridgingAppDummyInfrastructure {
       } as DeployContractSolidityBytecodeV1Request,
     );
 
-    expect(deployCbdcContractResponse).not.toBeUndefined();
-    expect(
-      deployCbdcContractResponse.data.transactionReceipt,
-    ).not.toBeUndefined();
-    expect(
-      deployCbdcContractResponse.data.transactionReceipt.contractAddress,
-    ).not.toBeUndefined();
+    if (deployCbdcContractResponse == undefined) {
+      throw new Error(`${fnTag}, error when deploying CBDC smart contract`);
+    }
 
     const deployAssetReferenceContractResponse = await besuApiClient.deployContractSolBytecodeV1(
       {
@@ -721,13 +608,31 @@ export class CbdcBridgingAppDummyInfrastructure {
       } as DeployContractSolidityBytecodeV1Request,
     );
 
-    expect(deployAssetReferenceContractResponse).not.toBeUndefined();
-    expect(
-      deployAssetReferenceContractResponse.data.transactionReceipt,
-    ).not.toBeUndefined();
-    expect(
-      deployAssetReferenceContractResponse.data.transactionReceipt
-        .contractAddress,
-    ).not.toBeUndefined();
+    if (deployAssetReferenceContractResponse == undefined) {
+      throw new Error(
+        `${fnTag}, error when deploying Asset Reference smart contract`,
+      );
+    }
+
+    const transferOwnership = await besuApiClient?.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Send,
+      methodName: "transferOwnership",
+      gas: 1000000,
+      params: [
+        deployAssetReferenceContractResponse.data.transactionReceipt
+          .contractAddress,
+      ],
+      signingCredential: this.besuWeb3SigningCredential,
+      keychainId: this.apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
+
+    if (transferOwnership == undefined) {
+      throw new Error(
+        `${fnTag}, error when transfering CBDC smart contract ownership`,
+      );
+    }
+
+    this.log.info(`Smart Contracts deployed...`);
   }
 }

@@ -72,11 +72,6 @@ import {
   sendTransferInitializationResponse,
 } from "../../../main/typescript/gateway/server/transfer-initialization";
 import {
-  isFabricAssetLocked,
-  fabricAssetExists,
-  besuAssetExists,
-} from "../make-checks-ledgers";
-import {
   BesuOdapGateway,
   IBesuOdapGatewayConstructorOptions,
 } from "../gateways/besu-odap-gateway";
@@ -759,15 +754,9 @@ test("client gateway crashes after lock fabric asset", async () => {
   await pluginSourceGateway.lockAsset(sessionID);
 
   // check if asset was successfully locked
-  expect(
-    await isFabricAssetLocked(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
-  ).toBe(true);
+  expect(await pluginSourceGateway.isFabricAssetLocked(FABRIC_ASSET_ID)).toBe(
+    true,
+  );
 
   // now we simulate the crash of the client gateway
   pluginSourceGateway.database?.destroy();
@@ -797,23 +786,11 @@ test("client gateway crashes after lock fabric asset", async () => {
   );
 
   await expect(
-    fabricAssetExists(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
+    pluginSourceGateway.fabricAssetExists(FABRIC_ASSET_ID),
   ).resolves.toBe(false);
 
   await expect(
-    besuAssetExists(
-      pluginRecipientGateway,
-      besuContractName,
-      besuKeychainId,
-      BESU_ASSET_ID,
-      besuWeb3SigningCredential,
-    ),
+    pluginRecipientGateway.besuAssetExists(BESU_ASSET_ID),
   ).resolves.toBe(true);
 });
 

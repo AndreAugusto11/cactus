@@ -87,7 +87,6 @@ import {
   checkValidCommitPreparationRequest,
   sendCommitPreparationResponse,
 } from "../../../main/typescript/gateway/server/commit-preparation";
-import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
 import {
   IFabricOdapGatewayConstructorOptions,
   FabricOdapGateway,
@@ -863,23 +862,11 @@ test("client gateway crashes after deleting fabric asset", async () => {
   );
 
   await expect(
-    fabricAssetExists(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
+    pluginSourceGateway.fabricAssetExists(FABRIC_ASSET_ID),
   ).resolves.toBe(false);
 
   await expect(
-    besuAssetExists(
-      pluginRecipientGateway,
-      besuContractName,
-      besuKeychainId,
-      BESU_ASSET_ID,
-      besuWeb3SigningCredential,
-    ),
+    pluginRecipientGateway.besuAssetExists(BESU_ASSET_ID),
   ).resolves.toBe(true);
 });
 

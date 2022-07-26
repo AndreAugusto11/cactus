@@ -1,31 +1,33 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.7.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../cbdc-erc-20/cbdc-erc-20.sol";
 
-struct AssetReference {
+struct AssetReference{
     string id;
     bool isLocked;
     uint numberTokens;
 }
 
+//TODO: DETEMINE CALLDATA VS MEMORY
 contract AssetReferenceContract is Ownable {
   address cbdc_contract;
   mapping (string => AssetReference) assets;
   mapping (string => bool) assetExists;
 
-  constructor(address _cbdc_contract) {
-    cbdc_contract = _cbdc_contract;
+  constructor(address account) {
+    cbdc_contract = account;
   }
 
   function createAssetReference(string calldata id, uint numberTokens, address recipient) public onlyOwner {
-    assets[id].id= id;
-    assets[id].isLocked = false;
-    assets[id].numberTokens = numberTokens;
-    assetExists[id] = true;
+      assets[id].id= id;
+      assets[id].numberTokens = numberTokens;
+      assets[id].isLocked = false;
 
-    mint(recipient, numberTokens);
+      assetExists[id] = true;
+
+      mint(recipient, numberTokens);
   }
 
   function getAssetReference(string calldata id) public onlyOwner view returns (AssetReference memory) {
@@ -41,8 +43,7 @@ contract AssetReferenceContract is Ownable {
 
   //Don't care if it is already unlocked
   function unLockAssetReference(string calldata id) public onlyOwner {
-    bool exists = assetExists[id];
-    require(exists);
+    require(isPresent(id));
 
     assets[id].isLocked = false;
   }

@@ -7,26 +7,8 @@ import {
   FabricSigningCredential,
   RunTransactionRequest as FabricRunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
-import {
-  fabricAssetExists,
-  isFabricAssetLocked,
-} from "../../../test/typescript/make-checks-ledgers";
 import { IOdapPluginKeyPair, PluginOdapGateway } from "./plugin-odap-gateway";
 import { SessionDataRollbackActionsPerformedEnum } from "../generated/openapi/typescript-axios";
-
-export enum OdapMessageType {
-  InitializationRequest = "urn:ietf:odap:msgtype:init-transfer-msg",
-  InitializationResponse = "urn:ietf:odap:msgtype:init-transfer-ack-msg",
-  TransferCommenceRequest = "urn:ietf:odap:msgtype:transfer-commence-msg",
-  TransferCommenceResponse = "urn:ietf:odap:msgtype:transfer-commence-ack-msg",
-  LockEvidenceRequest = "urn:ietf:odap:msgtype:lock-evidence-req-msg",
-  LockEvidenceResponse = "urn:ietf:odap:msgtype:lock-evidence-ack-msg",
-  CommitPreparationRequest = "urn:ietf:odap:msgtype:commit-prepare-msg",
-  CommitPreparationResponse = "urn:ietf:odap:msgtype:commit-ack-msg",
-  CommitFinalRequest = "urn:ietf:odap:msgtype:commit-final-msg",
-  CommitFinalResponse = "urn:ietf:odap:msgtype:commit-ack-msg",
-  TransferCompleteRequest = "urn:ietf:odap:msgtype:commit-transfer-complete-msg",
-}
 
 export interface IFabricOdapGatewayConstructorOptions {
   name: string;
@@ -63,8 +45,6 @@ export class FabricOdapGateway extends PluginOdapGateway {
     });
 
     if (options.fabricPath != undefined) this.defineFabricConnection(options);
-
-    this.defineKnexConnection(options.knexConfig);
   }
 
   private defineFabricConnection(
@@ -413,24 +393,8 @@ export class FabricOdapGateway extends PluginOdapGateway {
     }
 
     if (this.isClientGateway(sessionID)) {
-      if (
-        await fabricAssetExists(
-          this,
-          this.fabricContractName,
-          this.fabricChannelName,
-          sessionData.sourceLedgerAssetID,
-          this.fabricSigningCredential,
-        )
-      ) {
-        if (
-          await isFabricAssetLocked(
-            this,
-            this.fabricContractName,
-            this.fabricChannelName,
-            sessionData.sourceLedgerAssetID,
-            this.fabricSigningCredential,
-          )
-        ) {
+      if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
+        if (await this.isFabricAssetLocked(sessionData.sourceLedgerAssetID)) {
           // Rollback locking of the asset
           await this.unlockAsset(sessionID, sessionData.sourceLedgerAssetID);
         }
@@ -439,17 +403,66 @@ export class FabricOdapGateway extends PluginOdapGateway {
         await this.createAsset(sessionID, sessionData.sourceLedgerAssetID);
       }
     } else {
-      if (
-        await fabricAssetExists(
-          this,
-          this.fabricContractName,
-          this.fabricChannelName,
-          sessionData.recipientLedgerAssetID,
-          this.fabricSigningCredential,
-        )
-      ) {
+      if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
         await this.deleteAsset(sessionID, sessionData.recipientLedgerAssetID);
       }
     }
+  }
+
+  /* Helper functions */
+  async fabricAssetExists(fabricAssetID: string): Promise<boolean | undefined> {
+    const fnTag = `${this.className}#fabricAssetExists()`;
+
+    if (
+      this.fabricContractName == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricSigningCredential == undefined
+    ) {
+      throw new Error(`${fnTag} fabric config is not defined`);
+    }
+
+    const assetExists = await this.fabricApi?.runTransactionV1({
+      contractName: this.fabricContractName,
+      channelName: this.fabricChannelName,
+      params: [fabricAssetID],
+      methodName: "AssetExists",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: this.fabricSigningCredential,
+    });
+
+    if (assetExists == undefined) {
+      throw new Error(`${fnTag} the asset does not exist`);
+    }
+
+    return assetExists?.data.functionOutput == "true";
+  }
+
+  async isFabricAssetLocked(
+    fabricAssetID: string,
+  ): Promise<boolean | undefined> {
+    const fnTag = `${this.className}#fabricAssetExists()`;
+
+    if (
+      this.fabricContractName == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricSigningCredential == undefined
+    ) {
+      throw new Error(`${fnTag} fabric config is not defined`);
+    }
+
+    const assetIsLocked = await this.fabricApi?.runTransactionV1({
+      contractName: this.fabricContractName,
+      channelName: this.fabricChannelName,
+      params: [fabricAssetID],
+      methodName: "IsAssetLocked",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: this.fabricSigningCredential,
+    });
+
+    if (assetIsLocked == undefined) {
+      throw new Error(`${fnTag} the asset does not exist`);
+    }
+
+    return assetIsLocked?.data.functionOutput == "true";
   }
 }

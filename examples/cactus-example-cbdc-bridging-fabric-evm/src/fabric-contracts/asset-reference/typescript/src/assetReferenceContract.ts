@@ -11,12 +11,14 @@ import {
 } from "fabric-contract-api";
 import { AssetReference } from "./asset-reference";
 
+const bridgedOutTokensKey = "bridgedOutTokens";
+
 @Info({
   title: "AssetReferenceContract",
   description: "Smart contract for trading assets",
 })
 export class AssetReferenceContract extends Contract {
-  // AssetExists returns true when asset with given ID exists in world state.
+  // AssetReferenceExists returns true when asset with given ID exists in world state.
   @Transaction(false)
   @Returns("boolean")
   public async AssetReferenceExists(
@@ -27,7 +29,24 @@ export class AssetReferenceContract extends Contract {
     return !!assetJSON && assetJSON.length > 0;
   }
 
-  // CreateAsset issues a new asset to the world state with given details.
+  // IsAssetReferenceLocked returns true when asset with given ID is locked in world state.
+  @Transaction(false)
+  @Returns("boolean")
+  public async IsAssetReferenceLocked(
+    ctx: Context,
+    id: string,
+  ): Promise<boolean> {
+    const assetJSON = await ctx.stub.getState(id);
+
+    if (assetJSON && assetJSON.length > 0) {
+      const asset = JSON.parse(assetJSON.toString());
+      return asset.isLocked;
+    } else {
+      throw new Error(`The asset ${id} does not exist`);
+    }
+  }
+
+  // CreateAssetReference issues a new asset to the world state with given details.
   @Transaction()
   public async CreateAssetReference(
     ctx: Context,
@@ -114,5 +133,60 @@ export class AssetReferenceContract extends Contract {
       throw new Error(`The asset reference ${assetId} does not exist`);
     }
     await ctx.stub.deleteState(assetId);
+  }
+
+  @Transaction(false)
+  public async GetBridgedOutTokens(ctx: Context): Promise<void> {
+    const bridgedTokensBytes = await ctx.stub.getState(bridgedOutTokensKey);
+
+    let bridgedTokensValue;
+    // If value doesn't yet exist, we'll create it with a value of 0
+    if (!bridgedTokensBytes || bridgedTokensBytes.length === 0) {
+      bridgedTokensValue = 0;
+    } else {
+      bridgedTokensValue = parseInt(bridgedTokensBytes.toString());
+    }
+
+    return bridgedTokensValue;
+  }
+
+  @Transaction()
+  public async AddBridgedOutTokens(ctx: Context, value: number): Promise<void> {
+    const newBalance = this.add(this.GetBridgedOutTokens(ctx), value);
+    await ctx.stub.putState(
+      bridgedOutTokensKey,
+      Buffer.from(newBalance.toString()),
+    );
+  }
+
+  @Transaction()
+  public async SubBridgedOutTokens(ctx: Context, value: number): Promise<void> {
+    const newBalance = this.sub(this.GetBridgedOutTokens(ctx), value);
+
+    if (newBalance < 0) {
+      throw new Error(`Bridged back too many tokens`);
+    }
+    await ctx.stub.putState(
+      bridgedOutTokensKey,
+      Buffer.from(newBalance.toString()),
+    );
+  }
+
+  // add two number checking for overflow
+  add(a, b) {
+    const c = a + b;
+    if (a !== c - b || b !== c - a) {
+      throw new Error(`Math: addition overflow occurred ${a} + ${b}`);
+    }
+    return c;
+  }
+
+  // add two number checking for overflow
+  sub(a, b) {
+    const c = a - b;
+    if (a !== c + b || b !== a - c) {
+      throw new Error(`Math: subtraction overflow occurred ${a} - ${b}`);
+    }
+    return c;
   }
 }

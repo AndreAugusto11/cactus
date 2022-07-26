@@ -51,13 +51,10 @@ import {
   Web3SigningCredentialType,
   PluginLedgerConnectorBesu,
   PluginFactoryLedgerConnector,
-  ReceiptType,
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import Web3 from "web3";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { makeSessionDataChecks } from "../make-checks";
-import { besuAssetExists, fabricAssetExists } from "../make-checks-ledgers";
 import {
   FabricOdapGateway,
   IFabricOdapGatewayConstructorOptions,
@@ -450,24 +447,20 @@ beforeAll(async () => {
       privateKey: besuTestLedger.getGenesisAccountPrivKey(),
     };
 
-    const web3 = new Web3(rpcApiHttpHost);
-    const testEthAccount = web3.eth.accounts.create(uuidv4());
-
-    const keychainEntryKey = uuidv4();
-    const keychainEntryValue = testEthAccount.privateKey;
     const keychainPlugin = new PluginKeychainMemory({
       instanceId: uuidv4(),
       keychainId: uuidv4(),
       // pre-provision keychain with mock backend holding the private key of the
       // test account that we'll reference while sending requests with the
       // signing credential pointing to this keychain entry.
-      backend: new Map([[keychainEntryKey, keychainEntryValue]]),
+      backend: new Map([
+        [
+          LockAssetContractJson.contractName,
+          JSON.stringify(LockAssetContractJson),
+        ],
+      ]),
       logLevel,
     });
-    keychainPlugin.set(
-      LockAssetContractJson.contractName,
-      JSON.stringify(LockAssetContractJson),
-    );
 
     const factory = new PluginFactoryLedgerConnector({
       pluginImportType: PluginImportType.Local,
@@ -498,28 +491,6 @@ beforeAll(async () => {
     });
     await besuConnector.registerWebServices(expressApp, wsApi);
     besuPath = `http://${address}:${port}`;
-
-    await besuConnector.transact({
-      web3SigningCredential: {
-        ethAccount: firstHighNetWorthAccount,
-        secret: besuKeyPair.privateKey,
-        type: Web3SigningCredentialType.PrivateKeyHex,
-      },
-      consistencyStrategy: {
-        blockConfirmations: 0,
-        receiptType: ReceiptType.NodeTxPoolAck,
-      },
-      transactionConfig: {
-        from: firstHighNetWorthAccount,
-        to: testEthAccount.address,
-        value: 10e9,
-        gas: 1000000,
-      },
-    });
-
-    const balance = await web3.eth.getBalance(testEthAccount.address);
-    expect(balance).not.toBeUndefined();
-    expect(parseInt(balance, 10)).toBe(10e9);
 
     besuWeb3SigningCredential = {
       ethAccount: firstHighNetWorthAccount,
@@ -686,23 +657,11 @@ test("runs ODAP between two gateways via openApi", async () => {
     sessionID,
   );
   await expect(
-    fabricAssetExists(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
+    pluginSourceGateway.fabricAssetExists(FABRIC_ASSET_ID),
   ).resolves.toBe(false);
 
   await expect(
-    besuAssetExists(
-      pluginRecipientGateway,
-      besuContractName,
-      besuKeychainId,
-      BESU_ASSET_ID,
-      besuWeb3SigningCredential,
-    ),
+    pluginRecipientGateway.besuAssetExists(BESU_ASSET_ID),
   ).resolves.toBe(true);
 });
 

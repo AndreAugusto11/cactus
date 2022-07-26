@@ -1,6 +1,5 @@
 import { AddressInfo } from "net";
 import { Server } from "http";
-import { v4 as uuidv4 } from "uuid";
 import exitHook, { IAsyncExitHookDoneCallback } from "async-exit-hook";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import {
@@ -23,15 +22,19 @@ import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
 import { DefaultApi as FabricApi } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import { IOdapGatewayKeyPairs } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { IOdapPluginKeyPair } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { DefaultApi as IpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
+import { FabricOdapGateway } from "./odap-extension/fabric-odap-gateway";
+import { BesuOdapGateway } from "./odap-extension/besu-odap-gateway";
 
 export interface ICbdcBridgingApp {
   apiHost: string;
   apiServer1Port: number;
   apiServer2Port: number;
-  clientGatewayKeyPair: IOdapGatewayKeyPairs;
-  serverGatewayKeyPair: IOdapGatewayKeyPairs;
+  clientGatewayKeyPair: IOdapPluginKeyPair;
+  serverGatewayKeyPair: IOdapPluginKeyPair;
+  apiServer1Keychain: PluginKeychainMemory;
+  apiServer2Keychain: PluginKeychainMemory;
   logLevel?: LogLevelDesc;
   apiServerOptions?: ICactusApiServerOptions;
   disableSignalHandlers?: true;
@@ -59,16 +62,8 @@ export class CbdcBridgingApp {
 
     this.shutdownHooks = [];
 
-    this.apiServer1Keychain = new PluginKeychainMemory({
-      keychainId: uuidv4(),
-      instanceId: uuidv4(),
-      logLevel: logLevel || "INFO",
-    });
-    this.apiServer2Keychain = new PluginKeychainMemory({
-      keychainId: uuidv4(),
-      instanceId: uuidv4(),
-      logLevel: logLevel || "INFO",
-    });
+    this.apiServer1Keychain = options.apiServer1Keychain;
+    this.apiServer2Keychain = options.apiServer2Keychain;
     this.log.info("Keychain1ID=%o", this.apiServer1Keychain.getKeychainId());
     this.log.info("Keychain2ID=%o", this.apiServer2Keychain.getKeychainId());
 
@@ -115,13 +110,13 @@ export class CbdcBridgingApp {
     const addressInfoB = httpApiB.address() as AddressInfo;
     const nodeApiHostB = `http://${this.options.apiHost}:${addressInfoB.port}`;
 
-    const odapClientPlugin = await this.infrastructure.createClientGateway(
+    const fabricOdapGateway = await this.infrastructure.createClientGateway(
       nodeApiHostA,
       this.options.clientGatewayKeyPair,
       `http://${this.options.apiHost}:${addressInfoA.port}`,
     );
 
-    const odapServerPlugin = await this.infrastructure.createServerGateway(
+    const besuOdapGateway = await this.infrastructure.createServerGateway(
       nodeApiHostB,
       this.options.serverGatewayKeyPair,
       `http://${this.options.apiHost}:${addressInfoB.port}`,
@@ -135,12 +130,12 @@ export class CbdcBridgingApp {
     });
 
     clientPluginRegistry.add(fabricPlugin);
-    clientPluginRegistry.add(odapClientPlugin);
+    clientPluginRegistry.add(fabricOdapGateway);
     clientPluginRegistry.add(clientIpfsPlugin);
 
     serverPluginRegistry.add(besuPlugin);
     serverPluginRegistry.add(serverIpfsPlugin);
-    serverPluginRegistry.add(odapServerPlugin);
+    serverPluginRegistry.add(besuOdapGateway);
 
     const apiServer1 = await this.startNode(
       httpApiA,
@@ -161,12 +156,7 @@ export class CbdcBridgingApp {
       new Configuration({ basePath: nodeApiHostB }),
     );
 
-    // FIXME - without this wait it randomly fails with an error claiming that
-    // the endorsement was impossible to be obtained. The fabric-samples script
-    // does the same thing, it just waits 10 seconds for good measure so there
-    // might not be a way for us to avoid doing this, but if there is a way we
-    // absolutely should not have timeouts like this, anywhere...
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    this.log.info("Deploying chaincode and smart contracts...");
 
     await this.infrastructure.deployFabricAssetReferenceContract(
       fabricApiClient,
@@ -178,11 +168,17 @@ export class CbdcBridgingApp {
     return {
       apiServer1,
       apiServer2,
-      odapClientApi: new OdapApi(new Configuration({ basePath: nodeApiHostA })),
-      odapServerApi: new OdapApi(new Configuration({ basePath: nodeApiHostB })),
+      fabricGatewayApi: new OdapApi(
+        new Configuration({ basePath: nodeApiHostA }),
+      ),
+      besuGatewayApi: new OdapApi(
+        new Configuration({ basePath: nodeApiHostB }),
+      ),
       ipfsApiClient: new IpfsApi(new Configuration({ basePath: nodeApiHostA })),
       fabricApiClient,
       besuApiClient,
+      fabricOdapGateway,
+      besuOdapGateway,
     };
   }
 
@@ -242,9 +238,11 @@ export class CbdcBridgingApp {
 export interface IStartInfo {
   readonly apiServer1: ApiServer;
   readonly apiServer2: ApiServer;
-  readonly odapClientApi: OdapApi;
-  readonly odapServerApi: OdapApi;
+  readonly fabricGatewayApi: OdapApi;
+  readonly besuGatewayApi: OdapApi;
   readonly ipfsApiClient: IpfsApi;
   readonly besuApiClient: BesuApi;
   readonly fabricApiClient: FabricApi;
+  readonly fabricOdapGateway: FabricOdapGateway;
+  readonly besuOdapGateway: BesuOdapGateway;
 }

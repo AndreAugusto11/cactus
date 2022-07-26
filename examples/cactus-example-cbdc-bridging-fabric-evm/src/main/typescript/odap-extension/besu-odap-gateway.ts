@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Knex } from "knex";
 import { Configuration } from "@hyperledger/cactus-core-api";
-import { SessionDataRollbackActionsPerformedEnum } from "../../../main/typescript/generated/openapi/typescript-axios";
 import {
   DefaultApi as BesuApi,
   Web3SigningCredential,
@@ -11,7 +10,8 @@ import {
 import {
   IOdapPluginKeyPair,
   PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
+} from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 
 export interface IBesuOdapGatewayConstructorOptions {
   name: string;
@@ -102,9 +102,9 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "createAsset",
+        methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetId, 100], //the second is size, may need to pass this from client?
+        params: [assetId, 100, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -187,7 +187,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "lockAsset",
+        methodName: "lockAssetReference",
         gas: 1000000,
         params: [assetId],
         signingCredential: this.besuWeb3SigningCredential,
@@ -197,7 +197,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const assetCreationResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "deleteAsset",
+        methodName: "deleteAssetReference",
         gas: 1000000,
         params: [assetId],
         signingCredential: this.besuWeb3SigningCredential,
@@ -283,7 +283,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const assetLockResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "lockAsset",
+        methodName: "lockAssetReference",
         gas: 1000000,
         params: [assetId],
         signingCredential: this.besuWeb3SigningCredential,
@@ -363,7 +363,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const assetUnlockResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "lockAsset",
+        methodName: "unlockAssetReference",
         gas: 1000000,
         params: [assetId],
         signingCredential: this.besuWeb3SigningCredential,
