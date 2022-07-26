@@ -220,14 +220,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     const sessionData = this.sessions.get(sessionID);
 
-    if (
-      sessionData == undefined ||
-      this.fabricChannelName == undefined ||
-      this.fabricContractName == undefined ||
-      this.fabricSigningCredential == undefined ||
-      sessionData.rollbackProofs == undefined ||
-      sessionData.rollbackActionsPerformed == undefined
-    ) {
+    if (sessionData == undefined) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
@@ -239,56 +232,54 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     await this.storeOdapLog({
       sessionID: sessionID,
-      type: "exec-rollback",
+      type: "exec",
       operation: "create-asset",
       data: JSON.stringify(sessionData),
     });
 
     if (this.fabricApi != undefined) {
       const response = await this.fabricApi.runTransactionV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
-        channelName: this.fabricChannelName,
-        params: [assetId!, "100"],
-        methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
-        signingCredential: this.fabricSigningCredential,
-      });
-
-      const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
-        contractName: "qscc",
-        invocationType: FabricContractInvocationType.Call,
-        methodName: "GetBlockByTxID",
-        params: [this.fabricChannelName, response.data.transactionId],
+        methodName: "CreateAssetReference",
+        params: [assetId, "100"],
       } as FabricRunTransactionRequest);
 
-      this.log.warn(receiptCreate.data);
-      fabricCreateAssetProof = JSON.stringify(receiptCreate.data);
+      const receiptCreateRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
+        {
+          signingCredential: this.fabricSigningCredential,
+          channelName: this.fabricChannelName,
+          contractName: "qscc",
+          invocationType: FabricContractInvocationType.Call,
+          methodName: "GetBlockByTxID",
+          params: [this.fabricChannelName, response.data.transactionId],
+        } as FabricRunTransactionRequest,
+      );
+
+      this.log.warn(receiptCreateRes.data);
+      fabricCreateAssetProof = JSON.stringify(receiptCreateRes.data);
     }
 
-    sessionData.rollbackActionsPerformed.push(
-      SessionDataRollbackActionsPerformedEnum.Create,
-    );
-
-    sessionData.rollbackProofs.push(fabricCreateAssetProof);
+    sessionData.commitAcknowledgementClaim = fabricCreateAssetProof;
 
     this.sessions.set(sessionID, sessionData);
 
     this.log.info(
-      `${fnTag}, proof of the asset creation: ${fabricCreateAssetProof}`,
+      `${fnTag}, proof of the asset create: ${fabricCreateAssetProof}`,
     );
 
     await this.storeOdapProof({
       sessionID: sessionID,
-      type: "proof-rollback",
+      type: "proof",
       operation: "create",
       data: fabricCreateAssetProof,
     });
 
     await this.storeOdapLog({
       sessionID: sessionID,
-      type: "done-rollback",
+      type: "done",
       operation: "create-asset",
       data: JSON.stringify(sessionData),
     });
@@ -368,32 +359,178 @@ export class FabricOdapGateway extends PluginOdapGateway {
     return fabricDeleteAssetProof;
   }
 
-  async lockAssetToRollback(
-    sessionID: string,
-    assetID?: string,
-  ): Promise<string> {
-    return new Promise(() => `${sessionID}, ${assetID}`);
-  }
-
-  async unlockAssetToRollback(
-    sessionID: string,
-    assetID?: string,
-  ): Promise<string> {
-    return new Promise(() => `${sessionID}, ${assetID}`);
-  }
-
   async createAssetToRollback(
     sessionID: string,
     assetID?: string,
   ): Promise<string> {
-    return new Promise(() => `${sessionID}, ${assetID}`);
+    const fnTag = `${this.className}#createAsset()`;
+
+    const sessionData = this.sessions.get(sessionID);
+
+    if (
+      sessionData == undefined ||
+      this.fabricChannelName == undefined ||
+      this.fabricContractName == undefined ||
+      this.fabricSigningCredential == undefined ||
+      sessionData.rollbackProofs == undefined ||
+      sessionData.rollbackActionsPerformed == undefined
+    ) {
+      throw new Error(`${fnTag}, session data is not correctly initialized`);
+    }
+
+    let fabricCreateAssetProof = "";
+
+    if (assetID == undefined) {
+      assetID = sessionData.recipientLedgerAssetID;
+    }
+
+    await this.storeOdapLog({
+      sessionID: sessionID,
+      type: "exec-rollback",
+      operation: "create-asset",
+      data: JSON.stringify(sessionData),
+    });
+
+    if (this.fabricApi != undefined) {
+      const response = await this.fabricApi.runTransactionV1({
+        contractName: this.fabricContractName,
+        channelName: this.fabricChannelName,
+        params: [assetID!, "100"],
+        methodName: "CreateAssetReference",
+        invocationType: FabricContractInvocationType.Send,
+        signingCredential: this.fabricSigningCredential,
+      });
+
+      const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
+        contractName: "qscc",
+        invocationType: FabricContractInvocationType.Call,
+        methodName: "GetBlockByTxID",
+        params: [this.fabricChannelName, response.data.transactionId],
+      } as FabricRunTransactionRequest);
+
+      this.log.warn(receiptCreate.data);
+      fabricCreateAssetProof = JSON.stringify(receiptCreate.data);
+    }
+
+    sessionData.rollbackActionsPerformed.push(
+      SessionDataRollbackActionsPerformedEnum.Create,
+    );
+
+    sessionData.rollbackProofs.push(fabricCreateAssetProof);
+
+    this.sessions.set(sessionID, sessionData);
+
+    this.log.info(
+      `${fnTag}, proof of the asset creation: ${fabricCreateAssetProof}`,
+    );
+
+    await this.storeOdapProof({
+      sessionID: sessionID,
+      type: "proof-rollback",
+      operation: "create",
+      data: fabricCreateAssetProof,
+    });
+
+    await this.storeOdapLog({
+      sessionID: sessionID,
+      type: "done-rollback",
+      operation: "create-asset",
+      data: JSON.stringify(sessionData),
+    });
+
+    return fabricCreateAssetProof;
   }
 
   async deleteAssetToRollback(
     sessionID: string,
     assetID?: string,
   ): Promise<string> {
-    return new Promise(() => `${sessionID}, ${assetID}`);
+    const fnTag = `${this.className}#deleteAssetToRollback()`;
+
+    const sessionData = this.sessions.get(sessionID);
+
+    if (
+      sessionData == undefined ||
+      sessionData.rollbackActionsPerformed == undefined ||
+      sessionData.rollbackProofs == undefined
+    ) {
+      throw new Error(`${fnTag}, session data is not correctly initialized`);
+    }
+
+    let fabricDeleteAssetProof = "";
+
+    if (assetID == undefined) {
+      assetID = sessionData.recipientLedgerAssetID;
+    }
+
+    await this.storeOdapLog({
+      sessionID: sessionID,
+      type: "exec-rollback",
+      operation: "delete-asset",
+      data: JSON.stringify(sessionData),
+    });
+
+    if (this.fabricApi != undefined) {
+      // we need to lock the asset first
+      await this.fabricApi.runTransactionV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
+        contractName: this.fabricContractName,
+        invocationType: FabricContractInvocationType.Send,
+        methodName: "LockAssetReference",
+        params: [assetID],
+      } as FabricRunTransactionRequest);
+
+      const response = await this.fabricApi.runTransactionV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
+        contractName: this.fabricContractName,
+        invocationType: FabricContractInvocationType.Send,
+        methodName: "DeleteAssetReference",
+        params: [assetID],
+      } as FabricRunTransactionRequest);
+
+      const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
+        contractName: "qscc",
+        invocationType: FabricContractInvocationType.Call,
+        methodName: "GetBlockByTxID",
+        params: [this.fabricChannelName, response.data.transactionId],
+      } as FabricRunTransactionRequest);
+
+      this.log.warn(receiptCreate.data);
+      fabricDeleteAssetProof = JSON.stringify(receiptCreate.data);
+    }
+
+    sessionData.rollbackActionsPerformed.push(
+      SessionDataRollbackActionsPerformedEnum.Delete,
+    );
+    sessionData.rollbackProofs.push(fabricDeleteAssetProof);
+
+    this.sessions.set(sessionID, sessionData);
+
+    this.log.info(
+      `${fnTag}, proof of the asset deletion: ${fabricDeleteAssetProof}`,
+    );
+
+    await this.storeOdapProof({
+      sessionID: sessionID,
+      type: "proof-rollback",
+      operation: "delete",
+      data: fabricDeleteAssetProof,
+    });
+
+    await this.storeOdapLog({
+      sessionID: sessionID,
+      type: "done-rollback",
+      operation: "delete-asset",
+      data: JSON.stringify(sessionData),
+    });
+
+    return fabricDeleteAssetProof;
   }
 
   async rollback(sessionID: string): Promise<void> {
@@ -431,11 +568,17 @@ export class FabricOdapGateway extends PluginOdapGateway {
         }
       } else {
         // Rollback extinguishment of the asset
-        await this.createAsset(sessionID, sessionData.sourceLedgerAssetID);
+        await this.createAssetToRollback(
+          sessionID,
+          sessionData.sourceLedgerAssetID,
+        );
       }
     } else {
       if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
-        await this.deleteAsset(sessionID, sessionData.recipientLedgerAssetID);
+        await this.deleteAssetToRollback(
+          sessionID,
+          sessionData.recipientLedgerAssetID,
+        );
       }
     }
   }

@@ -34,7 +34,7 @@ const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_ASSET_CBDC_ERC20_NAME = "cbdc-erc20";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
-const BESU_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
+const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const FINAL_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
 const FINAL_USER_BALANCE = "100";

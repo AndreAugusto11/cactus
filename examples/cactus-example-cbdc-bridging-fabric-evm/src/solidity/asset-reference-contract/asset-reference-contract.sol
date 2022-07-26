@@ -50,13 +50,13 @@ contract AssetReferenceContract is Ownable {
 
   function deleteAssetReference(string calldata id) public onlyOwner {
     require(isPresent(id));
-    require(!isAssetLocked(id));
+    require(isAssetLocked(id));
 
     delete assets[id];
     assetExists[id] = false;
   }
 
-  function isPresent(string calldata id) public onlyOwner view returns (bool) {
+  function isPresent(string calldata id) public view returns (bool) {
     return assetExists[id];
   }
 

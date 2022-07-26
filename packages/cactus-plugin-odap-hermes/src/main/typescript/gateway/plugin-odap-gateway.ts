@@ -1064,16 +1064,14 @@ export abstract class PluginOdapGateway
     return sessionID;
   }
 
+  // we don't need a `lockAssetToRollback` method because we would never call
+  // that function in a rollback
   abstract lockAsset(sessionID: string, assetID?: string): Promise<string>;
-  abstract lockAssetToRollback(
-    sessionID: string,
-    assetID?: string,
-  ): Promise<string>;
+
+  // we don't need a `unlockAssetToRollback` method because we only call this
+  // function to rollback, thus the implementation would be the same
   abstract unlockAsset(sessionID: string, assetID?: string): Promise<string>;
-  abstract unlockAssetToRollback(
-    sessionID: string,
-    assetID?: string,
-  ): Promise<string>;
+
   abstract createAsset(sessionID: string, assetID?: string): Promise<string>;
   abstract createAssetToRollback(
     sessionID: string,

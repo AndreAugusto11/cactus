@@ -15,12 +15,8 @@ import {
   AssetProfile,
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
-import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
+import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
-import {
-  EthContractInvocationType,
-  InvokeContractV1Request as BesuInvokeContractV1Request,
-} from "@hyperledger/cactus-plugin-ledger-connector-besu";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -29,11 +25,17 @@ const API_SERVER_2_PORT = 4100;
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
+const FABRIC_CHANNEL_NAME = "mychannel";
+const FABRIC_ASSET_CBDC_ERC20_NAME = "cbdc-erc20";
+
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
+
+let apiServer1Keychain: PluginKeychainMemory;
+let apiServer2Keychain: PluginKeychainMemory;
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
@@ -78,12 +80,12 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
-  const apiServer1Keychain = new PluginKeychainMemory({
+  apiServer1Keychain = new PluginKeychainMemory({
     keychainId: uuidv4(),
     instanceId: uuidv4(),
     logLevel: logLevel || "INFO",
   });
-  const apiServer2Keychain = new PluginKeychainMemory({
+  apiServer2Keychain = new PluginKeychainMemory({
     keychainId: uuidv4(),
     instanceId: uuidv4(),
     logLevel: logLevel || "INFO",
@@ -109,38 +111,95 @@ beforeAll(async () => {
     process.exit(-1);
   }
 
-  const { besuApiClient } = startResult;
+  const { fabricApiClient } = startResult;
 
-  const signingCredential =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
+  // Initiate state in Fabric ledger
+  await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_ASSET_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: ["500"],
+    methodName: "Mint",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "user2",
+    },
+  });
 
-  if (signingCredential == undefined) {
-    throw new Error("Infrastructure set up not correctly performed.");
-  }
+  const recipient =
+    "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
-  // Initiate state in Besu ledger
-  const besuCreateRes = await besuApiClient.invokeContractV1({
-    contractName: AssetReferenceContractJson.contractName,
-    invocationType: EthContractInvocationType.Send,
-    methodName: "createAssetReference",
-    gas: 1000000,
-    params: [BESU_ASSET_ID, 100, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
-    signingCredential: signingCredential,
-    keychainId: apiServer2Keychain.getKeychainId(),
-  } as BesuInvokeContractV1Request);
-
-  if (besuCreateRes == undefined) {
-    throw new Error("Error when creating asset in Besu network.");
-  }
+  await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_ASSET_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [recipient, "100", FABRIC_ASSET_ID],
+    methodName: "Escrow",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "user2",
+    },
+  });
 });
 
-test("transfer asset correctly from besu to fabric", async () => {
-  const { besuGatewayApi, fabricOdapGateway, besuOdapGateway } = startResult;
+test("transfer asset correctly from fabric to besu, and the other way around", async () => {
+  const {
+    fabricGatewayApi,
+    fabricOdapGateway,
+    besuOdapGateway,
+    besuGatewayApi,
+  } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
   const assetProfile: AssetProfile = { expirationDate: expiryDate };
 
   const odapClientRequest: ClientV1Request = {
+    clientGatewayConfiguration: {
+      apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
+    },
+    serverGatewayConfiguration: {
+      apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
+    },
+    version: "0.0.0",
+    loggingProfile: "dummyLoggingProfile",
+    accessControlProfile: "dummyAccessControlProfile",
+    applicationProfile: "dummyApplicationProfile",
+    payloadProfile: {
+      assetProfile: assetProfile,
+      capabilities: "",
+    },
+    assetProfile: assetProfile,
+    assetControlProfile: "dummyAssetControlProfile",
+    beneficiaryPubkey: "dummyPubKey",
+    clientDltSystem: "DLT1",
+    originatorPubkey: "dummyPubKey",
+    recipientGatewayDltSystem: "DLT2",
+    recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
+      serverGatewayKeyPair.publicKey,
+    ),
+    serverDltSystem: "DLT2",
+    sourceGatewayDltSystem: "DLT1",
+    clientIdentityPubkey: "",
+    serverIdentityPubkey: "",
+    maxRetries: MAX_RETRIES,
+    maxTimeout: MAX_TIMEOUT,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
+  };
+
+  const res = await fabricGatewayApi.clientRequestV1(odapClientRequest);
+  expect(res.status).toBe(200);
+
+  const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
+  expect(!exists1);
+
+  const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
+  expect(exists2);
+
+  // the assets were created in the besu network
+  // now we will transfer them back
+
+  const odapClientRequest2: ClientV1Request = {
     clientGatewayConfiguration: {
       apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
     },
@@ -174,14 +233,14 @@ test("transfer asset correctly from besu to fabric", async () => {
     recipientLedgerAssetID: FABRIC_ASSET_ID,
   };
 
-  const res = await besuGatewayApi.clientRequestV1(odapClientRequest);
-  expect(res.status).toBe(200);
+  const res2 = await besuGatewayApi.clientRequestV1(odapClientRequest2);
+  expect(res2.status).toBe(200);
 
-  const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
-  expect(exists1);
+  const exists3 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
+  expect(exists3);
 
-  const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
-  expect(!exists2);
+  const exists4 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
+  expect(!exists4);
 });
 
 afterAll(async () => {
