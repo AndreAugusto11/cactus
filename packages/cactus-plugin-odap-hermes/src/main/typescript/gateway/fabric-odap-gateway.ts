@@ -365,6 +365,34 @@ export class FabricOdapGateway extends PluginOdapGateway {
     return fabricDeleteAssetProof;
   }
 
+  async lockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async unlockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async createAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async deleteAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
   async rollback(sessionID: string): Promise<void> {
     const fnTag = `${this.className}#rollback()`;
     const sessionData = this.sessions.get(sessionID);

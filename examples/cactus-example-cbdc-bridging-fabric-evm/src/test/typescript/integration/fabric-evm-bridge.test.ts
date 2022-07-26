@@ -16,7 +16,12 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
+import {
+  EthContractInvocationType,
+  InvokeContractV1Request as BesuInvokeContractV1Request,
+} from "@hyperledger/cactus-plugin-ledger-connector-besu";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -26,11 +31,13 @@ const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
 const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_ASSET_REF_CONTRACT_NAME = "asset-reference-contract";
 const FABRIC_ASSET_CBDC_ERC20_NAME = "cbdc-erc20";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
+
+const FINAL_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const FINAL_USER_BALANCE = "100";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
@@ -141,22 +148,15 @@ beforeAll(async () => {
       keychainRef: "user2",
     },
   });
-
-  await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_ASSET_REF_CONTRACT_NAME,
-    channelName: FABRIC_CHANNEL_NAME,
-    params: [FABRIC_ASSET_ID],
-    methodName: "ReadAssetReference",
-    invocationType: FabricContractInvocationType.Call,
-    signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "user2",
-    },
-  });
 });
 
 test("transfer asset correctly from fabric to besu", async () => {
-  const { fabricGatewayApi, fabricOdapGateway, besuOdapGateway } = startResult;
+  const {
+    fabricGatewayApi,
+    fabricOdapGateway,
+    besuOdapGateway,
+    besuApiClient,
+  } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
   const assetProfile: AssetProfile = { expirationDate: expiryDate };
@@ -205,6 +205,25 @@ test("transfer asset correctly from fabric to besu", async () => {
 
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
   expect(exists2);
+
+  const signingCredential =
+    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
+
+  if (signingCredential == undefined) {
+    throw new Error("Infrastructure set up not correctly performed.");
+  }
+
+  const finalUserBalance = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "balanceOf",
+    gas: 1000000,
+    params: [FINAL_USER_ADDRESS],
+    signingCredential: signingCredential,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  expect(finalUserBalance.data.callOutput).toBe(FINAL_USER_BALANCE);
 });
 
 afterAll(async () => {

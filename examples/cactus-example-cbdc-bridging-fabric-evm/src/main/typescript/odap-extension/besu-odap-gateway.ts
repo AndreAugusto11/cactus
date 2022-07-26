@@ -419,6 +419,34 @@ export class BesuOdapGateway extends PluginOdapGateway {
     return besuUnlockAssetProof;
   }
 
+  async lockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async unlockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async createAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async deleteAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
   async rollback(sessionID: string) {
     const fnTag = `${this.className}#rollback()`;
     const sessionData = this.sessions.get(sessionID);

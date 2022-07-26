@@ -248,7 +248,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [assetId!, "123"],
+        params: [assetId!, "100"],
         methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
@@ -366,6 +366,34 @@ export class FabricOdapGateway extends PluginOdapGateway {
     });
 
     return fabricDeleteAssetProof;
+  }
+
+  async lockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async unlockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async createAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
+  }
+
+  async deleteAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string> {
+    return new Promise(() => `${sessionID}, ${assetID}`);
   }
 
   async rollback(sessionID: string): Promise<void> {

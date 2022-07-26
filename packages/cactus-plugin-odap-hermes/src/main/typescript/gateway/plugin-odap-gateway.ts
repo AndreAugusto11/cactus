@@ -1065,9 +1065,25 @@ export abstract class PluginOdapGateway
   }
 
   abstract lockAsset(sessionID: string, assetID?: string): Promise<string>;
+  abstract lockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string>;
   abstract unlockAsset(sessionID: string, assetID?: string): Promise<string>;
+  abstract unlockAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string>;
   abstract createAsset(sessionID: string, assetID?: string): Promise<string>;
+  abstract createAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string>;
   abstract deleteAsset(sessionID: string, assetID?: string): Promise<string>;
+  abstract deleteAssetToRollback(
+    sessionID: string,
+    assetID?: string,
+  ): Promise<string>;
 
   async Revert(sessionID: string): Promise<void> {
     await this.rollback(sessionID);
