@@ -16,10 +16,6 @@ import {
 } from "@hyperledger/cactus-common";
 import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import {
-  checkValidInitializationRequest,
-  sendTransferInitializationResponse,
-} from "./server/transfer-initialization";
-import {
   ICactusPlugin,
   IPluginWebService,
   IWebServiceEndpoint,
@@ -59,45 +55,8 @@ import { TransferCompleteRequestEndpointV1 } from "../web-services/server-side/t
 import { TransferInitiationRequestEndpointV1 } from "../web-services/server-side/transfer-initiation-request-endpoint";
 import { CommitPreparationRequestEndpointV1 } from "../web-services/server-side/commite-prepare-request-endpoint";
 import { randomInt } from "crypto";
-import {
-  checkValidInitializationResponse,
-  sendTransferInitializationRequest,
-} from "./client/transfer-initialization";
-import { ClientRequestEndpointV1 } from "../web-services/client-side/client-request-endpoint";
-import {
-  checkValidTransferCommenceResponse,
-  sendTransferCommenceRequest,
-} from "./client/transfer-commence";
-import {
-  checkValidtransferCommenceRequest,
-  sendTransferCommenceResponse,
-} from "./server/transfer-commence";
-import {
-  checkValidLockEvidenceResponse,
-  sendLockEvidenceRequest,
-} from "./client/lock-evidence";
-import {
-  checkValidLockEvidenceRequest,
-  sendLockEvidenceResponse,
-} from "./server/lock-evidence";
-import {
-  checkValidCommitFinalResponse,
-  sendCommitFinalRequest,
-} from "./client/commit-final";
-import {
-  checkValidCommitPreparationResponse,
-  sendCommitPreparationRequest,
-} from "./client/commit-preparation";
-import {
-  checkValidCommitFinalRequest,
-  sendCommitFinalResponse,
-} from "./server/commit-final";
-import { sendTransferCompleteRequest } from "./client/transfer-complete";
-import { checkValidTransferCompleteRequest } from "./server/transfer-complete";
-import {
-  checkValidCommitPreparationRequest,
-  sendCommitPreparationResponse,
-} from "./server/commit-preparation";
+import { ClientGatewayHelper } from "./client/client-helper";
+import { ServerGatewayHelper } from "./server/server-helper";
 import {
   checkValidRecoverMessage,
   sendRecoverMessage,
@@ -129,6 +88,7 @@ import {
   checkValidRollbackAckMessage,
   sendRollbackAckMessage,
 } from "./recovery/rollback-ack";
+import { ClientRequestEndpointV1 } from "../web-services/client-side/client-request-endpoint";
 
 export enum OdapMessageType {
   InitializationRequest = "urn:ietf:odap:msgtype:init-transfer-msg",
@@ -150,10 +110,10 @@ export interface IPluginOdapGatewayConstructorOptions {
   instanceId: string;
   keyPair?: IOdapPluginKeyPair;
   backupGatewaysAllowed?: string[];
-
   ipfsPath?: string;
-
   knexConfig?: Knex.Config;
+  clientHelper: ClientGatewayHelper;
+  serverHelper: ServerGatewayHelper;
 }
 export interface IOdapPluginKeyPair {
   publicKey: Uint8Array;
@@ -169,13 +129,13 @@ export interface IOdapLogIPFS {
 
 export abstract class PluginOdapGateway
   implements ICactusPlugin, IPluginWebService {
-  name: string;
-  sessions: Map<string, SessionData>;
-  pubKey: string;
-  privKey: string;
   public static readonly CLASS_NAME = "OdapGateway";
-  readonly log: Logger;
   private readonly instanceId: string;
+  private readonly _log: Logger;
+
+  private _sessions: Map<string, SessionData>;
+  private _pubKey: string;
+  private _privKey: string;
 
   public ipfsApi?: ObjectStoreIpfsApi;
 
@@ -184,10 +144,13 @@ export abstract class PluginOdapGateway
   private endpoints: IWebServiceEndpoint[] | undefined;
   //map[]object, object refer to a state
   //of a specific comminications
-  public supportedDltIDs: string[];
-  public backupGatewaysAllowed: string[];
+  private _supportedDltIDs: string[];
+  private _backupGatewaysAllowed: string[];
 
   private odapSigner: JsObjectSigner;
+
+  private _clientHelper: ClientGatewayHelper;
+  private _serverHelper: ServerGatewayHelper;
 
   public constructor(options: IPluginOdapGatewayConstructorOptions) {
     const fnTag = `${this.className}#constructor()`;
@@ -197,25 +160,28 @@ export abstract class PluginOdapGateway
 
     const level = "INFO";
     const label = this.className;
-    this.log = LoggerProvider.getOrCreate({ level, label });
+    this._log = LoggerProvider.getOrCreate({ level, label });
 
     this.instanceId = options.instanceId;
 
-    this.name = options.name;
-    this.supportedDltIDs = options.dltIDs;
-    this.sessions = new Map();
+    this._supportedDltIDs = options.dltIDs;
+    this._sessions = new Map();
 
-    this.backupGatewaysAllowed = options.backupGatewaysAllowed || [];
+    this._backupGatewaysAllowed = options.backupGatewaysAllowed || [];
     const keyPairs = options.keyPair
       ? options.keyPair
       : Secp256k1Keys.generateKeyPairsBuffer();
-    this.pubKey = PluginOdapGateway.bufArray2HexStr(keyPairs.publicKey);
-    this.privKey = PluginOdapGateway.bufArray2HexStr(keyPairs.privateKey);
+    this._pubKey = PluginOdapGateway.bufArray2HexStr(keyPairs.publicKey);
+    this._privKey = PluginOdapGateway.bufArray2HexStr(keyPairs.privateKey);
+
     const odapSignerOptions: IJsObjectSignerOptions = {
-      privateKey: this.privKey,
+      privateKey: this._privKey,
       logLevel: "debug",
     };
     this.odapSigner = new JsObjectSigner(odapSignerOptions);
+
+    this._clientHelper = options.clientHelper;
+    this._serverHelper = options.serverHelper;
 
     if (options.ipfsPath != undefined) this.defineIpfsConnection(options);
 
@@ -377,6 +343,38 @@ export abstract class PluginOdapGateway
 
   public getPackageName(): string {
     return "@hyperledger/cactus-odap-gateway-business-logic-plugin";
+  }
+
+  public get sessions(): Map<string, SessionData> {
+    return this._sessions;
+  }
+
+  public get privKey(): string {
+    return this._privKey;
+  }
+
+  public get pubKey(): string {
+    return this._pubKey;
+  }
+
+  public get supportedDltIDs(): string[] {
+    return this._supportedDltIDs;
+  }
+
+  public get backupGatewaysAllowed(): string[] {
+    return this._backupGatewaysAllowed;
+  }
+
+  public get clientHelper(): ClientGatewayHelper {
+    return this._clientHelper;
+  }
+
+  public get serverHelper(): ServerGatewayHelper {
+    return this._serverHelper;
+  }
+
+  public get log(): Logger {
+    return this._log;
   }
 
   getDatabaseInstance(): Knex.QueryBuilder {
@@ -697,41 +695,81 @@ export abstract class PluginOdapGateway
 
     switch (sessionData.step) {
       case 1:
-        return await sendTransferInitializationRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendTransferInitializationRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 2:
-        return await sendTransferInitializationResponse(
+        return await ServerGatewayHelper.sendTransferInitializationResponse(
           sessionID,
           this,
           remote,
         );
 
       case 3:
-        return await sendTransferCommenceRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendTransferCommenceRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 4:
-        return await sendTransferCommenceResponse(sessionID, this, remote);
+        return await ServerGatewayHelper.sendTransferCommenceResponse(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 5:
-        return await sendLockEvidenceRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendLockEvidenceRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 6:
-        return await sendLockEvidenceResponse(sessionID, this, remote);
+        return await ServerGatewayHelper.sendLockEvidenceResponse(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 7:
-        return await sendCommitPreparationRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendCommitPreparationRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 8:
-        return await sendCommitPreparationResponse(sessionID, this, remote);
+        return await ServerGatewayHelper.sendCommitPreparationResponse(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 9:
-        return await sendCommitFinalRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendCommitFinalRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 10:
-        return await sendCommitFinalResponse(sessionID, this, remote);
+        return await ServerGatewayHelper.sendCommitFinalResponse(
+          sessionID,
+          this,
+          remote,
+        );
 
       case 11:
-        return await sendTransferCompleteRequest(sessionID, this, remote);
+        return await ClientGatewayHelper.sendTransferCompleteRequest(
+          sessionID,
+          this,
+          remote,
+        );
 
       default:
         this.sessions.delete(sessionID);
@@ -753,7 +791,10 @@ export abstract class PluginOdapGateway
     this.sessions.set(sessionID, sessionData);
   }
 
-  //Server-side
+  /********************************/
+  /*         Server-side          */
+  /********************************/
+
   async onTransferInitiationRequestReceived(
     request: TransferInitializationV1Request,
   ): Promise<void> {
@@ -765,8 +806,12 @@ export abstract class PluginOdapGateway
       )}`,
     );
 
-    await checkValidInitializationRequest(request, this);
-    await sendTransferInitializationResponse(request.sessionID, this, true);
+    await ServerGatewayHelper.checkValidInitializationRequest(request, this);
+    await ServerGatewayHelper.sendTransferInitializationResponse(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onTransferCommenceRequestReceived(
@@ -781,8 +826,12 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidtransferCommenceRequest(request, this);
-    await sendTransferCommenceResponse(request.sessionID, this, true);
+    await ServerGatewayHelper.checkValidtransferCommenceRequest(request, this);
+    await ServerGatewayHelper.sendTransferCommenceResponse(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onLockEvidenceRequestReceived(
@@ -795,8 +844,12 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidLockEvidenceRequest(request, this);
-    await sendLockEvidenceResponse(request.sessionID, this, true);
+    await ServerGatewayHelper.checkValidLockEvidenceRequest(request, this);
+    await ServerGatewayHelper.sendLockEvidenceResponse(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onCommitPrepareRequestReceived(
@@ -811,8 +864,12 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidCommitPreparationRequest(request, this);
-    await sendCommitPreparationResponse(request.sessionID, this, true);
+    await ServerGatewayHelper.checkValidCommitPreparationRequest(request, this);
+    await ServerGatewayHelper.sendCommitPreparationResponse(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onCommitFinalRequestReceived(
@@ -825,9 +882,13 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidCommitFinalRequest(request, this);
+    await ServerGatewayHelper.checkValidCommitFinalRequest(request, this);
     await this.createAsset(request.sessionID);
-    await sendCommitFinalResponse(request.sessionID, this, true);
+    await ServerGatewayHelper.sendCommitFinalResponse(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onTransferCompleteRequestReceived(
@@ -842,11 +903,14 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidTransferCompleteRequest(request, this);
+    await ServerGatewayHelper.checkValidTransferCompleteRequest(request, this);
     //this.deleteDatabaseEntries(request.sessionID);
   }
 
-  //Client-side
+  /********************************/
+  /*         Client-side          */
+  /********************************/
+
   async onTransferInitiationResponseReceived(
     request: TransferInitializationV1Response,
   ): Promise<void> {
@@ -859,8 +923,12 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidInitializationResponse(request, this);
-    await sendTransferCommenceRequest(request.sessionID, this, true);
+    await ClientGatewayHelper.checkValidInitializationResponse(request, this);
+    await ClientGatewayHelper.sendTransferCommenceRequest(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onTransferCommenceResponseReceived(
@@ -875,9 +943,13 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidTransferCommenceResponse(request, this);
+    await ClientGatewayHelper.checkValidTransferCommenceResponse(request, this);
     await this.lockAsset(request.sessionID);
-    await sendLockEvidenceRequest(request.sessionID, this, true);
+    await ClientGatewayHelper.sendLockEvidenceRequest(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onLockEvidenceResponseReceived(
@@ -892,8 +964,12 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidLockEvidenceResponse(request, this);
-    await sendCommitPreparationRequest(request.sessionID, this, true);
+    await ClientGatewayHelper.checkValidLockEvidenceResponse(request, this);
+    await ClientGatewayHelper.sendCommitPreparationRequest(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onCommitPrepareResponseReceived(
@@ -903,9 +979,16 @@ export abstract class PluginOdapGateway
     this.log.info(`${fnTag}, start processing, time: ${Date.now()}`);
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidCommitPreparationResponse(request, this);
+    await ClientGatewayHelper.checkValidCommitPreparationResponse(
+      request,
+      this,
+    );
     await this.deleteAsset(request.sessionID);
-    await sendCommitFinalRequest(request.sessionID, this, true);
+    await ClientGatewayHelper.sendCommitFinalRequest(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
   async onCommitFinalResponseReceived(
@@ -918,11 +1001,18 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await checkValidCommitFinalResponse(request, this);
-    await sendTransferCompleteRequest(request.sessionID, this, true);
+    await ClientGatewayHelper.checkValidCommitFinalResponse(request, this);
+    await ClientGatewayHelper.sendTransferCompleteRequest(
+      request.sessionID,
+      this,
+      true,
+    );
   }
 
-  //Recover
+  /********************************/
+  /*           Recovery           */
+  /********************************/
+
   async onRecoverMessageReceived(request: RecoverV1Message): Promise<void> {
     const fnTag = `${this.className}#onRecoverMessageReceived()`;
     this.log.info(`${fnTag}, start processing, time: ${Date.now()}`);
@@ -1019,7 +1109,11 @@ export abstract class PluginOdapGateway
       );
     }
 
-    await sendTransferInitializationRequest(sessionID, this, true);
+    await ClientGatewayHelper.sendTransferInitializationRequest(
+      sessionID,
+      this,
+      true,
+    );
   }
 
   configureOdapSession(request: ClientV1Request) {

@@ -23,18 +23,12 @@ import {
   AssetProfile,
   ClientV1Request,
 } from "../../../main/typescript/public-api";
-import {
-  checkValidInitializationResponse,
-  sendTransferInitializationRequest,
-} from "../../../main/typescript/gateway/client/transfer-initialization";
-import {
-  checkValidInitializationRequest,
-  sendTransferInitializationResponse,
-} from "../../../main/typescript/gateway/server/transfer-initialization";
 import { makeSessionDataChecks } from "../make-checks";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -42,7 +36,7 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_ASSET_ID = uuidv4();
 const BESU_ASSET_ID = uuidv4();
 
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
 let odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
@@ -121,6 +115,8 @@ beforeAll(async () => {
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       knexConfig: knexServerConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     serverExpressApp = express();
@@ -159,6 +155,8 @@ beforeAll(async () => {
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       knexConfig: knexClientConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     clientExpressApp = express();
@@ -247,7 +245,7 @@ afterEach(() => {
 test("successful run ODAP after client gateway crashed after after receiving transfer initiation response", async () => {
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await sendTransferInitializationRequest(
+  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -258,12 +256,12 @@ test("successful run ODAP after client gateway crashed after after receiving tra
     return;
   }
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await sendTransferInitializationResponse(
+  const transferInitializationResponse = await ServerGatewayHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -274,7 +272,7 @@ test("successful run ODAP after client gateway crashed after after receiving tra
     return;
   }
 
-  await checkValidInitializationResponse(
+  await ClientGatewayHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );

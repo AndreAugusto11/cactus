@@ -2,10 +2,6 @@ import { randomInt } from "crypto";
 import { SHA256 } from "crypto-js";
 import { v4 as uuidV4 } from "uuid";
 import {
-  checkValidTransferCommenceResponse,
-  sendTransferCommenceRequest,
-} from "../../../../main/typescript/gateway/client/transfer-commence";
-import {
   OdapMessageType,
   PluginOdapGateway,
 } from "../../../../main/typescript/gateway/plugin-odap-gateway";
@@ -16,6 +12,8 @@ import {
 } from "../../../../main/typescript/public-api";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -35,11 +33,15 @@ beforeEach(async () => {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -98,7 +100,7 @@ test("valid transfer commence response", async () => {
     JSON.stringify(transferCommenceResponse),
   ).toString();
 
-  await checkValidTransferCommenceResponse(
+  await ClientGatewayHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );
@@ -131,7 +133,7 @@ test("transfer commence response invalid because of wrong previous message hash"
     await pluginRecipientGateway.sign(JSON.stringify(transferCommenceResponse)),
   );
 
-  await checkValidTransferCommenceResponse(
+  await ClientGatewayHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   )
@@ -160,7 +162,7 @@ test("transfer commence response invalid because of wrong signature", async () =
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await checkValidTransferCommenceResponse(
+  await ClientGatewayHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   )
@@ -207,7 +209,11 @@ test("timeout in transfer commence request because no server gateway is connecte
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await sendTransferCommenceRequest(sessionID, pluginSourceGateway, true)
+  await ClientGatewayHelper.sendTransferCommenceRequest(
+    sessionID,
+    pluginSourceGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })

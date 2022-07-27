@@ -32,6 +32,10 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
+const AMOUNT_TO_TRANSFER = "123";
+
+const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
@@ -124,7 +128,7 @@ beforeAll(async () => {
     invocationType: EthContractInvocationType.Send,
     methodName: "createAssetReference",
     gas: 1000000,
-    params: [BESU_ASSET_ID, 100, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
+    params: [BESU_ASSET_ID, AMOUNT_TO_TRANSFER, BESU_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
@@ -138,7 +142,15 @@ test("transfer asset correctly from besu to fabric", async () => {
   const { besuGatewayApi, fabricOdapGateway, besuOdapGateway } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
-  const assetProfile: AssetProfile = { expirationDate: expiryDate };
+  const assetProfile: AssetProfile = {
+    expirationDate: expiryDate,
+    issuer: "CB1",
+    assetCode: "CBDC1",
+    // since there is no link with the asset information,
+    // we are just passing the asset parameters like this
+    // [amountBeingTransferred]
+    keyInformationLink: [AMOUNT_TO_TRANSFER],
+  };
 
   const odapClientRequest: ClientV1Request = {
     clientGatewayConfiguration: {

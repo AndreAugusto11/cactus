@@ -15,10 +15,6 @@ import {
   SessionData,
 } from "../../../../main/typescript/generated/openapi/typescript-axios/api";
 import {
-  checkValidCommitFinalRequest,
-  sendCommitFinalResponse,
-} from "../../../../main/typescript/gateway/server/commit-final";
-import {
   IListenOptions,
   LogLevelDesc,
   Servers,
@@ -31,6 +27,8 @@ import { AddressInfo } from "net";
 import { knexClientConnection, knexServerConnection } from "../../knex.config";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -102,6 +100,8 @@ beforeEach(async () => {
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
     knexConfig: knexClientConnection,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   recipientGatewayConstructor = {
@@ -110,6 +110,8 @@ beforeEach(async () => {
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
     knexConfig: knexServerConnection,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -197,7 +199,7 @@ test("valid commit final request", async () => {
     JSON.stringify(commitFinalRequestMessage),
   ).toString();
 
-  await checkValidCommitFinalRequest(
+  await ServerGatewayHelper.checkValidCommitFinalRequest(
     commitFinalRequestMessage,
     pluginRecipientGateway,
   );
@@ -233,7 +235,7 @@ test("commit final request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await checkValidCommitFinalRequest(
+  await ServerGatewayHelper.checkValidCommitFinalRequest(
     commitFinalRequestMessage,
     pluginRecipientGateway,
   )
@@ -263,7 +265,7 @@ test("commit final request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await checkValidCommitFinalRequest(
+  await ServerGatewayHelper.checkValidCommitFinalRequest(
     commitFinalRequestMessage,
     pluginRecipientGateway,
   )
@@ -291,7 +293,7 @@ test("commit final request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await checkValidCommitFinalRequest(
+  await ServerGatewayHelper.checkValidCommitFinalRequest(
     commitFinalRequestMessage,
     pluginRecipientGateway,
   )
@@ -323,7 +325,11 @@ test("timeout in commit final response because no client gateway is connected", 
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await sendCommitFinalResponse(sessionID, pluginSourceGateway, true)
+  await ServerGatewayHelper.sendCommitFinalResponse(
+    sessionID,
+    pluginSourceGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })

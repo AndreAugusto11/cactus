@@ -37,7 +37,10 @@ const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const FINAL_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
-const FINAL_USER_BALANCE = "100";
+const FABRIC_BRIDGE_IDENTITY =
+  "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+
+const AMOUNT_TO_TRANSFER = "123";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
@@ -134,13 +137,10 @@ beforeAll(async () => {
     },
   });
 
-  const recipient =
-    "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
-
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_ASSET_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [recipient, "100", FABRIC_ASSET_ID],
+    params: [FABRIC_BRIDGE_IDENTITY, AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -159,7 +159,15 @@ test("transfer asset correctly from fabric to besu", async () => {
   } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
-  const assetProfile: AssetProfile = { expirationDate: expiryDate };
+  const assetProfile: AssetProfile = {
+    expirationDate: expiryDate,
+    issuer: "CB1",
+    assetCode: "CBDC1",
+    // since there is no link with the asset information,
+    // we are just passing the asset parameters like this
+    // [amountBeingTransferred]
+    keyInformationLink: [AMOUNT_TO_TRANSFER],
+  };
 
   const odapClientRequest: ClientV1Request = {
     clientGatewayConfiguration: {
@@ -223,7 +231,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
-  expect(finalUserBalance.data.callOutput).toBe(FINAL_USER_BALANCE);
+  expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER);
 });
 
 afterAll(async () => {

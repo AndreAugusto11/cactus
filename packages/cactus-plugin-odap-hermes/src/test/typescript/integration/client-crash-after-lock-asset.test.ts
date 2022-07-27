@@ -56,22 +56,6 @@ import Web3 from "web3";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { makeSessionDataChecks } from "../make-checks";
 import {
-  sendTransferCommenceRequest,
-  checkValidTransferCommenceResponse,
-} from "../../../main/typescript/gateway/client/transfer-commence";
-import {
-  sendTransferInitializationRequest,
-  checkValidInitializationResponse,
-} from "../../../main/typescript/gateway/client/transfer-initialization";
-import {
-  checkValidtransferCommenceRequest,
-  sendTransferCommenceResponse,
-} from "../../../main/typescript/gateway/server/transfer-commence";
-import {
-  checkValidInitializationRequest,
-  sendTransferInitializationResponse,
-} from "../../../main/typescript/gateway/server/transfer-initialization";
-import {
   BesuOdapGateway,
   IBesuOdapGatewayConstructorOptions,
 } from "../gateways/besu-odap-gateway";
@@ -79,6 +63,8 @@ import {
   FabricOdapGateway,
   IFabricOdapGatewayConstructorOptions,
 } from "../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -88,7 +74,7 @@ import {
 let ipfsApiHost: string;
 
 let fabricSigningCredential: FabricSigningCredential;
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let ipfsServer: Server;
 let sourceGatewayServer: Server;
@@ -581,6 +567,8 @@ beforeAll(async () => {
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
       knexConfig: knexClientConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     odapServerGatewayPluginOptions = {
@@ -594,6 +582,8 @@ beforeAll(async () => {
       besuContractName: besuContractName,
       besuKeychainId: besuKeychainId,
       knexConfig: knexServerConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
@@ -687,7 +677,7 @@ test("client gateway crashes after lock fabric asset", async () => {
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await sendTransferInitializationRequest(
+  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -698,12 +688,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await sendTransferInitializationResponse(
+  const transferInitializationResponse = await ServerGatewayHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -714,12 +704,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidInitializationResponse(
+  await ClientGatewayHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );
 
-  const transferCommenceRequest = await sendTransferCommenceRequest(
+  const transferCommenceRequest = await ClientGatewayHelper.sendTransferCommenceRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -730,12 +720,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidtransferCommenceRequest(
+  await ServerGatewayHelper.checkValidtransferCommenceRequest(
     transferCommenceRequest,
     pluginRecipientGateway,
   );
 
-  const transferCommenceResponse = await sendTransferCommenceResponse(
+  const transferCommenceResponse = await ServerGatewayHelper.sendTransferCommenceResponse(
     transferCommenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -746,7 +736,7 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidTransferCommenceResponse(
+  await ClientGatewayHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );

@@ -40,7 +40,7 @@ const BESU_ASSET_ID = uuidv4();
 let ipfsApiHost: string;
 let ipfsContainer: GoIpfsTestContainer;
 
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let sourceGatewayServer: Server;
 let recipientGatewayserver: Server;

@@ -2,10 +2,6 @@ import { randomInt } from "crypto";
 import { SHA256 } from "crypto-js";
 import { v4 as uuidV4 } from "uuid";
 import {
-  checkValidCommitPreparationResponse,
-  sendCommitPreparationRequest,
-} from "../../../../main/typescript/gateway/client/commit-preparation";
-import {
   OdapMessageType,
   PluginOdapGateway,
 } from "../../../../main/typescript/gateway/plugin-odap-gateway";
@@ -15,6 +11,8 @@ import {
 } from "../../../../main/typescript/public-api";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -35,11 +33,15 @@ beforeEach(async () => {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -100,7 +102,7 @@ test("valid commit preparation response", async () => {
     JSON.stringify(commitPreparationResponse),
   ).toString();
 
-  await checkValidCommitPreparationResponse(
+  await ClientGatewayHelper.checkValidCommitPreparationResponse(
     commitPreparationResponse,
     pluginSourceGateway,
   );
@@ -135,7 +137,7 @@ test("commit preparation response invalid because of wrong previous message hash
     ),
   );
 
-  await checkValidCommitPreparationResponse(
+  await ClientGatewayHelper.checkValidCommitPreparationResponse(
     commitPreparationResponse,
     pluginSourceGateway,
   )
@@ -164,7 +166,7 @@ test("commit preparation response invalid because of wrong signature", async () 
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await checkValidCommitPreparationResponse(
+  await ClientGatewayHelper.checkValidCommitPreparationResponse(
     commitPreparationResponse,
     pluginSourceGateway,
   )
@@ -195,7 +197,11 @@ test("timeout in commit preparation request because no server gateway is connect
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await sendCommitPreparationRequest(sessionID, pluginSourceGateway, true)
+  await ClientGatewayHelper.sendCommitPreparationRequest(
+    sessionID,
+    pluginSourceGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })

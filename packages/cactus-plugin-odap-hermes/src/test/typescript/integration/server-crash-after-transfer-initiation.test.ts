@@ -19,8 +19,6 @@ import {
   AssetProfile,
   ClientV1Request,
 } from "../../../main/typescript/public-api";
-import { sendTransferInitializationRequest } from "../../../main/typescript/gateway/client/transfer-initialization";
-import { checkValidInitializationRequest } from "../../../main/typescript/gateway/server/transfer-initialization";
 import { makeSessionDataChecks } from "../make-checks";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
 import {
@@ -31,6 +29,8 @@ import {
   IBesuOdapGatewayConstructorOptions,
   BesuOdapGateway,
 } from "../gateways/besu-odap-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -38,7 +38,7 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_ASSET_ID = uuidv4();
 const BESU_ASSET_ID = uuidv4();
 
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions;
 let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
@@ -116,6 +116,8 @@ beforeAll(async () => {
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       knexConfig: knexServerConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     serverExpressApp = express();
@@ -154,6 +156,8 @@ beforeAll(async () => {
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       knexConfig: knexClientConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     clientExpressApp = express();
@@ -223,7 +227,7 @@ beforeAll(async () => {
 test("server gateway crashes after transfer initiation flow", async () => {
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await sendTransferInitializationRequest(
+  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -234,7 +238,7 @@ test("server gateway crashes after transfer initiation flow", async () => {
     return;
   }
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );

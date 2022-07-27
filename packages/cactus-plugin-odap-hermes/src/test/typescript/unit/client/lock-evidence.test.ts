@@ -2,10 +2,6 @@ import { randomInt } from "crypto";
 import { SHA256 } from "crypto-js";
 import { v4 as uuidV4 } from "uuid";
 import {
-  checkValidLockEvidenceResponse,
-  sendLockEvidenceRequest,
-} from "../../../../main/typescript/gateway/client/lock-evidence";
-import {
   OdapMessageType,
   PluginOdapGateway,
 } from "../../../../main/typescript/gateway/plugin-odap-gateway";
@@ -15,6 +11,8 @@ import {
 } from "../../../../main/typescript/public-api";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -35,11 +33,15 @@ beforeEach(async () => {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -96,7 +98,7 @@ test("valid lock evidence response", async () => {
 
   const messageHash = SHA256(JSON.stringify(lockEvidenceResponse)).toString();
 
-  await checkValidLockEvidenceResponse(
+  await ClientGatewayHelper.checkValidLockEvidenceResponse(
     lockEvidenceResponse,
     pluginSourceGateway,
   );
@@ -129,7 +131,7 @@ test("lock evidence response invalid because of wrong previous message hash", as
     await pluginRecipientGateway.sign(JSON.stringify(lockEvidenceResponse)),
   );
 
-  await checkValidLockEvidenceResponse(
+  await ClientGatewayHelper.checkValidLockEvidenceResponse(
     lockEvidenceResponse,
     pluginSourceGateway,
   )
@@ -158,7 +160,7 @@ test("lock evidence response invalid because of wrong signature", async () => {
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await checkValidLockEvidenceResponse(
+  await ClientGatewayHelper.checkValidLockEvidenceResponse(
     lockEvidenceResponse,
     pluginSourceGateway,
   )
@@ -192,7 +194,11 @@ test("timeout in lock evidence request because no server gateway is connected", 
 
   await pluginSourceGateway.lockAsset(sessionID);
 
-  await sendLockEvidenceRequest(sessionID, pluginSourceGateway, true)
+  await ClientGatewayHelper.sendLockEvidenceRequest(
+    sessionID,
+    pluginSourceGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })

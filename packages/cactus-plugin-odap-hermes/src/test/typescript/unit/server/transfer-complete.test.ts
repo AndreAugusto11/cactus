@@ -10,9 +10,10 @@ import {
 import { v4 as uuidV4 } from "uuid";
 import { SHA256 } from "crypto-js";
 import { randomInt } from "crypto";
-import { checkValidTransferCompleteRequest } from "../../../../main/typescript/gateway/server/transfer-complete";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 let sourceGatewayConstructor: IPluginOdapGatewayConstructorOptions;
 let recipientGatewayConstructor: IPluginOdapGatewayConstructorOptions;
@@ -29,11 +30,15 @@ beforeEach(async () => {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -98,7 +103,7 @@ test("dummy test for transfer complete flow", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCompleteRequestMessage)),
   );
 
-  checkValidTransferCompleteRequest(
+  ServerGatewayHelper.checkValidTransferCompleteRequest(
     transferCompleteRequestMessage,
     pluginRecipientGateway,
   ).catch(() => {

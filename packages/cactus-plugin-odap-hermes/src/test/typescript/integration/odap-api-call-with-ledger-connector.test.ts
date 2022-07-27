@@ -63,6 +63,8 @@ import {
   BesuOdapGateway,
   IBesuOdapGatewayConstructorOptions,
 } from "../gateways/besu-odap-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -72,7 +74,7 @@ import {
 let ipfsApiHost: string;
 
 let fabricSigningCredential: FabricSigningCredential;
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let ipfsServer: Server;
 let sourceGatewayServer: Server;
@@ -535,6 +537,8 @@ beforeAll(async () => {
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
       knexConfig: knexClientConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     const odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions = {
@@ -547,6 +551,8 @@ beforeAll(async () => {
       besuContractName: besuContractName,
       besuKeychainId: besuKeychainId,
       knexConfig: knexServerConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);

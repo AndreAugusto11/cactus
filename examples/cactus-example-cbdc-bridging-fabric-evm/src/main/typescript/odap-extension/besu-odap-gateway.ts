@@ -12,6 +12,8 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
+import { ClientHelper } from "./client-helper";
+import { ServerHelper } from "./server-helper";
 
 export interface IBesuOdapGatewayConstructorOptions {
   name: string;
@@ -49,6 +51,8 @@ export class BesuOdapGateway extends PluginOdapGateway {
       backupGatewaysAllowed: options.backupGatewaysAllowed,
       ipfsPath: options.ipfsPath,
       knexConfig: options.knexConfig,
+      clientHelper: new ClientHelper(),
+      serverHelper: new ServerHelper(),
     });
 
     if (options.besuPath != undefined) this.defineBesuConnection(options);
@@ -81,7 +85,12 @@ export class BesuOdapGateway extends PluginOdapGateway {
 
     const sessionData = this.sessions.get(sessionID);
 
-    if (sessionData == undefined) {
+    if (
+      sessionData == undefined ||
+      sessionData.assetProfile == undefined ||
+      sessionData.assetProfile.keyInformationLink == undefined ||
+      sessionData.assetProfile.keyInformationLink.length != 1
+    ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
@@ -99,12 +108,14 @@ export class BesuOdapGateway extends PluginOdapGateway {
     });
 
     if (this.besuApi != undefined) {
+      const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetId, 100, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
+        params: [assetId, amount, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -403,7 +414,10 @@ export class BesuOdapGateway extends PluginOdapGateway {
     if (
       sessionData == undefined ||
       sessionData.rollbackActionsPerformed == undefined ||
-      sessionData.rollbackProofs == undefined
+      sessionData.rollbackProofs == undefined ||
+      sessionData.assetProfile == undefined ||
+      sessionData.assetProfile.keyInformationLink == undefined ||
+      sessionData.assetProfile.keyInformationLink.length != 1
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -418,12 +432,14 @@ export class BesuOdapGateway extends PluginOdapGateway {
     });
 
     if (this.besuApi != undefined) {
+      const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+
       const assetCreateResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetID, "100", "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
+        params: [assetID, amount, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);

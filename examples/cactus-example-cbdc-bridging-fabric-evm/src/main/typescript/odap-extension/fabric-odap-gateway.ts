@@ -12,6 +12,8 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
+import { ClientHelper } from "./client-helper";
+import { ServerHelper } from "./server-helper";
 
 export interface IFabricOdapGatewayConstructorOptions {
   name: string;
@@ -45,6 +47,8 @@ export class FabricOdapGateway extends PluginOdapGateway {
       backupGatewaysAllowed: options.backupGatewaysAllowed,
       ipfsPath: options.ipfsPath,
       knexConfig: options.knexConfig,
+      clientHelper: new ClientHelper(),
+      serverHelper: new ServerHelper(),
     });
 
     if (options.fabricPath != undefined) this.defineFabricConnection(options);
@@ -220,7 +224,12 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     const sessionData = this.sessions.get(sessionID);
 
-    if (sessionData == undefined) {
+    if (
+      sessionData == undefined ||
+      sessionData.assetProfile == undefined ||
+      sessionData.assetProfile.keyInformationLink == undefined ||
+      sessionData.assetProfile.keyInformationLink.length != 1
+    ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
@@ -238,13 +247,15 @@ export class FabricOdapGateway extends PluginOdapGateway {
     });
 
     if (this.fabricApi != undefined) {
+      const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+
       const response = await this.fabricApi.runTransactionV1({
         signingCredential: this.fabricSigningCredential,
         channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "CreateAssetReference",
-        params: [assetId, "100"],
+        params: [assetId, amount],
       } as FabricRunTransactionRequest);
 
       const receiptCreateRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
@@ -373,7 +384,10 @@ export class FabricOdapGateway extends PluginOdapGateway {
       this.fabricContractName == undefined ||
       this.fabricSigningCredential == undefined ||
       sessionData.rollbackProofs == undefined ||
-      sessionData.rollbackActionsPerformed == undefined
+      sessionData.rollbackActionsPerformed == undefined ||
+      sessionData.assetProfile == undefined ||
+      sessionData.assetProfile.keyInformationLink == undefined ||
+      sessionData.assetProfile.keyInformationLink.length != 1
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -392,10 +406,12 @@ export class FabricOdapGateway extends PluginOdapGateway {
     });
 
     if (this.fabricApi != undefined) {
+      const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [assetID!, "100"],
+        params: [assetID!, amount],
         methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,

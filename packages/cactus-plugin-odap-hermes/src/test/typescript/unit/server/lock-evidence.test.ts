@@ -16,10 +16,6 @@ import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-obj
 import { v4 as uuidV4 } from "uuid";
 import { SHA256 } from "crypto-js";
 import {
-  checkValidLockEvidenceRequest,
-  sendLockEvidenceResponse,
-} from "../../../../main/typescript/gateway/server/lock-evidence";
-import {
   IListenOptions,
   LogLevelDesc,
   Servers,
@@ -32,6 +28,8 @@ import { AddressInfo } from "net";
 import { knexClientConnection, knexServerConnection } from "../../knex.config";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -104,6 +102,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     knexConfig: knexClientConnection,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
@@ -111,6 +111,8 @@ beforeEach(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     knexConfig: knexServerConnection,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -201,7 +203,7 @@ test("valid lock evidence request", async () => {
     JSON.stringify(lockEvidenceRequestMessage),
   ).toString();
 
-  await checkValidLockEvidenceRequest(
+  await ServerGatewayHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   );
@@ -237,7 +239,7 @@ test("lock evidence request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await checkValidLockEvidenceRequest(
+  await ServerGatewayHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   )
@@ -268,7 +270,7 @@ test("lock evidence request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await checkValidLockEvidenceRequest(
+  await ServerGatewayHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   )
@@ -297,7 +299,7 @@ test("lock evidence request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await checkValidLockEvidenceRequest(
+  await ServerGatewayHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   )
@@ -326,7 +328,7 @@ test("transfer commence flow with invalid claim", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await checkValidLockEvidenceRequest(
+  await ServerGatewayHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   )
@@ -356,9 +358,13 @@ test("timeout in lock evidence response because no client gateway is connected",
     rollbackActionsPerformed: [],
   };
 
-  pluginSourceGateway.sessions.set(sessionID, sessionData);
+  pluginRecipientGateway.sessions.set(sessionID, sessionData);
 
-  await sendLockEvidenceResponse(sessionID, pluginSourceGateway, true)
+  await ServerGatewayHelper.sendLockEvidenceResponse(
+    sessionID,
+    pluginRecipientGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })

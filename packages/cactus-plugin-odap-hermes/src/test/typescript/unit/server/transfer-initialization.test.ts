@@ -6,16 +6,14 @@ import {
   PluginOdapGateway,
 } from "../../../../main/typescript/gateway/plugin-odap-gateway";
 import {
-  checkValidInitializationRequest,
-  sendTransferInitializationResponse,
-} from "../../../../main/typescript/gateway/server/transfer-initialization";
-import {
   TransferInitializationV1Request,
   AssetProfile,
   SessionData,
 } from "../../../../main/typescript/public-api";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -34,11 +32,15 @@ beforeEach(async () => {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -100,7 +102,7 @@ test("valid transfer initiation request", async () => {
     JSON.stringify(initializationRequestMessage),
   ).toString();
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     initializationRequestMessage,
     pluginRecipientGateway,
   );
@@ -164,7 +166,7 @@ test("transfer initiation request invalid because of incompatible DLTs", async (
     ),
   );
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     initializationRequestMessage,
     pluginRecipientGateway,
   )
@@ -212,7 +214,7 @@ test("transfer initiation request invalid because of asset expired", async () =>
     pluginSourceGateway.sign(JSON.stringify(initializationRequestMessage)),
   );
 
-  await checkValidInitializationRequest(
+  await ServerGatewayHelper.checkValidInitializationRequest(
     initializationRequestMessage,
     pluginRecipientGateway,
   )
@@ -244,7 +246,11 @@ test("timeout in commit final response because no client gateway is connected", 
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await sendTransferInitializationResponse(sessionID, pluginSourceGateway, true)
+  await ServerGatewayHelper.sendTransferInitializationResponse(
+    sessionID,
+    pluginSourceGateway,
+    true,
+  )
     .then(() => {
       throw new Error("Test Failed");
     })
