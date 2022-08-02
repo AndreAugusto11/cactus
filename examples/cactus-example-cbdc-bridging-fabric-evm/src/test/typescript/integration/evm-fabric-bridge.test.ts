@@ -20,7 +20,9 @@ import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
+  Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
+import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -41,6 +43,9 @@ const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
+let signingCredential: Web3SigningCredential | undefined;
+let apiServer1Keychain: PluginKeychainMemory;
+let apiServer2Keychain: PluginKeychainMemory;
 
 beforeAll(async () => {
   await pruneDockerAllIfGithubAction({ logLevel: "INFO" });
@@ -82,12 +87,12 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
-  const apiServer1Keychain = new PluginKeychainMemory({
+  apiServer1Keychain = new PluginKeychainMemory({
     keychainId: uuidv4(),
     instanceId: uuidv4(),
     logLevel: logLevel || "INFO",
   });
-  const apiServer2Keychain = new PluginKeychainMemory({
+  apiServer2Keychain = new PluginKeychainMemory({
     keychainId: uuidv4(),
     instanceId: uuidv4(),
     logLevel: logLevel || "INFO",
@@ -115,7 +120,7 @@ beforeAll(async () => {
 
   const { besuApiClient } = startResult;
 
-  const signingCredential =
+  signingCredential =
     cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
 
   if (signingCredential == undefined) {
@@ -136,10 +141,27 @@ beforeAll(async () => {
   if (besuCreateRes == undefined) {
     throw new Error("Error when creating asset in Besu network.");
   }
+
+  const userBalance = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "balanceOf",
+    gas: 1000000,
+    params: [BESU_END_USER_ADDRESS],
+    signingCredential: signingCredential,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  expect(userBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER);
 });
 
 test("transfer asset correctly from besu to fabric", async () => {
-  const { besuGatewayApi, fabricOdapGateway, besuOdapGateway } = startResult;
+  const {
+    besuGatewayApi,
+    fabricOdapGateway,
+    besuOdapGateway,
+    besuApiClient,
+  } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
   const assetProfile: AssetProfile = {
@@ -194,6 +216,18 @@ test("transfer asset correctly from besu to fabric", async () => {
 
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
   expect(!exists2);
+
+  const userBalance = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "balanceOf",
+    gas: 1000000,
+    params: [BESU_END_USER_ADDRESS],
+    signingCredential: signingCredential,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  expect(userBalance.data.callOutput).toBe("0");
 });
 
 afterAll(async () => {

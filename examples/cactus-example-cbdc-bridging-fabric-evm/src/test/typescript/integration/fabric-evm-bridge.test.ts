@@ -36,7 +36,7 @@ const FABRIC_ASSET_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
-const FINAL_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
@@ -226,7 +226,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
-    params: [FINAL_USER_ADDRESS],
+    params: [BESU_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
