@@ -11,7 +11,7 @@ import {
 } from "fabric-contract-api";
 import { AssetReference } from "./asset-reference";
 
-const bridgedOutTokensKey = "bridgedOutTokens";
+const bridgedOutAmountKey = "amountBridgedOut";
 
 @Info({
   title: "AssetReferenceContract",
@@ -136,38 +136,44 @@ export class AssetReferenceContract extends Contract {
   }
 
   @Transaction(false)
-  public async GetBridgedOutTokens(ctx: Context): Promise<void> {
-    const bridgedTokensBytes = await ctx.stub.getState(bridgedOutTokensKey);
+  public async GetBridgedOutAmount(ctx: Context): Promise<void> {
+    const amountBytes = await ctx.stub.getState(bridgedOutAmountKey);
 
-    let bridgedTokensValue;
+    let amountValue;
     // If value doesn't yet exist, we'll create it with a value of 0
-    if (!bridgedTokensBytes || bridgedTokensBytes.length === 0) {
-      bridgedTokensValue = 0;
+    if (!amountBytes || amountBytes.length === 0) {
+      amountValue = 0;
     } else {
-      bridgedTokensValue = parseInt(bridgedTokensBytes.toString());
+      amountValue = parseInt(amountBytes.toString());
     }
 
-    return bridgedTokensValue;
+    return amountValue;
   }
 
   @Transaction()
-  public async AddBridgedOutTokens(ctx: Context, value: number): Promise<void> {
-    const newBalance = this.add(this.GetBridgedOutTokens(ctx), value);
+  public async IncreaseBridgedAmount(
+    ctx: Context,
+    value: number,
+  ): Promise<void> {
+    const newBalance = this.add(this.GetBridgedOutAmount(ctx), value);
     await ctx.stub.putState(
-      bridgedOutTokensKey,
+      bridgedOutAmountKey,
       Buffer.from(newBalance.toString()),
     );
   }
 
   @Transaction()
-  public async SubBridgedOutTokens(ctx: Context, value: number): Promise<void> {
-    const newBalance = this.sub(this.GetBridgedOutTokens(ctx), value);
+  public async DecreaseBridgedAmount(
+    ctx: Context,
+    value: number,
+  ): Promise<void> {
+    const newBalance = this.sub(this.GetBridgedOutAmount(ctx), value);
 
     if (newBalance < 0) {
       throw new Error(`Bridged back too many tokens`);
     }
     await ctx.stub.putState(
-      bridgedOutTokensKey,
+      bridgedOutAmountKey,
       Buffer.from(newBalance.toString()),
     );
   }
