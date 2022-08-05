@@ -192,7 +192,9 @@ class TokenERC20Contract extends Contract {
 
   async _transfer(ctx, from, to, value) {
     if (from === to) {
-      throw new Error("cannot transfer to and from same client account");
+      throw new Error(
+        `cannot transfer to and from same client account: ${from}`,
+      );
     }
 
     // Convert value from string to int
@@ -544,7 +546,7 @@ class TokenERC20Contract extends Contract {
       // this means that the transfer was made to the bridging entity
       await ctx.stub.invokeChaincode(
         "asset-reference-contract",
-        ["CreateAssetReference", id, value],
+        ["CreateAssetReference", id, value.toString(), "false"],
         ctx.stub.getChannelID(),
       );
     }

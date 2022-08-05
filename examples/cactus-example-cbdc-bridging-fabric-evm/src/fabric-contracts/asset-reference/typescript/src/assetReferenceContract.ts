@@ -52,6 +52,7 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
     numberTokens: number,
+    bridgingBack: boolean,
   ): Promise<void> {
     console.log(
       "Creating new asset reference with id: " +
@@ -74,6 +75,18 @@ export class AssetReferenceContract extends Contract {
 
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
     await ctx.stub.putState(assetId, buffer);
+
+    console.log(bridgingBack);
+
+    // // this needs to be called by entity2 (the bridging entity)
+    // if (bridgingBack) {
+    //   const entity1 = "x509::/OU=client/OU=org1/OU=department1/CN=user::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
+    //   await ctx.stub.invokeChaincode(
+    //     "cbdc-erc20",
+    //     ["Transfer", entity1, numberTokens.toString()],
+    //     ctx.stub.getChannelID(),
+    //   );
+    // }
   }
 
   @Transaction(false)

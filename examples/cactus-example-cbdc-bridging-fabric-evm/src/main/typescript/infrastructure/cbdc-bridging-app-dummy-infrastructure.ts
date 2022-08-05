@@ -586,7 +586,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         constructorArgs: [],
         web3SigningCredential: this.besuWeb3SigningCredential,
         bytecode: CBDCcontractJson.bytecode,
-        gas: 1000000,
+        gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
     );
 
@@ -604,7 +604,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         ],
         web3SigningCredential: this.besuWeb3SigningCredential,
         bytecode: AssetReferenceContractJson.bytecode,
-        gas: 1000000,
+        gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
     );
 

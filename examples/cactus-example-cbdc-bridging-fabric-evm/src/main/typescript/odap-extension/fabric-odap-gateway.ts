@@ -250,12 +250,12 @@ export class FabricOdapGateway extends PluginOdapGateway {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
 
       const response = await this.fabricApi.runTransactionV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
         contractName: this.fabricContractName,
-        invocationType: FabricContractInvocationType.Send,
+        channelName: this.fabricChannelName,
+        params: [assetId, amount, "true"],
         methodName: "CreateAssetReference",
-        params: [assetId, amount],
+        invocationType: FabricContractInvocationType.Send,
+        signingCredential: this.fabricSigningCredential,
       } as FabricRunTransactionRequest);
 
       const receiptCreateRes = await this.fabricApi.getTransactionReceiptByTxIDV1(
@@ -411,11 +411,11 @@ export class FabricOdapGateway extends PluginOdapGateway {
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [assetID!, amount],
+        params: [assetID!, amount, "false"],
         methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
-      });
+      } as FabricRunTransactionRequest);
 
       const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
         signingCredential: this.fabricSigningCredential,

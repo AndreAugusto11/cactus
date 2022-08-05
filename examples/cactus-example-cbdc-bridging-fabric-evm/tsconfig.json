@@ -9,6 +9,9 @@
   },
   "references": [
     {
+      "path": "../../extensions/cactus-plugin-object-store-ipfs"
+    },
+    {
       "path": "../../packages/cactus-api-client/tsconfig.json"
     },
     {

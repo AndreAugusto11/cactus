@@ -64,7 +64,7 @@ describe("AssetReference", () => {
 
   describe("#createAssetReference", () => {
     it("should create an asset reference", async () => {
-      await contract.CreateAssetReference(ctx, "1003", 100);
+      await contract.CreateAssetReference(ctx, "1003", 100, false);
       ctx.stub.putState.should.have.been.calledOnceWithExactly(
         "1003",
         Buffer.from('{"id":"1003","isLocked":false,"numberTokens":100}'),
@@ -73,7 +73,7 @@ describe("AssetReference", () => {
 
     it("should throw an error for an asset reference that already exists", async () => {
       await contract
-        .CreateAssetReference(ctx, "1001", 100)
+        .CreateAssetReference(ctx, "1001", 100, false)
         .should.be.rejectedWith(
           /The asset reference with ID 1001 already exists/,
         );

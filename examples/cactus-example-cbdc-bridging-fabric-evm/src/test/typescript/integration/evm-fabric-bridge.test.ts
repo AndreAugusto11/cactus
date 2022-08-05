@@ -23,6 +23,7 @@ import {
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
+import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -30,6 +31,13 @@ const API_SERVER_2_PORT = 4100;
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
+
+const FABRIC_CHANNEL_NAME = "mychannel";
+const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
+const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
+
+const FABRIC_BRIDGE_IDENTITY =
+  "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
@@ -118,7 +126,7 @@ beforeAll(async () => {
     process.exit(-1);
   }
 
-  const { besuApiClient } = startResult;
+  const { besuApiClient, fabricApiClient } = startResult;
 
   signingCredential =
     cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
@@ -126,6 +134,43 @@ beforeAll(async () => {
   if (signingCredential == undefined) {
     throw new Error("Infrastructure set up not correctly performed.");
   }
+
+  // Initiate state in Fabric ledger
+  await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: ["500"],
+    methodName: "Mint",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "user2",
+    },
+  });
+
+  await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [FABRIC_BRIDGE_IDENTITY, AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID],
+    methodName: "Escrow",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "user2",
+    },
+  });
+
+  await fabricApiClient.runTransactionV1({
+    channelName: FABRIC_CHANNEL_NAME,
+    contractName: FABRIC_CONTRACT_AR_ERC20_NAME,
+    invocationType: FabricContractInvocationType.Send,
+    methodName: "DeleteAssetReference",
+    params: [FABRIC_ASSET_ID],
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "user2",
+    },
+  });
 
   // Initiate state in Besu ledger
   const besuCreateRes = await besuApiClient.invokeContractV1({
