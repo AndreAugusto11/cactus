@@ -182,18 +182,33 @@ export class CbdcBridgingAppDummyInfrastructure {
     const connectionProfile = await this.fabric.getConnectionProfileOrg1();
     const enrollAdminOut = await this.fabric.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await this.fabric.enrollUser(adminWallet);
+    const [userIdentity1] = await this.fabric.enrollUser(adminWallet, "userA");
+    const [userIdentity2] = await this.fabric.enrollUser(
+      adminWallet,
+      "bridgeEntity",
+    );
+    // const [userIdentity3] = await this.fabric.enrollUser(adminWallet, "userB");
 
     const sshConfig = await this.fabric.getSshConfig();
 
-    const keychainEntryKey = "user2";
-    const keychainEntryValue = JSON.stringify(userIdentity);
+    const keychainEntryKey1 = "userA";
+    const keychainEntryValue1 = JSON.stringify(userIdentity1);
+
+    const keychainEntryKey2 = "bridgeEntity";
+    const keychainEntryValue2 = JSON.stringify(userIdentity2);
+
+    // const keychainEntryKey3 = "user3";
+    // const keychainEntryValue3 = JSON.stringify(userIdentity3);
 
     const keychainPlugin = new PluginKeychainMemory({
       instanceId: this.apiServer1Keychain.getInstanceId(),
       keychainId: this.apiServer1Keychain.getKeychainId(),
       logLevel: undefined,
-      backend: new Map([[keychainEntryKey, keychainEntryValue]]),
+      backend: new Map([
+        [keychainEntryKey1, keychainEntryValue1],
+        [keychainEntryKey2, keychainEntryValue2],
+        // [keychainEntryKey3, keychainEntryValue3],
+      ]),
     });
 
     const pluginRegistry = new PluginRegistry({ plugins: [keychainPlugin] });
@@ -296,7 +311,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
+        keychainRef: "bridgeEntity",
       },
       fabricChannelName: "mychannel",
       fabricContractName: "asset-reference-contract",
@@ -568,7 +583,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "user2",
+        keychainRef: "bridgeEntity",
       },
     });
 

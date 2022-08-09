@@ -209,7 +209,10 @@ export class SupplyChainApp {
 
     const enrollAdminOut = await this.ledgers.fabric.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await this.ledgers.fabric.enrollUser(adminWallet);
+    const [userIdentity] = await this.ledgers.fabric.enrollUser(
+      adminWallet,
+      "user",
+    );
     const fabricUserKeychainKey = "user2";
     const fabricUserKeychainValue = JSON.stringify(userIdentity);
     await this.keychain.set(fabricUserKeychainKey, fabricUserKeychainValue);

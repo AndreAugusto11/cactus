@@ -42,6 +42,7 @@
     "solidity": "hardhat compile",
     "start": "CONFIG_FILE=./example-config.json node dist/lib/main/typescript/cbdc-bridging-app-cli.js",
     "watch": "npm-watch",
+    "test": "cd src/cucumber-testing && npm test",
     "webpack": "npm-run-all webpack:dev",
     "webpack:dev": "npm-run-all webpack:dev:node webpack:dev:web",
     "webpack:dev:node": "webpack --env=dev --target=node --config ../../webpack.config.js",

@@ -187,11 +187,10 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(wallet: Wallet): Promise<any> {
+  public async enrollUser(wallet: Wallet, enrollmentID: string): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
       const mspId = this.getDefaultMspId();
-      const enrollmentID = "user";
       const connectionProfile = await this.getConnectionProfileOrg1();
       // Create a new gateway for connecting to our peer node.
       const gateway = new Gateway();

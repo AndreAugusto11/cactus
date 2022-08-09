@@ -111,7 +111,7 @@ describe(testCase, () => {
   test(testCase, async () => {
     const enrollAdminOut = await ledger.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await ledger.enrollUser(adminWallet);
+    const [userIdentity] = await ledger.enrollUser(adminWallet, "user");
 
     const connectionProfile = await ledger.getConnectionProfileOrg1();
 

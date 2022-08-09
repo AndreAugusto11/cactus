@@ -191,7 +191,7 @@ beforeAll(async () => {
 
     const enrollAdminOut = await fabricLedger.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await fabricLedger.enrollUser(adminWallet);
+    const [userIdentity] = await fabricLedger.enrollUser(adminWallet, "user");
     const sshConfig = await fabricLedger.getSshConfig();
 
     const keychainInstanceId = uuidv4();

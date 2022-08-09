@@ -541,7 +541,7 @@ class TokenERC20Contract extends Contract {
 
     if (
       to ===
-      "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com"
+      "x509::/OU=client/OU=org1/OU=department1/CN=bridgeEntity::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com"
     ) {
       // this means that the transfer was made to the bridging entity
       await ctx.stub.invokeChaincode(

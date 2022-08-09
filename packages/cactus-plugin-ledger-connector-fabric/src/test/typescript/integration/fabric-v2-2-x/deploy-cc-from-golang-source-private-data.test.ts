@@ -100,7 +100,7 @@ describe(testCase, () => {
 
     const enrollAdminOut = await ledger.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await ledger.enrollUser(adminWallet);
+    const [userIdentity] = await ledger.enrollUser(adminWallet, "user");
     const sshConfig = await ledger.getSshConfig();
 
     const keychainInstanceId = uuidv4();

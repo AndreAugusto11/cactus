@@ -37,11 +37,12 @@ const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
 
 const FABRIC_BRIDGE_IDENTITY =
-  "x509::/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=recipient::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+  "x509::/OU=client/OU=org1/OU=department1/CN=bridgeEntity::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
+const USER_A_INITIAL_BALANCE = "500";
 const AMOUNT_TO_TRANSFER = "123";
 
 const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
@@ -139,12 +140,12 @@ beforeAll(async () => {
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: ["500"],
+    params: [USER_A_INITIAL_BALANCE],
     methodName: "Mint",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
       keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "user2",
+      keychainRef: "userA",
     },
   });
 
@@ -156,7 +157,7 @@ beforeAll(async () => {
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
       keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "user2",
+      keychainRef: "userA",
     },
   });
 
@@ -168,7 +169,7 @@ beforeAll(async () => {
     params: [FABRIC_ASSET_ID],
     signingCredential: {
       keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "user2",
+      keychainRef: "bridgeEntity",
     },
   });
 
@@ -206,6 +207,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     fabricOdapGateway,
     besuOdapGateway,
     besuApiClient,
+    fabricApiClient,
   } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
@@ -262,7 +264,7 @@ test("transfer asset correctly from besu to fabric", async () => {
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
   expect(!exists2);
 
-  const userBalance = await besuApiClient.invokeContractV1({
+  const userBalanceBesu = await besuApiClient.invokeContractV1({
     contractName: CBDCcontractJson.contractName,
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
@@ -272,7 +274,35 @@ test("transfer asset correctly from besu to fabric", async () => {
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
-  expect(userBalance.data.callOutput).toBe("0");
+  expect(userBalanceBesu.data.callOutput).toBe("0");
+
+  const userBalanceFabric = await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [],
+    methodName: "ClientAccountBalance",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "userA",
+    },
+  });
+
+  expect(userBalanceFabric.data.functionOutput).toBe(USER_A_INITIAL_BALANCE);
+
+  const bridgeBalanceFabric = await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [],
+    methodName: "ClientAccountBalance",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "bridgeEntity",
+    },
+  });
+
+  expect(bridgeBalanceFabric.data.functionOutput).toBe("0");
 });
 
 afterAll(async () => {

@@ -105,7 +105,10 @@ export class CarbonAccountingApp {
     const connectionProfile = await this.ledgers.fabric.getConnectionProfileOrg1();
     const enrollAdminOut = await this.ledgers.fabric.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await this.ledgers.fabric.enrollUser(adminWallet);
+    const [userIdentity] = await this.ledgers.fabric.enrollUser(
+      adminWallet,
+      "user",
+    );
     const keychainEntryKey = "fabric_user2";
     const keychainEntryValue = JSON.stringify(userIdentity);
     await this.keychain.set(keychainEntryKey, keychainEntryValue);

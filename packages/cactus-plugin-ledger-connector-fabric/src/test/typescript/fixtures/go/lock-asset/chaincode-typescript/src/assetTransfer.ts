@@ -150,4 +150,10 @@ export class AssetTransferContract extends Contract {
     }
     return JSON.stringify(allResults);
   }
+
+  @Transaction(false)
+  @Returns("string")
+  public async GetIdentity(ctx: Context): Promise<string> {
+    return ctx.clientIdentity.getID();
+  }
 }

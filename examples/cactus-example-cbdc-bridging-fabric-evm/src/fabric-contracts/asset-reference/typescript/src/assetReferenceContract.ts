@@ -78,15 +78,17 @@ export class AssetReferenceContract extends Contract {
 
     console.log(bridgingBack);
 
-    // // this needs to be called by entity2 (the bridging entity)
-    // if (bridgingBack) {
-    //   const entity1 = "x509::/OU=client/OU=org1/OU=department1/CN=user::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
-    //   await ctx.stub.invokeChaincode(
-    //     "cbdc-erc20",
-    //     ["Transfer", entity1, numberTokens.toString()],
-    //     ctx.stub.getChannelID(),
-    //   );
-    // }
+    // this needs to be called by entity2 (the bridging entity)
+    if (bridgingBack) {
+      const entity1 =
+        "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
+      console.log(`Transferring back escrowed tokens to ` + entity1);
+      await ctx.stub.invokeChaincode(
+        "cbdc-erc20",
+        ["Transfer", entity1, numberTokens.toString()],
+        ctx.stub.getChannelID(),
+      );
+    }
   }
 
   @Transaction(false)
