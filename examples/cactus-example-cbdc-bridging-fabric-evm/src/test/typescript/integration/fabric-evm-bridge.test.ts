@@ -38,7 +38,7 @@ const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
 const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org1/OU=department1/CN=bridgeEntity::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
+  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
 const AMOUNT_TO_TRANSFER = "123";
 

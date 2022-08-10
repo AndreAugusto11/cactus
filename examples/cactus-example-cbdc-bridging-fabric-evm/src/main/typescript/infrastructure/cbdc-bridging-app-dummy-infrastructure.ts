@@ -179,19 +179,40 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createFabricLedgerConnector(): Promise<
     PluginLedgerConnectorFabric
   > {
-    const connectionProfile = await this.fabric.getConnectionProfileOrg2();
-    const enrollAdminOut = await this.fabric.enrollAdmin();
+    const enrollAdminOutOrg1 = await this.fabric.enrollAdmin("org1");
+    const adminWalletOrg1 = enrollAdminOutOrg1[1];
+    const [userIdentity1] = await this.fabric.enrollUser(
+      adminWalletOrg1,
+      "userA",
+      "org1",
+    );
+    const [userIdentity2] = await this.fabric.enrollUser(
+      adminWalletOrg1,
+      "userB",
+      "org1",
+    );
+
+    const connectionProfileOrg2 = await this.fabric.getConnectionProfileOrgX(
+      "org2",
+    );
+    const enrollAdminOut = await this.fabric.enrollAdmin("org2");
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity1] = await this.fabric.enrollUser(adminWallet, "userA");
-    // const [userIdentity2] = await this.fabric.enrollUser(adminWallet, "userB");
+    const [bridgeIdentity] = await this.fabric.enrollUser(
+      adminWallet,
+      "bridgeEntity",
+      "org2",
+    );
 
     const sshConfig = await this.fabric.getSshConfig();
 
     const keychainEntryKey1 = "userA";
     const keychainEntryValue1 = JSON.stringify(userIdentity1);
 
-    // const keychainEntryKey2 = "userB";
-    // const keychainEntryValue2 = JSON.stringify(userIdentity2);
+    const keychainEntryKey2 = "userB";
+    const keychainEntryValue2 = JSON.stringify(userIdentity2);
+
+    const keychainEntryKey3 = "bridgeEntity";
+    const keychainEntryValue3 = JSON.stringify(bridgeIdentity);
 
     const keychainPlugin = new PluginKeychainMemory({
       instanceId: this.apiServer1Keychain.getInstanceId(),
@@ -199,8 +220,8 @@ export class CbdcBridgingAppDummyInfrastructure {
       logLevel: undefined,
       backend: new Map([
         [keychainEntryKey1, keychainEntryValue1],
-        // [keychainEntryKey2, keychainEntryValue2],
-        // [keychainEntryKey3, keychainEntryValue3],
+        [keychainEntryKey2, keychainEntryValue2],
+        [keychainEntryKey3, keychainEntryValue3],
       ]),
     });
 
@@ -213,9 +234,9 @@ export class CbdcBridgingAppDummyInfrastructure {
       peerBinary: "/fabric-samples/bin/peer",
       goBinary: "/usr/local/go/bin/go",
       pluginRegistry,
-      cliContainerEnv: this.org1Env,
+      cliContainerEnv: this.org2Env,
       sshConfig,
-      connectionProfile,
+      connectionProfile: connectionProfileOrg2,
       logLevel: this.options.logLevel || "INFO",
       discoveryOptions: {
         enabled: true,

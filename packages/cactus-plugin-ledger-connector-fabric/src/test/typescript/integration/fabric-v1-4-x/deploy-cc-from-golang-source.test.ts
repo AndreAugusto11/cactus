@@ -77,9 +77,9 @@ test.skip(testCase, async (t: Test) => {
   const connectionProfile = await ledger.getConnectionProfileOrg1();
   t.ok(connectionProfile, "getConnectionProfileOrg1() out truthy OK");
 
-  const enrollAdminOut = await ledger.enrollAdmin();
+  const enrollAdminOut = await ledger.enrollAdmin("org1");
   const adminWallet = enrollAdminOut[1];
-  const [userIdentity] = await ledger.enrollUser(adminWallet, "user");
+  const [userIdentity] = await ledger.enrollUser(adminWallet, "user", "org1");
   const sshConfig = await ledger.getSshConfig();
 
   const keychainInstanceId = uuidv4();

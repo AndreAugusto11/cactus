@@ -77,9 +77,9 @@ test.skip(testCase, async (t: Test) => {
 
   await ledger.start();
 
-  const enrollAdminOut = await ledger.enrollAdmin();
+  const enrollAdminOut = await ledger.enrollAdmin("org1");
   const adminWallet = enrollAdminOut[1];
-  const [userIdentity] = await ledger.enrollUser(adminWallet, "user");
+  const [userIdentity] = await ledger.enrollUser(adminWallet, "user", "org1");
 
   const connectionProfile = await ledger.getConnectionProfileOrg1();
 

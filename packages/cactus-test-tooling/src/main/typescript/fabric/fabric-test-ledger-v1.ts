@@ -166,15 +166,16 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return `${this.envVars.get("FABRIC_VERSION")}`;
   }
 
-  public getDefaultMspId(): string {
-    return "Org2MSP";
+  public getDefaultMspId(organization: string): string {
+    return organization.charAt(0).toUpperCase() + organization.slice(1) + "MSP";
   }
 
-  public async createCaClient(): Promise<FabricCAServices> {
+  public async createCaClient(organization: string): Promise<FabricCAServices> {
     const fnTag = `${this.className}#createCaClient()`;
     try {
-      const ccp = await this.getConnectionProfileOrg2();
-      const caInfo = ccp.certificateAuthorities["ca.org2.example.com"];
+      const ccp = await this.getConnectionProfileOrgX(organization);
+      const caInfo =
+        ccp.certificateAuthorities["ca." + organization + ".example.com"];
       const { tlsCACerts, url: caUrl, caName } = caInfo;
       const { pem: caTLSCACertPem } = tlsCACerts;
       const tlsOptions = { trustedRoots: caTLSCACertPem, verify: false };
@@ -187,11 +188,17 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(wallet: Wallet, enrollmentID: string): Promise<any> {
+  public async enrollUser(
+    wallet: Wallet,
+    enrollmentID: string,
+    organization: string,
+  ): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
-      const mspId = this.getDefaultMspId();
-      const connectionProfile = await this.getConnectionProfileOrg2();
+      const mspId = this.getDefaultMspId(organization);
+      const connectionProfile = await this.getConnectionProfileOrgX(
+        organization,
+      );
       // Create a new gateway for connecting to our peer node.
       const gateway = new Gateway();
       const discovery = { enabled: true, asLocalhost: true };
@@ -204,12 +211,12 @@ export class FabricTestLedgerV1 implements ITestLedger {
 
       // Get the CA client object from the gateway for interacting with the CA.
       // const ca = gateway.getClient().getCertificateAuthority();
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClient(organization);
       const adminIdentity = gateway.getIdentity();
 
       // Register the user, enroll the user, and import the new identity into the wallet.
       const registrationRequest = {
-        affiliation: "org2.department1",
+        affiliation: organization + ".department1",
         enrollmentID,
         role: "client",
       };
@@ -254,10 +261,12 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return ["admin", "adminpw"];
   }
 
-  public async enrollAdmin(): Promise<[X509Identity, Wallet]> {
+  public async enrollAdmin(
+    organization: string,
+  ): Promise<[X509Identity, Wallet]> {
     const fnTag = `${this.className}#enrollAdmin()`;
     try {
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClient(organization);
       const wallet = await Wallets.newInMemoryWallet();
 
       // Enroll the admin user, and import the new identity into the wallet.
@@ -267,7 +276,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
       };
       const enrollment = await ca.enroll(request);
 
-      const mspId = this.getDefaultMspId();
+      const mspId = this.getDefaultMspId(organization);
       const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
@@ -368,110 +377,6 @@ export class FabricTestLedgerV1 implements ITestLedger {
           orderers: ["orderer.example.com"],
           peers: {
             "peer0.org1.example.com": {
-              endorsingPeer: true,
-              chaincodeQuery: true,
-              ledgerQuery: true,
-              eventSource: true,
-              discover: true,
-            },
-          },
-        },
-      };
-
-      // FIXME: Still have no idea if we can use these options to make it work
-      // with discovery
-      // {
-      //   const { grpcOptions } = ccp.peers["peer0.org1.example.com"];
-      //   grpcOptions.hostnameOverride = `localhost`;
-      // }
-      // {
-      //   const { grpcOptions } = ccp.peers["peer1.org1.example.com"];
-      //   grpcOptions.hostnameOverride = `localhost`;
-      // }
-    }
-    return ccp;
-  }
-
-  public async getConnectionProfileOrg2(): Promise<any> {
-    const cInfo = await this.getContainerInfo();
-    const container = this.getContainer();
-    const CCP_JSON_PATH_FABRIC_V1 =
-      "/fabric-samples/first-network/connection-org2.json";
-    const CCP_JSON_PATH_FABRIC_V2 =
-      "/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/connection-org2.json";
-    const ccpJsonPath = compareVersions.compare(
-      this.getFabricVersion(),
-      "2.0",
-      "<",
-    )
-      ? CCP_JSON_PATH_FABRIC_V1
-      : CCP_JSON_PATH_FABRIC_V2;
-    const ccpJson = await Containers.pullFile(container, ccpJsonPath);
-    const ccp = JSON.parse(ccpJson);
-
-    {
-      // peer0.org2.example.com
-      const privatePort = 9051;
-      const hostPort = await Containers.getPublicPort(privatePort, cInfo);
-      ccp.peers["peer0.org2.example.com"].url = `grpcs://localhost:${hostPort}`;
-    }
-    if (ccp.peers["peer1.org2.example.com"]) {
-      // peer1.org2.example.com
-      const privatePort = 10051;
-      const hostPort = await Containers.getPublicPort(privatePort, cInfo);
-      ccp.peers["peer1.org2.example.com"].url = `grpcs://localhost:${hostPort}`;
-    }
-    {
-      // ca_peerOrg2
-      const privatePort = 8054;
-      const hostPort = await Containers.getPublicPort(privatePort, cInfo);
-      const { certificateAuthorities: cas } = ccp;
-      cas["ca.org2.example.com"].url = `https://localhost:${hostPort}`;
-    }
-
-    // FIXME - this still doesn't work. At this moment the only successful tests
-    // we could run was with host ports bound to the matching ports of the internal
-    // containers and with discovery enabled.
-    // When discovery is disabled, it just doesn't yet work and these changes
-    // below are my attempts so far at making the connection profile work without
-    // discovery being turned on (which we cannot use when the ports are randomized
-    // on the host for the parent container)
-    if (this.publishAllPorts) {
-      // orderer.example.com
-
-      const privatePort = 7050;
-      const hostPort = await Containers.getPublicPort(privatePort, cInfo);
-      const url = `grpcs://localhost:${hostPort}`;
-      const ORDERER_PEM_PATH_FABRIC_V1 =
-        "/fabric-samples/first-network/crypto-config/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem";
-      const ORDERER_PEM_PATH_FABRIC_V2 =
-        "/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem";
-      const ordererPemPath = compareVersions.compare(
-        this.getFabricVersion(),
-        "2.0",
-        "<",
-      )
-        ? ORDERER_PEM_PATH_FABRIC_V1
-        : ORDERER_PEM_PATH_FABRIC_V2;
-      const pem = await Containers.pullFile(container, ordererPemPath);
-
-      ccp.orderers = {
-        "orderer.example.com": {
-          url,
-          grpcOptions: {
-            "ssl-target-name-override": "orderer.example.com",
-          },
-          tlsCACerts: {
-            pem,
-          },
-        },
-      };
-
-      ccp.channels = {
-        mychannel: {
-          orderers: ["orderer.example.com"],
-          peers: {
-            "peer0.org2.example.com": {
               endorsingPeer: true,
               chaincodeQuery: true,
               ledgerQuery: true,

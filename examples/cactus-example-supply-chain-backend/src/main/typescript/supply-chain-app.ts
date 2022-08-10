@@ -207,11 +207,12 @@ export class SupplyChainApp {
     const quorumAccount = await this.ledgers.quorum.createEthTestAccount();
     await this.keychain.set(quorumAccount.address, quorumAccount.privateKey);
 
-    const enrollAdminOut = await this.ledgers.fabric.enrollAdmin();
+    const enrollAdminOut = await this.ledgers.fabric.enrollAdmin("org1");
     const adminWallet = enrollAdminOut[1];
     const [userIdentity] = await this.ledgers.fabric.enrollUser(
       adminWallet,
       "user",
+      "org1",
     );
     const fabricUserKeychainKey = "user2";
     const fabricUserKeychainValue = JSON.stringify(userIdentity);

@@ -186,9 +186,13 @@ beforeAll(async () => {
     const connectionProfile = await fabricLedger.getConnectionProfileOrg1();
     expect(connectionProfile).not.toBeUndefined();
 
-    const enrollAdminOut = await fabricLedger.enrollAdmin();
+    const enrollAdminOut = await fabricLedger.enrollAdmin("org1");
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await fabricLedger.enrollUser(adminWallet, "user");
+    const [userIdentity] = await fabricLedger.enrollUser(
+      adminWallet,
+      "user",
+      "org1",
+    );
     const sshConfig = await fabricLedger.getSshConfig();
 
     const keychainInstanceId = uuidv4();
