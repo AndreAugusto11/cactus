@@ -179,26 +179,19 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createFabricLedgerConnector(): Promise<
     PluginLedgerConnectorFabric
   > {
-    const connectionProfile = await this.fabric.getConnectionProfileOrg1();
+    const connectionProfile = await this.fabric.getConnectionProfileOrg2();
     const enrollAdminOut = await this.fabric.enrollAdmin();
     const adminWallet = enrollAdminOut[1];
     const [userIdentity1] = await this.fabric.enrollUser(adminWallet, "userA");
-    const [userIdentity2] = await this.fabric.enrollUser(
-      adminWallet,
-      "bridgeEntity",
-    );
-    // const [userIdentity3] = await this.fabric.enrollUser(adminWallet, "userB");
+    // const [userIdentity2] = await this.fabric.enrollUser(adminWallet, "userB");
 
     const sshConfig = await this.fabric.getSshConfig();
 
     const keychainEntryKey1 = "userA";
     const keychainEntryValue1 = JSON.stringify(userIdentity1);
 
-    const keychainEntryKey2 = "bridgeEntity";
-    const keychainEntryValue2 = JSON.stringify(userIdentity2);
-
-    // const keychainEntryKey3 = "user3";
-    // const keychainEntryValue3 = JSON.stringify(userIdentity3);
+    // const keychainEntryKey2 = "userB";
+    // const keychainEntryValue2 = JSON.stringify(userIdentity2);
 
     const keychainPlugin = new PluginKeychainMemory({
       instanceId: this.apiServer1Keychain.getInstanceId(),
@@ -206,7 +199,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       logLevel: undefined,
       backend: new Map([
         [keychainEntryKey1, keychainEntryValue1],
-        [keychainEntryKey2, keychainEntryValue2],
+        // [keychainEntryKey2, keychainEntryValue2],
         // [keychainEntryKey3, keychainEntryValue3],
       ]),
     });
