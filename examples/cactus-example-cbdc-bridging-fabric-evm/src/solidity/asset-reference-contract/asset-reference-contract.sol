@@ -11,7 +11,6 @@ struct AssetReference {
     address recipient;
 }
 
-
 contract AssetReferenceContract is MyOwnable {
   address cbdc_contract;
   mapping (string => AssetReference) assets;
@@ -52,7 +51,7 @@ contract AssetReferenceContract is MyOwnable {
     require(isPresent(id), "The asset reference does not exist");
     require(isAssetLocked(id), "The asset reference is locked");
 
-    burn(assets[id].recipient, assets[id].amount);
+    burn(assets[id].amount);
 
     delete assets[id];
     assetExists[id] = false;
@@ -106,9 +105,9 @@ contract AssetReferenceContract is MyOwnable {
     require(success, "mint call failed");
   }
 
-  function burn(address account, uint256 amount) public onlyOwner {
+  function burn(uint256 amount) public onlyOwner {
     (bool success, ) = cbdc_contract.call(
-      abi.encodeWithSignature("burn(address,uint256)", account, amount)
+      abi.encodeWithSignature("burn(uint256)", amount)
     );
 
     require(success, "burn call failed");

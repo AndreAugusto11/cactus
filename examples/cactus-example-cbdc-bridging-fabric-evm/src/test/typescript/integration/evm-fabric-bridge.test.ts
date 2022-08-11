@@ -20,7 +20,7 @@ import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
-  Web3SigningCredential,
+  Web3SigningCredentialPrivateKeyHex,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
@@ -37,9 +37,13 @@ const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
 
 const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const EVM_BRIDGE_ADDRESS = "0x17F6AD8Ef982297579C203069C1DbfFE4348c372";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
+
+const USER_A_FABRIC_IDENTITY =
+  "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 
 const USER_A_INITIAL_BALANCE = 500;
 const AMOUNT_TO_TRANSFER = 123;
@@ -49,7 +53,8 @@ const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
-let signingCredential: Web3SigningCredential | undefined;
+let signingCredentialBridge: Web3SigningCredentialPrivateKeyHex | undefined;
+let signingCredentialUserA: Web3SigningCredentialPrivateKeyHex | undefined;
 let apiServer1Keychain: PluginKeychainMemory;
 let apiServer2Keychain: PluginKeychainMemory;
 
@@ -126,10 +131,16 @@ beforeAll(async () => {
 
   const { besuApiClient, fabricApiClient } = startResult;
 
-  signingCredential =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
+  signingCredentialBridge =
+    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialBridge;
 
-  if (signingCredential == undefined) {
+  signingCredentialUserA =
+    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialUserA;
+
+  if (
+    signingCredentialBridge == undefined ||
+    signingCredentialUserA == undefined
+  ) {
     throw new Error("Infrastructure set up not correctly performed.");
   }
 
@@ -152,7 +163,7 @@ beforeAll(async () => {
     params: [
       AMOUNT_TO_TRANSFER.toString(),
       FABRIC_ASSET_ID,
-      EVM_END_USER_ADDRESS,
+      signingCredentialUserA?.ethAccount,
     ],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
@@ -175,18 +186,32 @@ beforeAll(async () => {
   });
 
   // Initiate state in Besu ledger
-  const besuCreateRes = await besuApiClient.invokeContractV1({
+  const besuMintRes = await besuApiClient.invokeContractV1({
     contractName: AssetReferenceContractJson.contractName,
     invocationType: EthContractInvocationType.Send,
     methodName: "createAssetReference",
     gas: 1000000,
     params: [
       BESU_ASSET_ID,
-      AMOUNT_TO_TRANSFER.toString(),
-      EVM_END_USER_ADDRESS,
-      true,
+      AMOUNT_TO_TRANSFER,
+      signingCredentialUserA.ethAccount,
+      false,
     ],
-    signingCredential: signingCredential,
+    signingCredential: signingCredentialBridge,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  if (besuMintRes == undefined) {
+    throw new Error("Error when creating asset reference in Besu network.");
+  }
+
+  const besuCreateRes = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Send,
+    methodName: "escrow",
+    gas: 1000000,
+    params: [AMOUNT_TO_TRANSFER, BESU_ASSET_ID],
+    signingCredential: signingCredentialUserA,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
@@ -199,8 +224,8 @@ beforeAll(async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
-    params: [EVM_END_USER_ADDRESS],
-    signingCredential: signingCredential,
+    params: [EVM_BRIDGE_ADDRESS],
+    signingCredential: signingCredentialBridge,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
@@ -224,7 +249,11 @@ test("transfer asset correctly from besu to fabric", async () => {
     // since there is no link with the asset information,
     // we are just passing the asset parameters like this
     // [amountBeingTransferred]
-    keyInformationLink: [AMOUNT_TO_TRANSFER.toString()],
+    keyInformationLink: [
+      AMOUNT_TO_TRANSFER.toString(),
+      USER_A_FABRIC_IDENTITY,
+      signingCredentialUserA?.ethAccount,
+    ],
   };
 
   const odapClientRequest: ClientV1Request = {
@@ -265,7 +294,7 @@ test("transfer asset correctly from besu to fabric", async () => {
   expect(res.status).toBe(200);
 
   const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
-  expect(exists1);
+  expect(!exists1);
 
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
   expect(!exists2);
@@ -276,11 +305,23 @@ test("transfer asset correctly from besu to fabric", async () => {
     methodName: "balanceOf",
     gas: 1000000,
     params: [EVM_END_USER_ADDRESS],
-    signingCredential: signingCredential,
+    signingCredential: signingCredentialUserA,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
   expect(userBalanceBesu.data.callOutput).toBe("0");
+
+  const bridgeBalanceBesu = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "balanceOf",
+    gas: 1000000,
+    params: [EVM_BRIDGE_ADDRESS],
+    signingCredential: signingCredentialUserA,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  expect(bridgeBalanceBesu.data.callOutput).toBe("0");
 
   const userBalanceFabric = await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,

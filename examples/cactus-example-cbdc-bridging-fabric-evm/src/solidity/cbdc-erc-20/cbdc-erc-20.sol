@@ -26,8 +26,8 @@ contract CBDCcontract is Ownable, ERC20 {
         _mint(account, amount);
     }
 
-    function burn(address account, uint256 amount) external onlyOwner {
-        _burn(account, amount);
+    function burn(uint256 amount) external onlyOwner {
+        _burn(bridge_address, amount);
     }
 
     function escrow(uint256 amount, string calldata asset_ref_id) external checkARContract {

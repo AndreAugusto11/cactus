@@ -52,7 +52,6 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
     numberTokens: number,
-    bridgingBack: boolean,
   ): Promise<void> {
     console.log(
       "Creating new asset reference with id: " +
@@ -75,29 +74,32 @@ export class AssetReferenceContract extends Contract {
 
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
     await ctx.stub.putState(assetId, buffer);
+  }
 
-    if (bridgingBack) {
-      // this needs to be called by entity2 (the bridging entity)
-      const clientMSPID = ctx.clientIdentity.getMSPID();
-      if (clientMSPID !== "Org2MSP") {
-        throw new Error("client is not authorized to bridge back tokens");
-      }
-
-      const finalUser =
-        "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
-
-      console.log("Calling unescrow tokens");
-      await ctx.stub.invokeChaincode(
-        "cbdc-erc20",
-        [
-          "UnEscrow",
-          finalUser,
-          numberTokens.toString(),
-          "0x52550D554cf8907b5d09d0dE94e8ffA34763918d",
-        ],
-        ctx.stub.getChannelID(),
-      );
+  @Transaction()
+  public async Unescrow(
+    ctx: Context,
+    numberTokens: number,
+    finalFabricIdentity: string,
+    finalEthAddress: string,
+  ): Promise<void> {
+    // this needs to be called by entity2 (the bridging entity)
+    const clientMSPID = ctx.clientIdentity.getMSPID();
+    if (clientMSPID !== "Org2MSP") {
+      throw new Error("client is not authorized to bridge back tokens");
     }
+
+    console.log("Calling unescrow tokens");
+    await ctx.stub.invokeChaincode(
+      "cbdc-erc20",
+      [
+        "UnEscrow",
+        finalFabricIdentity,
+        numberTokens.toString(),
+        finalEthAddress,
+      ],
+      ctx.stub.getChannelID(),
+    );
   }
 
   @Transaction(false)

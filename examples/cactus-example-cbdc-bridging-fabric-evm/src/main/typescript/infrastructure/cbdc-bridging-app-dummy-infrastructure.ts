@@ -29,9 +29,9 @@ import {
   EthContractInvocationType,
   PluginFactoryLedgerConnector,
   PluginLedgerConnectorBesu,
-  Web3SigningCredential,
   Web3SigningCredentialType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
+  Web3SigningCredentialPrivateKeyHex,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import { knexClientConnection, knexServerConnection } from "../knex.config";
@@ -61,7 +61,8 @@ export class CbdcBridgingAppDummyInfrastructure {
   private readonly apiServer1Keychain: PluginKeychainMemory;
   private readonly apiServer2Keychain: PluginKeychainMemory;
   private readonly ipfsParentPath: string;
-  private besuWeb3SigningCredential?: Web3SigningCredential;
+  private besuWeb3SigningCredentialBridge?: Web3SigningCredentialPrivateKeyHex;
+  private besuWeb3SigningCredentialUserA?: Web3SigningCredentialPrivateKeyHex;
 
   private readonly log: Logger;
 
@@ -142,8 +143,16 @@ export class CbdcBridgingAppDummyInfrastructure {
     };
   }
 
-  get getBesuWeb3SigningCredential(): Web3SigningCredential | undefined {
-    return this.besuWeb3SigningCredential;
+  get getBesuWeb3SigningCredentialBridge():
+    | Web3SigningCredentialPrivateKeyHex
+    | undefined {
+    return this.besuWeb3SigningCredentialBridge;
+  }
+
+  get getBesuWeb3SigningCredentialUserA():
+    | Web3SigningCredentialPrivateKeyHex
+    | undefined {
+    return this.besuWeb3SigningCredentialUserA;
   }
 
   public async start(): Promise<void> {
@@ -248,10 +257,12 @@ export class CbdcBridgingAppDummyInfrastructure {
   }
 
   public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
-    const besuAccount = this.besu.getGenesisAccountPubKey();
-    const besuKeyPair = {
+    const besuAddressBridge = this.besu.getGenesisAccountPubKey();
+    const besuKeyPairBridge = {
       privateKey: this.besu.getGenesisAccountPrivKey(),
     };
+
+    const besuAccountUserA = await this.besu.createEthTestAccount(200000000);
 
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
@@ -272,9 +283,15 @@ export class CbdcBridgingAppDummyInfrastructure {
       ]),
     });
 
-    this.besuWeb3SigningCredential = {
-      ethAccount: besuAccount,
-      secret: besuKeyPair.privateKey,
+    this.besuWeb3SigningCredentialBridge = {
+      ethAccount: besuAddressBridge,
+      secret: besuKeyPairBridge.privateKey,
+      type: Web3SigningCredentialType.PrivateKeyHex,
+    };
+
+    this.besuWeb3SigningCredentialUserA = {
+      ethAccount: besuAccountUserA.address,
+      secret: besuAccountUserA.privateKey,
       type: Web3SigningCredentialType.PrivateKeyHex,
     };
 
@@ -349,7 +366,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       keyPair: keyPair,
       ipfsPath: ipfsPath,
       besuPath: nodeApiHost,
-      besuWeb3SigningCredential: this.besuWeb3SigningCredential,
+      besuWeb3SigningCredential: this.besuWeb3SigningCredentialBridge,
       besuContractName: AssetReferenceContractJson.contractName,
       besuKeychainId: this.apiServer2Keychain.getKeychainId(),
       knexConfig: knexServerConnection,
@@ -617,7 +634,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         contractName: CBDCcontractJson.contractName,
         contractAbi: CBDCcontractJson.abi,
         constructorArgs: [],
-        web3SigningCredential: this.besuWeb3SigningCredential,
+        web3SigningCredential: this.besuWeb3SigningCredentialBridge,
         bytecode: CBDCcontractJson.bytecode,
         gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
@@ -635,7 +652,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         constructorArgs: [
           deployCbdcContractResponse.data.transactionReceipt.contractAddress,
         ],
-        web3SigningCredential: this.besuWeb3SigningCredential,
+        web3SigningCredential: this.besuWeb3SigningCredentialBridge,
         bytecode: AssetReferenceContractJson.bytecode,
         gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
@@ -657,7 +674,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         deployAssetReferenceContractResponse.data.transactionReceipt
           .contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredential,
+      signingCredential: this.besuWeb3SigningCredentialBridge,
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 
@@ -677,7 +694,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         deployAssetReferenceContractResponse.data.transactionReceipt
           .contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredential,
+      signingCredential: this.besuWeb3SigningCredentialBridge,
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 
@@ -696,7 +713,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       params: [
         deployCbdcContractResponse.data.transactionReceipt.contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredential,
+      signingCredential: this.besuWeb3SigningCredentialBridge,
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 

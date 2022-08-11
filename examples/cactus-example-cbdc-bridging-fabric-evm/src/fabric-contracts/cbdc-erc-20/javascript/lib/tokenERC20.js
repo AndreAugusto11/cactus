@@ -555,7 +555,7 @@ class TokenERC20Contract extends Contract {
     // this means that the transfer was made to the bridging entity
     await ctx.stub.invokeChaincode(
       "asset-reference-contract",
-      ["CreateAssetReference", id, value.toString(), "false"],
+      ["CreateAssetReference", id, value.toString()],
       ctx.stub.getChannelID(),
     );
 
