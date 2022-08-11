@@ -40,8 +40,8 @@ const USER_A_FABRIC_IDENTITY =
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
-const USER_A_INITIAL_BALANCE = "500";
-const AMOUNT_TO_TRANSFER = "123";
+const USER_A_INITIAL_BALANCE = 500;
+const AMOUNT_TO_TRANSFER = 123;
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
@@ -141,7 +141,7 @@ beforeAll(async () => {
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [USER_A_INITIAL_BALANCE],
+    params: [USER_A_INITIAL_BALANCE.toString()],
     methodName: "Mint",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -153,7 +153,11 @@ beforeAll(async () => {
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID, EVM_END_USER_ADDRESS],
+    params: [
+      AMOUNT_TO_TRANSFER.toString(),
+      FABRIC_ASSET_ID,
+      EVM_END_USER_ADDRESS,
+    ],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -181,7 +185,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     // since there is no link with the asset information,
     // we are just passing the asset parameters like this
     // [amountBeingTransferred]
-    keyInformationLink: [AMOUNT_TO_TRANSFER],
+    keyInformationLink: [AMOUNT_TO_TRANSFER.toString()],
   };
 
   const odapClientRequest: ClientV1Request = {
@@ -237,7 +241,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
-  expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER);
+  expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
 
   const balanceUserA = await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
@@ -251,7 +255,9 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     },
   });
 
-  expect(balanceUserA.data.functionOutput).toBe("377");
+  expect(balanceUserA.data.functionOutput).toBe(
+    (USER_A_INITIAL_BALANCE - AMOUNT_TO_TRANSFER).toString(),
+  );
 
   const balanceBridgeEntity = await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
@@ -277,7 +283,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
-  expect(userBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER);
+  expect(userBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
 
   // the assets were created in the besu network
   // now we will transfer them back
@@ -349,7 +355,9 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     },
   });
 
-  expect(userBalanceFabric.data.functionOutput).toBe(USER_A_INITIAL_BALANCE);
+  expect(userBalanceFabric.data.functionOutput).toBe(
+    USER_A_INITIAL_BALANCE.toString(),
+  );
 
   const bridgeBalanceFabric = await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
