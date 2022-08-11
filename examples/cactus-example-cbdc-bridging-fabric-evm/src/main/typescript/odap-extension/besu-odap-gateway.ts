@@ -89,7 +89,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       sessionData == undefined ||
       sessionData.assetProfile == undefined ||
       sessionData.assetProfile.keyInformationLink == undefined ||
-      sessionData.assetProfile.keyInformationLink.length != 1
+      sessionData.assetProfile.keyInformationLink.length != 2
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -109,13 +109,14 @@ export class BesuOdapGateway extends PluginOdapGateway {
 
     if (this.besuApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+      const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
 
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetId, amount, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
+        params: [assetId, amount, userEthAddress, false],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -417,7 +418,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       sessionData.rollbackProofs == undefined ||
       sessionData.assetProfile == undefined ||
       sessionData.assetProfile.keyInformationLink == undefined ||
-      sessionData.assetProfile.keyInformationLink.length != 1
+      sessionData.assetProfile.keyInformationLink.length != 2
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -433,13 +434,14 @@ export class BesuOdapGateway extends PluginOdapGateway {
 
     if (this.besuApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+      const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
 
       const assetCreateResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetID, amount, "0x52550D554cf8907b5d09d0dE94e8ffA34763918d"],
+        params: [assetID, amount, userEthAddress, false],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);

@@ -228,7 +228,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
       sessionData == undefined ||
       sessionData.assetProfile == undefined ||
       sessionData.assetProfile.keyInformationLink == undefined ||
-      sessionData.assetProfile.keyInformationLink.length != 1
+      sessionData.assetProfile.keyInformationLink.length != 2
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -248,6 +248,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     if (this.fabricApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+      // const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
 
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
@@ -407,6 +408,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     if (this.fabricApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
+      // const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
 
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,

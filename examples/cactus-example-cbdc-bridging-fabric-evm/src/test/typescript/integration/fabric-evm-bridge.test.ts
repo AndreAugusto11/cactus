@@ -174,7 +174,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     // since there is no link with the asset information,
     // we are just passing the asset parameters like this
     // [amountBeingTransferred]
-    keyInformationLink: [AMOUNT_TO_TRANSFER.toString()],
+    keyInformationLink: [AMOUNT_TO_TRANSFER.toString(), EVM_END_USER_ADDRESS],
   };
 
   const odapClientRequest: ClientV1Request = {
@@ -220,7 +220,7 @@ test("transfer asset correctly from fabric to besu", async () => {
   expect(!exists1);
 
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
-  expect(exists2);
+  expect(!exists2);
 
   const signingCredential =
     cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;

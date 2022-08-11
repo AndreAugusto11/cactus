@@ -158,10 +158,18 @@ export class CbdcBridgingApp {
 
     this.log.info("Deploying chaincode and smart contracts...");
 
+    // FIXME - without this wait it randomly fails with an error claiming that
+    // the endorsement was impossible to be obtained. The fabric-samples script
+    // does the same thing, it just waits 10 seconds for good measure so there
+    // might not be a way for us to avoid doing this, but if there is a way we
+    // absolutely should not have timeouts like this, anywhere...
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
+
     await this.infrastructure.deployFabricAssetReferenceContract(
       fabricApiClient,
     );
-    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
 
     await this.infrastructure.deployBesuContracts(besuApiClient);
 

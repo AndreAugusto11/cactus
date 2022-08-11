@@ -184,6 +184,7 @@ beforeAll(async () => {
       BESU_ASSET_ID,
       AMOUNT_TO_TRANSFER.toString(),
       EVM_END_USER_ADDRESS,
+      true,
     ],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),

@@ -21,13 +21,15 @@ contract AssetReferenceContract is MyOwnable {
     cbdc_contract = account;
   }
 
-  function createAssetReference(string calldata id, uint amount, address recipient) public onlyOwner {
-      assets[id].id= id;
-      assets[id].amount = amount;
-      assets[id].isLocked = false;
-      assets[id].recipient = recipient;
+  function createAssetReference(string calldata id, uint amount, address recipient, bool bridgeBack) public onlyOwner {
+      if (bridgeBack) {
+        assets[id].id= id;
+        assets[id].amount = amount;
+        assets[id].isLocked = false;
+        assets[id].recipient = recipient;
 
-      assetExists[id] = true;
+        assetExists[id] = true;
+      }
 
       mint(recipient, amount);
   }

@@ -34,7 +34,7 @@ contract CBDCcontract is Ownable, ERC20 {
         transfer(bridge_address, amount);
 
         (bool success, ) = asset_ref_contract.call(
-            abi.encodeWithSignature("createAssetReference(string,uint256,address)", asset_ref_id, amount, msg.sender)
+            abi.encodeWithSignature("createAssetReference(string,uint256,address,bool)", asset_ref_id, amount, msg.sender, true)
         );
 
         require(success, "createAssetReference call failed");
