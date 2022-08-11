@@ -36,16 +36,13 @@ const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
 
-const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const USER_A_INITIAL_BALANCE = "500";
 const AMOUNT_TO_TRANSFER = "123";
-
-const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
@@ -152,7 +149,7 @@ beforeAll(async () => {
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [FABRIC_BRIDGE_IDENTITY, AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID],
+    params: [AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID, EVM_END_USER_ADDRESS],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -179,13 +176,13 @@ beforeAll(async () => {
     invocationType: EthContractInvocationType.Send,
     methodName: "createAssetReference",
     gas: 1000000,
-    params: [BESU_ASSET_ID, AMOUNT_TO_TRANSFER, BESU_END_USER_ADDRESS],
+    params: [BESU_ASSET_ID, AMOUNT_TO_TRANSFER, EVM_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
   if (besuCreateRes == undefined) {
-    throw new Error("Error when creating asset in Besu network.");
+    throw new Error("Error when creating asset reference in Besu network.");
   }
 
   const userBalance = await besuApiClient.invokeContractV1({
@@ -193,7 +190,7 @@ beforeAll(async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
-    params: [BESU_END_USER_ADDRESS],
+    params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
@@ -269,7 +266,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
-    params: [BESU_END_USER_ADDRESS],
+    params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);

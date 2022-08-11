@@ -45,7 +45,7 @@ import {
 } from "../generated/openapi/typescript-axios";
 import { CommitFinalRequestEndpointV1 } from "../web-services/server-side/commit-final-request-endpoint";
 import { CommitFinalResponseEndpointV1 } from "../web-services/client-side/commit-final-response-endpoint";
-import { CommitPreparationResponseEndpointV1 } from "../web-services/client-side/commite-prepare-response-endpoint";
+import { CommitPreparationResponseEndpointV1 } from "../web-services/client-side/commit-prepare-response-endpoint";
 import { LockEvidenceResponseEndpointV1 } from "../web-services/client-side/lock-evidence-response-endpoint";
 import { TransferCommenceResponseEndpointV1 } from "../web-services/client-side/transfer-commence-response-endpoint";
 import { TransferInitiationResponseEndpointV1 } from "../web-services/client-side/transfer-initiation-response-endpoint";

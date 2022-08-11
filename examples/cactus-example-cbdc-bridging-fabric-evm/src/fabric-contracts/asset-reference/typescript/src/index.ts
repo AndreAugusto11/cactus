@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AssetReferenceContract } from "./assetReferenceContract";
+import { AssetReferenceContract } from "./asset-reference-contract";
 
-export { AssetReferenceContract } from "./assetReferenceContract";
+export { AssetReferenceContract } from "./asset-reference-contract";
 
 export const contracts: any[] = [AssetReferenceContract];

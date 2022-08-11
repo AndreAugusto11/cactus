@@ -131,6 +131,7 @@
         "txid",
         "txqueue",
         "Uisrs",
+        "unescrow",
         "Unmarshal",
         "uuidv",
         "vscc",

@@ -2,16 +2,17 @@
 
 pragma solidity ^0.8.15;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./MyOwnable.sol";
 
-struct AssetReference{
+struct AssetReference {
     string id;
     bool isLocked;
     uint amount;
     address recipient;
 }
 
-contract AssetReferenceContract is Ownable {
+
+contract AssetReferenceContract is MyOwnable {
   address cbdc_contract;
   mapping (string => AssetReference) assets;
   mapping (string => bool) assetExists;
@@ -32,43 +33,27 @@ contract AssetReferenceContract is Ownable {
   }
 
   function lockAssetReference(string calldata id) public onlyOwner {
-    require(isPresent(id));
-    require(!isAssetLocked(id));
+    require(isPresent(id), "The asset reference does not exist");
+    require(!isAssetLocked(id), "The asset reference is already locked");
 
     assets[id].isLocked = true;
   }
 
   //Don't care if it is already unlocked
   function unLockAssetReference(string calldata id) public onlyOwner {
-    require(isPresent(id));
+    require(isPresent(id), "The asset reference does not exist");
 
     assets[id].isLocked = false;
   }
 
   function deleteAssetReference(string calldata id) public onlyOwner {
-    require(isPresent(id));
-    require(isAssetLocked(id));
+    require(isPresent(id), "The asset reference does not exist");
+    require(isAssetLocked(id), "The asset reference is locked");
 
     burn(assets[id].recipient, assets[id].amount);
 
     delete assets[id];
     assetExists[id] = false;
-  }
-
-  function splitAssetReference(string calldata oldID, uint256 amount, string calldata newID) public {
-    require(isPresent(oldID), "The asset reference does not exist");
-    require(!isAssetLocked(oldID), "The asset reference is not locked");
-
-    require(msg.sender == assets[oldID].recipient, "Only the owner of the asset reference can split it");
-
-    assets[newID].id= newID;
-    assets[newID].amount = assets[oldID].amount - amount;
-    assets[newID].isLocked = false;
-    assets[newID].recipient = assets[oldID].recipient;
-
-    assetExists[newID] = true;
-
-    assets[oldID].amount = amount;
   }
 
   function isPresent(string calldata id) public view returns (bool) {
@@ -81,6 +66,34 @@ contract AssetReferenceContract is Ownable {
 
   function getAssetReference(string calldata id) public view returns (AssetReference memory) {
     return assets[id];
+  }
+
+  function splitAssetReference(string calldata oldID, uint256 amount, string calldata newID) public onlyOwner {
+    require(isPresent(oldID), "The asset reference does not exist");
+    require(!isAssetLocked(oldID), "The asset reference is not locked");
+
+    assets[newID].id= newID;
+    assets[newID].amount = assets[oldID].amount - amount;
+    assets[newID].isLocked = false;
+    assets[newID].recipient = assets[oldID].recipient;
+
+    assetExists[newID] = true;
+
+    assets[oldID].amount = amount;
+  }
+
+  function mergeAssetReferences(string calldata ID1, string calldata ID2) public onlyOwner {
+    // We take ID1 as the representation of all these tokens and discard ID2
+    require(isPresent(ID1), "The asset reference does not exist");
+    require(!isAssetLocked(ID1), "The asset reference is not locked");
+
+    require(isPresent(ID2), "The asset reference does not exist");
+    require(!isAssetLocked(ID2), "The asset reference is not locked");
+
+    assets[ID1].amount = assets[ID1].amount + assets[ID2].amount;
+
+    delete assets[ID2];
+    assetExists[ID2] = false;
   }
 
   function mint(address account, uint256 amount) public onlyOwner {
@@ -98,7 +111,4 @@ contract AssetReferenceContract is Ownable {
 
     require(success, "burn call failed");
   }
-
-  // split an asset reference in two?
-  // AR1 (C tokens) -> AR2 (A tokens) & AR3 (B tokens), where A + B = C
 }

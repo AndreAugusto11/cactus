@@ -8,9 +8,13 @@
 
 const { Contract } = require("fabric-contract-api");
 
+const FABRIC_BRIDGE_IDENTITY =
+  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+
 // Define objectType names for prefix
 const balancePrefix = "balance";
 const allowancePrefix = "allowance";
+const addressPrefix = "address";
 
 // Define key names for options
 const nameKey = "name";
@@ -516,7 +520,7 @@ class TokenERC20Contract extends Contract {
   }
 
   /**
-   *  Transfer transfers tokens from client account to recipient account.
+   *  Escrow transfers tokens from client account to the bridging entity account.
    *  recipient account must be a valid clientID as returned by the ClientAccountID() function.
    *
    * @param {Context} ctx the transaction context
@@ -524,11 +528,70 @@ class TokenERC20Contract extends Contract {
    * @param {Integer} value The amount of token to be transferred
    * @returns {Boolean} Return whether the transfer was successful or not
    */
-  async Escrow(ctx, to, value, id) {
+  async Escrow(ctx, value, id, eth_address) {
     //check contract options are already set first to execute the function
     await this.CheckInitialized(ctx);
 
     const from = ctx.clientIdentity.getID();
+
+    const transferResp = await this._transfer(
+      ctx,
+      from,
+      FABRIC_BRIDGE_IDENTITY,
+      value,
+    );
+    if (!transferResp) {
+      throw new Error("Failed to transfer");
+    }
+
+    // Emit the Transfer event
+    const transferEvent = {
+      from,
+      FABRIC_BRIDGE_IDENTITY,
+      value: parseInt(value),
+    };
+    ctx.stub.setEvent("Transfer", Buffer.from(JSON.stringify(transferEvent)));
+
+    // this means that the transfer was made to the bridging entity
+    await ctx.stub.invokeChaincode(
+      "asset-reference-contract",
+      ["CreateAssetReference", id, value.toString(), "false"],
+      ctx.stub.getChannelID(),
+    );
+
+    // update mapping between Fabric Identities and Ethereum addresses
+    const addressKey = ctx.stub.createCompositeKey(addressPrefix, [from]);
+
+    console.log("storing address with key: " + addressKey);
+    await ctx.stub.putState(addressKey, Buffer.from(eth_address));
+  }
+
+  /**
+   *  UnEscrow transfers tokens from the bridging entity account to the client account.
+   *  recipient account must be a valid clientID as returned by the ClientAccountID() function.
+   *
+   * @param {Context} ctx the transaction context
+   * @param {String} to The recipient
+   * @param {Integer} value The amount of token to be transferred
+   * @returns {Boolean} Return whether the transfer was successful or not
+   */
+  async UnEscrow(ctx, to, value, eth_address) {
+    //check contract options are already set first to execute the function
+    await this.CheckInitialized(ctx);
+
+    const from = ctx.clientIdentity.getID();
+
+    if (from !== FABRIC_BRIDGE_IDENTITY) {
+      throw new Error("client is not authorized to unescrow tokens");
+    }
+
+    const clientEthAddress = await this.getAddressMapping(ctx, to);
+
+    if (clientEthAddress !== eth_address) {
+      throw new Error(
+        "client is not authorized to bridge back tokens to another client account",
+      );
+    }
 
     const transferResp = await this._transfer(ctx, from, to, value);
     if (!transferResp) {
@@ -536,20 +599,27 @@ class TokenERC20Contract extends Contract {
     }
 
     // Emit the Transfer event
-    const transferEvent = { from, to, value: parseInt(value) };
+    const transferEvent = {
+      from,
+      FABRIC_BRIDGE_IDENTITY,
+      value: parseInt(value),
+    };
     ctx.stub.setEvent("Transfer", Buffer.from(JSON.stringify(transferEvent)));
+  }
 
-    if (
-      to ===
-      "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com"
-    ) {
-      // this means that the transfer was made to the bridging entity
-      await ctx.stub.invokeChaincode(
-        "asset-reference-contract",
-        ["CreateAssetReference", id, value.toString(), "false"],
-        ctx.stub.getChannelID(),
-      );
+  async getAddressMapping(ctx, fabricID) {
+    await this.CheckInitialized(ctx);
+
+    const addressKey = ctx.stub.createCompositeKey(addressPrefix, [fabricID]);
+
+    console.log("retrieving address with key: " + addressKey);
+    const addressBytes = await ctx.stub.getState(addressKey);
+    if (!addressBytes || addressBytes.length === 0) {
+      throw new Error(`the account ${fabricID} does not exist`);
     }
+    const address = addressBytes.toString();
+
+    return address;
   }
 
   // add two number checking for overflow

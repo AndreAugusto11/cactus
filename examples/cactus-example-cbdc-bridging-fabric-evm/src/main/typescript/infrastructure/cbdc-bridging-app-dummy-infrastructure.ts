@@ -92,7 +92,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.besu = new BesuTestLedger({
-      logLevel: "DEBUG",
+      logLevel: "TRACE",
       emitContainerLogs: true,
     });
 
@@ -179,6 +179,7 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createFabricLedgerConnector(): Promise<
     PluginLedgerConnectorFabric
   > {
+    const connectionProfileOrg1 = await this.fabric.getConnectionProfileOrg1();
     const enrollAdminOutOrg1 = await this.fabric.enrollAdmin("org1");
     const adminWalletOrg1 = enrollAdminOutOrg1[1];
     const [userIdentity1] = await this.fabric.enrollUser(
@@ -192,9 +193,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       "org1",
     );
 
-    const connectionProfileOrg2 = await this.fabric.getConnectionProfileOrgX(
-      "org2",
-    );
     const enrollAdminOut = await this.fabric.enrollAdmin("org2");
     const adminWallet = enrollAdminOut[1];
     const [bridgeIdentity] = await this.fabric.enrollUser(
@@ -234,9 +232,9 @@ export class CbdcBridgingAppDummyInfrastructure {
       peerBinary: "/fabric-samples/bin/peer",
       goBinary: "/usr/local/go/bin/go",
       pluginRegistry,
-      cliContainerEnv: this.org2Env,
+      cliContainerEnv: this.org1Env,
       sshConfig,
-      connectionProfile: connectionProfileOrg2,
+      connectionProfile: connectionProfileOrg1,
       logLevel: this.options.logLevel || "INFO",
       discoveryOptions: {
         enabled: true,
@@ -427,7 +425,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       });
     }
     {
-      const filename = "./assetReferenceContract.ts";
+      const filename = "./asset-reference-contract.ts";
       const relativePath = "./src/";
       const filePath = path.join(contractDir, relativePath, filename);
       const buffer = await fs.readFile(filePath);
@@ -438,20 +436,26 @@ export class CbdcBridgingAppDummyInfrastructure {
       });
     }
 
-    const res = await fabricApiClient.deployContractV1({
-      channelId,
-      ccVersion: "1.0.0",
-      sourceFiles,
-      ccName: contractName,
-      targetOrganizations: [this.org1Env, this.org2Env],
-      caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
-      ccLabel: "asset-reference-contract",
-      ccLang: ChainCodeProgrammingLanguage.Typescript,
-      ccSequence: 1,
-      orderer: "orderer.example.com:7050",
-      ordererTLSHostnameOverride: "orderer.example.com",
-      connTimeout: 60,
-    });
+    const res = await fabricApiClient.deployContractV1(
+      {
+        channelId,
+        ccVersion: "1.0.0",
+        sourceFiles,
+        ccName: contractName,
+        targetOrganizations: [this.org1Env, this.org2Env],
+        caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
+        ccLabel: "asset-reference-contract",
+        ccLang: ChainCodeProgrammingLanguage.Typescript,
+        ccSequence: 1,
+        orderer: "orderer.example.com:7050",
+        ordererTLSHostnameOverride: "orderer.example.com",
+        connTimeout: 60,
+      },
+      {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      },
+    );
 
     const { packageIds, lifecycle } = res.data;
 
@@ -597,7 +601,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
         keychainId: this.apiServer1Keychain.getKeychainId(),
-        keychainRef: "bridgeEntity",
+        keychainRef: "userA",
       },
     });
 
@@ -643,7 +647,28 @@ export class CbdcBridgingAppDummyInfrastructure {
       );
     }
 
-    const transferOwnership = await besuApiClient?.invokeContractV1({
+    // set Asset Reference smart contract address in cbdc one (sidechain contract)
+    const insertARContractAddress = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Send,
+      methodName: "setAssetReferenceContract",
+      gas: 1000000,
+      params: [
+        deployAssetReferenceContractResponse.data.transactionReceipt
+          .contractAddress,
+      ],
+      signingCredential: this.besuWeb3SigningCredential,
+      keychainId: this.apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
+
+    if (insertARContractAddress == undefined) {
+      throw new Error(
+        `${fnTag}, error when setting Asset Reference smart contract address in sidechain contract`,
+      );
+    }
+
+    // make the owner of the sidechain contract the asset reference one
+    const transferOwnership = await besuApiClient.invokeContractV1({
       contractName: CBDCcontractJson.contractName,
       invocationType: EthContractInvocationType.Send,
       methodName: "transferOwnership",
@@ -657,6 +682,25 @@ export class CbdcBridgingAppDummyInfrastructure {
     } as BesuInvokeContractV1Request);
 
     if (transferOwnership == undefined) {
+      throw new Error(
+        `${fnTag}, error when transferring the ownershop Reference smart contract address in sidechain contract`,
+      );
+    }
+
+    // make the owner of the asset reference contract the sidechain one
+    const addOwnerToAssetRefContract = await besuApiClient.invokeContractV1({
+      contractName: AssetReferenceContractJson.contractName,
+      invocationType: EthContractInvocationType.Send,
+      methodName: "addOwner",
+      gas: 1000000,
+      params: [
+        deployCbdcContractResponse.data.transactionReceipt.contractAddress,
+      ],
+      signingCredential: this.besuWeb3SigningCredential,
+      keychainId: this.apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
+
+    if (addOwnerToAssetRefContract == undefined) {
       throw new Error(
         `${fnTag}, error when transfering CBDC smart contract ownership`,
       );

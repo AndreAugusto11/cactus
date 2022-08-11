@@ -31,12 +31,14 @@ const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
 const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_ASSET_CBDC_ERC20_NAME = "cbdc-erc20";
+const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
-const BESU_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const USER_A_FABRIC_IDENTITY =
+  "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
@@ -126,7 +128,7 @@ beforeAll(async () => {
 
   // Initiate state in Fabric ledger
   await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_ASSET_CBDC_ERC20_NAME,
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
     params: ["500"],
     methodName: "Mint",
@@ -138,9 +140,9 @@ beforeAll(async () => {
   });
 
   await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_ASSET_CBDC_ERC20_NAME,
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [FABRIC_BRIDGE_IDENTITY, AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID],
+    params: [AMOUNT_TO_TRANSFER, FABRIC_ASSET_ID, EVM_END_USER_ADDRESS],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -156,6 +158,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     fabricOdapGateway,
     besuOdapGateway,
     besuApiClient,
+    fabricApiClient,
   } = startResult;
 
   const expiryDate = new Date(2060, 11, 24).toString();
@@ -226,12 +229,40 @@ test("transfer asset correctly from fabric to besu", async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
-    params: [BESU_END_USER_ADDRESS],
+    params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredential,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
   expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER);
+
+  const balanceUserA = await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [USER_A_FABRIC_IDENTITY],
+    methodName: "BalanceOf",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "userA",
+    },
+  });
+
+  expect(balanceUserA.data.functionOutput).toBe("377");
+
+  const balanceBridgeEntity = await fabricApiClient.runTransactionV1({
+    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+    channelName: FABRIC_CHANNEL_NAME,
+    params: [FABRIC_BRIDGE_IDENTITY],
+    methodName: "BalanceOf",
+    invocationType: FabricContractInvocationType.Send,
+    signingCredential: {
+      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainRef: "userA",
+    },
+  });
+
+  expect(balanceBridgeEntity.data.functionOutput).toBe("123");
 });
 
 afterAll(async () => {
