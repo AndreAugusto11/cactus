@@ -87,7 +87,7 @@ export class CbdcBridgingApp {
     await this.infrastructure.start();
     this.onShutdown(() => this.infrastructure.stop());
 
-    const fabricPlugin = await this.infrastructure.createFabricLedgerConnector();
+    // const fabricPlugin = await this.infrastructure.createFabricLedgerConnector();
     const besuPlugin = await this.infrastructure.createBesuLedgerConnector();
     const clientIpfsPlugin = await this.infrastructure.createIPFSConnector();
     const serverIpfsPlugin = await this.infrastructure.createIPFSConnector();
@@ -129,7 +129,7 @@ export class CbdcBridgingApp {
       plugins: [this.apiServer2Keychain],
     });
 
-    clientPluginRegistry.add(fabricPlugin);
+    // clientPluginRegistry.add(fabricPlugin);
     clientPluginRegistry.add(fabricOdapGateway);
     clientPluginRegistry.add(clientIpfsPlugin);
 
@@ -165,11 +165,11 @@ export class CbdcBridgingApp {
     // absolutely should not have timeouts like this, anywhere...
     await new Promise((resolve) => setTimeout(resolve, 10000));
 
-    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
+    // await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
 
-    await this.infrastructure.deployFabricAssetReferenceContract(
-      fabricApiClient,
-    );
+    // await this.infrastructure.deployFabricAssetReferenceContract(
+    //   fabricApiClient,
+    // );
 
     await this.infrastructure.deployBesuContracts(besuApiClient);
 

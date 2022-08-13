@@ -46,7 +46,6 @@ export class FabricOdapGateway extends PluginOdapGateway {
       keyPair: options.keyPair,
       backupGatewaysAllowed: options.backupGatewaysAllowed,
       ipfsPath: options.ipfsPath,
-      knexConfig: options.knexConfig,
       clientHelper: new ClientHelper(),
       serverHelper: new ServerHelper(),
     });

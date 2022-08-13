@@ -131,7 +131,7 @@ beforeAll(async () => {
   const { fabricApiClient } = startResult;
 
   signingCredential =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredential;
+    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialBridge;
 
   if (signingCredential == undefined) {
     throw new Error("Infrastructure set up not correctly performed.");

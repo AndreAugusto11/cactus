@@ -34,7 +34,6 @@ import {
   Web3SigningCredentialPrivateKeyHex,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
 import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
@@ -95,6 +94,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     this.besu = new BesuTestLedger({
       logLevel: "TRACE",
       emitContainerLogs: true,
+      envVars: ["BESU_NETWORK=dev"],
     });
 
     this.fabric = new FabricTestLedgerV1({
@@ -160,7 +160,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.info(`Starting dummy infrastructure...`);
       await Promise.all([
         this.besu.start(),
-        this.fabric.start(),
+        // this.fabric.start(),
         this.ipfs.start(),
       ]);
       this.log.info(`Started dummy infrastructure OK`);
@@ -175,7 +175,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.info(`Stopping...`);
       await Promise.all([
         this.besu.stop().then(() => this.besu.destroy()),
-        this.fabric.stop().then(() => this.fabric.destroy()),
+        // this.fabric.stop().then(() => this.fabric.destroy()),
         this.ipfs.stop().then(() => this.ipfs.destroy()),
       ]);
       this.log.info(`Stopped OK`);
@@ -344,7 +344,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       },
       fabricChannelName: "mychannel",
       fabricContractName: "asset-reference-contract",
-      knexConfig: knexClientConnection,
     });
 
     await pluginSourceGateway.database?.migrate.rollback();
@@ -369,7 +368,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       besuWeb3SigningCredential: this.besuWeb3SigningCredentialBridge,
       besuContractName: AssetReferenceContractJson.contractName,
       besuKeychainId: this.apiServer2Keychain.getKeychainId(),
-      knexConfig: knexServerConnection,
     });
 
     await pluginRecipientGateway.database?.migrate.rollback();

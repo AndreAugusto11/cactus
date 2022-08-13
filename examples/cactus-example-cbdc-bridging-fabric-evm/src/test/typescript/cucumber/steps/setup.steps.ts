@@ -1,21 +1,51 @@
-#!/usr/bin/env node
-
 import {
-  AuthorizationProtocol,
+  CbdcBridgingApp,
+  ICbdcBridgingApp,
+  IStartInfo,
+} from "../../../../main/typescript/cbdc-bridging-app";
+import {
   ConfigService,
   IAuthorizationConfig,
+  AuthorizationProtocol,
 } from "@hyperledger/cactus-cmd-api-server";
-import { v4 as uuidv4 } from "uuid";
-import { LoggerProvider } from "@hyperledger/cactus-common";
-import { Secp256k1Keys } from "@hyperledger/cactus-common";
+import { LoggerProvider, Secp256k1Keys } from "@hyperledger/cactus-common";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
-import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
-import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
+import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
+import { Given, Then } from "cucumber";
+import { v4 as uuidv4 } from "uuid";
+import { expect } from "chai";
+
+// we give it 3 minutes
+Given("a bridging application", { timeout: 180 * 1000 }, async function () {
+  this.app = await launchApp();
+  expect(this.app).to.not.be.undefined;
+});
+
+Then(
+  "a request to set an object with key {string} and value {int} to the ipfsApiClient should return {int}",
+  async function (s1: string, n1: number, n2: number) {
+    const result = await this.app.ipfsApiClient.setObjectV1({
+      key: s1,
+      value: n1.toString(),
+    });
+    expect(result.status).to.be.equal(n2);
+  },
+);
+
+Then(
+  "retrieving the value for the key {string} returns {string}",
+  async function (s1: string, n1: string) {
+    const result = await this.app.ipfsApiClient.hasObjectV1({
+      key: s1,
+    });
+    expect(result.data.isPresent.toString()).to.be.equal(n1);
+  },
+);
 
 export async function launchApp(
   env?: NodeJS.ProcessEnv,
   args?: string[],
-): Promise<void> {
+): Promise<IStartInfo | undefined> {
   const configService = new ConfigService();
   const exampleConfig = await configService.newExampleConfig();
   exampleConfig.configFile = "";
@@ -70,15 +100,12 @@ export async function launchApp(
   console.log(serverkey);
   const cbdcBridgingApp = new CbdcBridgingApp(appOptions);
   try {
-    await cbdcBridgingApp.start();
+    const appInfo = await cbdcBridgingApp.start();
     console.info("CbdcBridgingApp running...");
+    return appInfo;
   } catch (ex) {
     console.error(`CbdcBridgingApp crashed. Existing...`, ex);
     await cbdcBridgingApp?.stop();
-    process.exit(-1);
+    return undefined;
   }
-}
-
-if (require.main === module) {
-  launchApp();
 }
