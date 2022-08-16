@@ -25,7 +25,6 @@ import {
   SessionData,
 } from "../../../../main/typescript/public-api";
 import { SHA256 } from "crypto-js";
-import { knexClientConnection, knexServerConnection } from "../../knex.config";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
@@ -101,7 +100,6 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexClientConnection,
   };
 
   recipientGatewayConstructor = {
@@ -110,7 +108,6 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexServerConnection,
   };
 });
 

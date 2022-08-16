@@ -27,7 +27,7 @@ import {
   ClientV1Request,
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+
 import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 
@@ -98,7 +98,6 @@ test("runs ODAP between two gateways via openApi", async () => {
     dltIDs: ["DLT2"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexClientConnection,
   };
 
   const odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
@@ -106,7 +105,6 @@ test("runs ODAP between two gateways via openApi", async () => {
     dltIDs: ["DLT1"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexServerConnection,
   };
 
   pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);

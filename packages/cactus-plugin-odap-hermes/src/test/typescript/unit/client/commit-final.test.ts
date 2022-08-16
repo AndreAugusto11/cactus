@@ -23,7 +23,7 @@ import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-i
 import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
 import express from "express";
 import { AddressInfo } from "net";
-import { knexClientConnection, knexServerConnection } from "../../knex.config";
+
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
@@ -98,7 +98,6 @@ beforeEach(async () => {
     dltIDs: ["DLT2"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexClientConnection,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
   };
@@ -107,7 +106,6 @@ beforeEach(async () => {
     dltIDs: ["DLT1"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexServerConnection,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
   };

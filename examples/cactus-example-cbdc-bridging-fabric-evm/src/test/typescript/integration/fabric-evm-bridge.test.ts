@@ -21,7 +21,9 @@ import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
+  Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
+import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -36,7 +38,7 @@ const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
-const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
 const USER_A_FABRIC_IDENTITY =
   "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 const FABRIC_BRIDGE_IDENTITY =
@@ -222,8 +224,11 @@ test("transfer asset correctly from fabric to besu", async () => {
   const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
   expect(!exists2);
 
-  const signingCredential =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialBridge;
+  const signingCredential = {
+    ethAccount: CryptoMaterial.accounts["bridge"].address,
+    secret: CryptoMaterial.accounts["bridge"].privateKey,
+    type: Web3SigningCredentialType.PrivateKeyHex,
+  };
 
   if (signingCredential == undefined) {
     throw new Error("Infrastructure set up not correctly performed.");

@@ -21,9 +21,11 @@ import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
   Web3SigningCredentialPrivateKeyHex,
+  Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -36,8 +38,8 @@ const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
 
-const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
-const EVM_BRIDGE_ADDRESS = "0x17F6AD8Ef982297579C203069C1DbfFE4348c372";
+const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
+const EVM_BRIDGE_ADDRESS = CryptoMaterial.accounts["bridge"].address;
 
 const FABRIC_ASSET_ID = "ec00efe8-4699-42a2-ab66-bbb69d089d42";
 const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
@@ -53,10 +55,20 @@ const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
-let signingCredentialBridge: Web3SigningCredentialPrivateKeyHex | undefined;
-let signingCredentialUserA: Web3SigningCredentialPrivateKeyHex | undefined;
 let apiServer1Keychain: PluginKeychainMemory;
 let apiServer2Keychain: PluginKeychainMemory;
+
+const signingCredentialBridge = {
+  ethAccount: CryptoMaterial.accounts["bridge"].address,
+  secret: CryptoMaterial.accounts["bridge"].privateKey,
+  type: Web3SigningCredentialType.PrivateKeyHex,
+} as Web3SigningCredentialPrivateKeyHex;
+
+const signingCredentialUserA = {
+  ethAccount: CryptoMaterial.accounts["userA"].address,
+  secret: CryptoMaterial.accounts["userA"].privateKey,
+  type: Web3SigningCredentialType.PrivateKeyHex,
+} as Web3SigningCredentialPrivateKeyHex;
 
 beforeAll(async () => {
   await pruneDockerAllIfGithubAction({ logLevel: "INFO" });
@@ -130,19 +142,6 @@ beforeAll(async () => {
   }
 
   const { besuApiClient, fabricApiClient } = startResult;
-
-  signingCredentialBridge =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialBridge;
-
-  signingCredentialUserA =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialUserA;
-
-  if (
-    signingCredentialBridge == undefined ||
-    signingCredentialUserA == undefined
-  ) {
-    throw new Error("Infrastructure set up not correctly performed.");
-  }
 
   // Initiate state in Fabric ledger
   await fabricApiClient.runTransactionV1({
@@ -224,12 +223,24 @@ beforeAll(async () => {
     invocationType: EthContractInvocationType.Call,
     methodName: "balanceOf",
     gas: 1000000,
+    params: [EVM_END_USER_ADDRESS],
+    signingCredential: signingCredentialBridge,
+    keychainId: apiServer2Keychain.getKeychainId(),
+  } as BesuInvokeContractV1Request);
+
+  expect(userBalance.data.callOutput).toBe("0");
+
+  const bridgeBalance = await besuApiClient.invokeContractV1({
+    contractName: CBDCcontractJson.contractName,
+    invocationType: EthContractInvocationType.Call,
+    methodName: "balanceOf",
+    gas: 1000000,
     params: [EVM_BRIDGE_ADDRESS],
     signingCredential: signingCredentialBridge,
     keychainId: apiServer2Keychain.getKeychainId(),
   } as BesuInvokeContractV1Request);
 
-  expect(userBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
+  expect(bridgeBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
 });
 
 test("transfer asset correctly from besu to fabric", async () => {

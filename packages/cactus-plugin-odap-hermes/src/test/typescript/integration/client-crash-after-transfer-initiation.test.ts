@@ -24,7 +24,7 @@ import {
   ClientV1Request,
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+
 import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
@@ -114,7 +114,6 @@ beforeAll(async () => {
       instanceId: uuidv4(),
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-      knexConfig: knexServerConnection,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
     };
@@ -154,7 +153,6 @@ beforeAll(async () => {
       instanceId: uuidv4(),
       ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-      knexConfig: knexClientConnection,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
     };

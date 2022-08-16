@@ -31,7 +31,6 @@ import {
   PluginLedgerConnectorBesu,
   Web3SigningCredentialType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
-  Web3SigningCredentialPrivateKeyHex,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
@@ -41,6 +40,7 @@ import { IOdapPluginKeyPair } from "@hyperledger/cactus-plugin-odap-hermes/src/m
 import { FabricOdapGateway } from "../odap-extension/fabric-odap-gateway";
 import { BesuOdapGateway } from "../odap-extension/besu-odap-gateway";
 import { PluginImportType } from "@hyperledger/cactus-core-api";
+import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
@@ -60,8 +60,6 @@ export class CbdcBridgingAppDummyInfrastructure {
   private readonly apiServer1Keychain: PluginKeychainMemory;
   private readonly apiServer2Keychain: PluginKeychainMemory;
   private readonly ipfsParentPath: string;
-  private besuWeb3SigningCredentialBridge?: Web3SigningCredentialPrivateKeyHex;
-  private besuWeb3SigningCredentialUserA?: Web3SigningCredentialPrivateKeyHex;
 
   private readonly log: Logger;
 
@@ -143,24 +141,12 @@ export class CbdcBridgingAppDummyInfrastructure {
     };
   }
 
-  get getBesuWeb3SigningCredentialBridge():
-    | Web3SigningCredentialPrivateKeyHex
-    | undefined {
-    return this.besuWeb3SigningCredentialBridge;
-  }
-
-  get getBesuWeb3SigningCredentialUserA():
-    | Web3SigningCredentialPrivateKeyHex
-    | undefined {
-    return this.besuWeb3SigningCredentialUserA;
-  }
-
   public async start(): Promise<void> {
     try {
       this.log.info(`Starting dummy infrastructure...`);
       await Promise.all([
         this.besu.start(),
-        // this.fabric.start(),
+        this.fabric.start(),
         this.ipfs.start(),
       ]);
       this.log.info(`Started dummy infrastructure OK`);
@@ -175,7 +161,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       this.log.info(`Stopping...`);
       await Promise.all([
         this.besu.stop().then(() => this.besu.destroy()),
-        // this.fabric.stop().then(() => this.fabric.destroy()),
+        this.fabric.stop().then(() => this.fabric.destroy()),
         this.ipfs.stop().then(() => this.ipfs.destroy()),
       ]);
       this.log.info(`Stopped OK`);
@@ -257,13 +243,6 @@ export class CbdcBridgingAppDummyInfrastructure {
   }
 
   public async createBesuLedgerConnector(): Promise<PluginLedgerConnectorBesu> {
-    const besuAddressBridge = this.besu.getGenesisAccountPubKey();
-    const besuKeyPairBridge = {
-      privateKey: this.besu.getGenesisAccountPrivKey(),
-    };
-
-    const besuAccountUserA = await this.besu.createEthTestAccount(200000000);
-
     const rpcApiHttpHost = await this.besu.getRpcApiHttpHost();
     const rpcApiWsHost = await this.besu.getRpcApiWsHost();
 
@@ -283,18 +262,6 @@ export class CbdcBridgingAppDummyInfrastructure {
       ]),
     });
 
-    this.besuWeb3SigningCredentialBridge = {
-      ethAccount: besuAddressBridge,
-      secret: besuKeyPairBridge.privateKey,
-      type: Web3SigningCredentialType.PrivateKeyHex,
-    };
-
-    this.besuWeb3SigningCredentialUserA = {
-      ethAccount: besuAccountUserA.address,
-      secret: besuAccountUserA.privateKey,
-      type: Web3SigningCredentialType.PrivateKeyHex,
-    };
-
     this.log.info(`Creating Besu Connector...`);
     const factory = new PluginFactoryLedgerConnector({
       pluginImportType: PluginImportType.Local,
@@ -306,6 +273,16 @@ export class CbdcBridgingAppDummyInfrastructure {
       instanceId: uuidv4(),
       pluginRegistry: new PluginRegistry({ plugins: [keychainPlugin] }),
     });
+
+    const accounts = [
+      CryptoMaterial.accounts.userA.address,
+      CryptoMaterial.accounts.userB.address,
+      CryptoMaterial.accounts.bridge.address,
+    ];
+
+    for (const account of accounts) {
+      await this.besu.sendEthToAccount(account);
+    }
 
     return besuConnector;
   }
@@ -365,7 +342,11 @@ export class CbdcBridgingAppDummyInfrastructure {
       keyPair: keyPair,
       ipfsPath: ipfsPath,
       besuPath: nodeApiHost,
-      besuWeb3SigningCredential: this.besuWeb3SigningCredentialBridge,
+      besuWeb3SigningCredential: {
+        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        secret: CryptoMaterial.accounts["bridge"].privateKey,
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
       besuContractName: AssetReferenceContractJson.contractName,
       besuKeychainId: this.apiServer2Keychain.getKeychainId(),
     });
@@ -557,6 +538,17 @@ export class CbdcBridgingAppDummyInfrastructure {
         filename,
       });
     }
+    {
+      const filename = "./crypto-material.json";
+      const relativePath = "./crypto-material/";
+      const filePath = path.join(contractDir, relativePath, filename);
+      const buffer = await fs.readFile(filePath);
+      sourceFiles.push({
+        body: buffer.toString("base64"),
+        filepath: relativePath,
+        filename,
+      });
+    }
 
     const res = await fabricApiClient.deployContractV1({
       channelId,
@@ -632,7 +624,11 @@ export class CbdcBridgingAppDummyInfrastructure {
         contractName: CBDCcontractJson.contractName,
         contractAbi: CBDCcontractJson.abi,
         constructorArgs: [],
-        web3SigningCredential: this.besuWeb3SigningCredentialBridge,
+        web3SigningCredential: {
+          ethAccount: CryptoMaterial.accounts["bridge"].address,
+          secret: CryptoMaterial.accounts["bridge"].privateKey,
+          type: Web3SigningCredentialType.PrivateKeyHex,
+        },
         bytecode: CBDCcontractJson.bytecode,
         gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
@@ -650,7 +646,11 @@ export class CbdcBridgingAppDummyInfrastructure {
         constructorArgs: [
           deployCbdcContractResponse.data.transactionReceipt.contractAddress,
         ],
-        web3SigningCredential: this.besuWeb3SigningCredentialBridge,
+        web3SigningCredential: {
+          ethAccount: CryptoMaterial.accounts["bridge"].address,
+          secret: CryptoMaterial.accounts["bridge"].privateKey,
+          type: Web3SigningCredentialType.PrivateKeyHex,
+        },
         bytecode: AssetReferenceContractJson.bytecode,
         gas: 10000000,
       } as DeployContractSolidityBytecodeV1Request,
@@ -672,7 +672,11 @@ export class CbdcBridgingAppDummyInfrastructure {
         deployAssetReferenceContractResponse.data.transactionReceipt
           .contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredentialBridge,
+      signingCredential: {
+        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        secret: CryptoMaterial.accounts["bridge"].privateKey,
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 
@@ -692,7 +696,11 @@ export class CbdcBridgingAppDummyInfrastructure {
         deployAssetReferenceContractResponse.data.transactionReceipt
           .contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredentialBridge,
+      signingCredential: {
+        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        secret: CryptoMaterial.accounts["bridge"].privateKey,
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 
@@ -711,7 +719,11 @@ export class CbdcBridgingAppDummyInfrastructure {
       params: [
         deployCbdcContractResponse.data.transactionReceipt.contractAddress,
       ],
-      signingCredential: this.besuWeb3SigningCredentialBridge,
+      signingCredential: {
+        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        secret: CryptoMaterial.accounts["bridge"].privateKey,
+        type: Web3SigningCredentialType.PrivateKeyHex,
+      },
       keychainId: this.apiServer2Keychain.getKeychainId(),
     } as BesuInvokeContractV1Request);
 

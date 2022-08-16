@@ -23,7 +23,7 @@ import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
 import { RecoverV1Message } from "../../../../main/typescript/public-api";
 import { randomInt } from "crypto";
 import { checkValidRecoverMessage } from "../../../../main/typescript/gateway/recovery/recover";
-import { knexClientConnection, knexServerConnection } from "../../knex.config";
+
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 
@@ -90,7 +90,6 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexClientConnection,
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
@@ -98,7 +97,6 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexServerConnection,
   };
 });
 

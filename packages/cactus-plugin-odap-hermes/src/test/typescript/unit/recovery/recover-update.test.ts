@@ -28,7 +28,7 @@ import {
   checkValidRecoverUpdateMessage,
   sendRecoverUpdateMessage,
 } from "../../../../main/typescript/gateway/recovery/recover-update";
-import { knexClientConnection, knexServerConnection } from "../../knex.config";
+
 import { checkValidRecoverMessage } from "../../../../main/typescript/gateway/recovery/recover";
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
@@ -100,7 +100,6 @@ beforeEach(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexClientConnection,
   };
   const recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
@@ -108,7 +107,6 @@ beforeEach(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    knexConfig: knexServerConnection,
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);

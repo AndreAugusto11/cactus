@@ -498,7 +498,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
     sessionID: string,
     assetID?: string,
   ): Promise<string> {
-    const fnTag = `${this.className}#deleteAsset()`;
+    const fnTag = `${this.className}#deleteAssetToRollback()`;
 
     const sessionData = this.sessions.get(sessionID);
 

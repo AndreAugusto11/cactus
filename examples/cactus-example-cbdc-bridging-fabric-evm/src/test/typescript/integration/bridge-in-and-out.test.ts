@@ -21,8 +21,10 @@ import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
-  Web3SigningCredential,
+  Web3SigningCredentialPrivateKeyHex,
+  Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
+import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 const API_HOST = "localhost";
 const API_SERVER_1_PORT = 4000;
@@ -34,7 +36,8 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
 
-const EVM_END_USER_ADDRESS = "0x52550D554cf8907b5d09d0dE94e8ffA34763918d";
+const EVM_BRIDGE_ADDRESS = CryptoMaterial.accounts["bridge"].address;
+const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
 const USER_A_FABRIC_IDENTITY =
   "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 const FABRIC_BRIDGE_IDENTITY =
@@ -55,7 +58,17 @@ let apiServer2Keychain: PluginKeychainMemory;
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
 
-let signingCredential: Web3SigningCredential | undefined;
+const signingCredentialBridge = {
+  ethAccount: CryptoMaterial.accounts["bridge"].address,
+  secret: CryptoMaterial.accounts["bridge"].privateKey,
+  type: Web3SigningCredentialType.PrivateKeyHex,
+} as Web3SigningCredentialPrivateKeyHex;
+
+const signingCredentialUserA = {
+  ethAccount: CryptoMaterial.accounts["userA"].address,
+  secret: CryptoMaterial.accounts["userA"].privateKey,
+  type: Web3SigningCredentialType.PrivateKeyHex,
+} as Web3SigningCredentialPrivateKeyHex;
 
 beforeAll(async () => {
   await pruneDockerAllIfGithubAction({ logLevel: "INFO" });
@@ -130,10 +143,10 @@ beforeAll(async () => {
 
   const { fabricApiClient } = startResult;
 
-  signingCredential =
-    cbdcBridgingApp.infrastructure.getBesuWeb3SigningCredentialBridge;
-
-  if (signingCredential == undefined) {
+  if (
+    signingCredentialBridge == undefined ||
+    signingCredentialUserA == undefined
+  ) {
     throw new Error("Infrastructure set up not correctly performed.");
   }
 
@@ -177,201 +190,248 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
     besuApiClient,
   } = startResult;
 
-  const expiryDate = new Date(2060, 11, 24).toString();
-  const assetProfile: AssetProfile = {
-    expirationDate: expiryDate,
-    issuer: "CB1",
-    assetCode: "CBDC1",
-    // since there is no link with the asset information,
-    // we are just passing the asset parameters like this
-    // [amountBeingTransferred]
-    keyInformationLink: [AMOUNT_TO_TRANSFER.toString()],
-  };
+  {
+    const expiryDate = new Date(2060, 11, 24).toString();
+    const assetProfile: AssetProfile = {
+      expirationDate: expiryDate,
+      issuer: "CB1",
+      assetCode: "CBDC1",
+      // since there is no link with the asset information,
+      // we are just passing the asset parameters like this
+      // [amountBeingTransferred]
+      keyInformationLink: [AMOUNT_TO_TRANSFER.toString(), EVM_END_USER_ADDRESS],
+    };
 
-  const odapClientRequest: ClientV1Request = {
-    clientGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
-    },
-    serverGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
-    },
-    version: "0.0.0",
-    loggingProfile: "dummyLoggingProfile",
-    accessControlProfile: "dummyAccessControlProfile",
-    applicationProfile: "dummyApplicationProfile",
-    payloadProfile: {
+    const odapClientRequest: ClientV1Request = {
+      clientGatewayConfiguration: {
+        apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
+      },
+      serverGatewayConfiguration: {
+        apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
+      },
+      version: "0.0.0",
+      loggingProfile: "dummyLoggingProfile",
+      accessControlProfile: "dummyAccessControlProfile",
+      applicationProfile: "dummyApplicationProfile",
+      payloadProfile: {
+        assetProfile: assetProfile,
+        capabilities: "",
+      },
       assetProfile: assetProfile,
-      capabilities: "",
-    },
-    assetProfile: assetProfile,
-    assetControlProfile: "dummyAssetControlProfile",
-    beneficiaryPubkey: "dummyPubKey",
-    clientDltSystem: "DLT1",
-    originatorPubkey: "dummyPubKey",
-    recipientGatewayDltSystem: "DLT2",
-    recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
-      serverGatewayKeyPair.publicKey,
-    ),
-    serverDltSystem: "DLT2",
-    sourceGatewayDltSystem: "DLT1",
-    clientIdentityPubkey: "",
-    serverIdentityPubkey: "",
-    maxRetries: MAX_RETRIES,
-    maxTimeout: MAX_TIMEOUT,
-    sourceLedgerAssetID: FABRIC_ASSET_ID,
-    recipientLedgerAssetID: BESU_ASSET_ID,
-  };
+      assetControlProfile: "dummyAssetControlProfile",
+      beneficiaryPubkey: "dummyPubKey",
+      clientDltSystem: "DLT1",
+      originatorPubkey: "dummyPubKey",
+      recipientGatewayDltSystem: "DLT2",
+      recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
+        serverGatewayKeyPair.publicKey,
+      ),
+      serverDltSystem: "DLT2",
+      sourceGatewayDltSystem: "DLT1",
+      clientIdentityPubkey: "",
+      serverIdentityPubkey: "",
+      maxRetries: MAX_RETRIES,
+      maxTimeout: MAX_TIMEOUT,
+      sourceLedgerAssetID: FABRIC_ASSET_ID,
+      recipientLedgerAssetID: BESU_ASSET_ID,
+    };
 
-  const res = await fabricGatewayApi.clientRequestV1(odapClientRequest);
-  expect(res.status).toBe(200);
+    const res = await fabricGatewayApi.clientRequestV1(odapClientRequest);
+    expect(res.status).toBe(200);
 
-  const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
-  expect(!exists1);
+    const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
+    expect(!exists1);
 
-  const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
-  expect(exists2);
+    const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
+    expect(!exists2);
 
-  const finalUserBalance = await besuApiClient.invokeContractV1({
-    contractName: CBDCcontractJson.contractName,
-    invocationType: EthContractInvocationType.Call,
-    methodName: "balanceOf",
-    gas: 1000000,
-    params: [EVM_END_USER_ADDRESS],
-    signingCredential: signingCredential,
-    keychainId: apiServer2Keychain.getKeychainId(),
-  } as BesuInvokeContractV1Request);
+    const finalUserBalance = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Call,
+      methodName: "balanceOf",
+      gas: 1000000,
+      params: [EVM_END_USER_ADDRESS],
+      signingCredential: signingCredentialBridge,
+      keychainId: apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
 
-  expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
+    expect(finalUserBalance.data.callOutput).toBe(
+      AMOUNT_TO_TRANSFER.toString(),
+    );
 
-  const balanceUserA = await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
-    channelName: FABRIC_CHANNEL_NAME,
-    params: [USER_A_FABRIC_IDENTITY],
-    methodName: "BalanceOf",
-    invocationType: FabricContractInvocationType.Send,
-    signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "userA",
-    },
-  });
+    const bridgeBalance = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Call,
+      methodName: "balanceOf",
+      gas: 1000000,
+      params: [EVM_BRIDGE_ADDRESS],
+      signingCredential: signingCredentialBridge,
+      keychainId: apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
 
-  expect(balanceUserA.data.functionOutput).toBe(
-    (USER_A_INITIAL_BALANCE - AMOUNT_TO_TRANSFER).toString(),
-  );
+    expect(bridgeBalance.data.callOutput).toBe("0");
 
-  const balanceBridgeEntity = await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
-    channelName: FABRIC_CHANNEL_NAME,
-    params: [FABRIC_BRIDGE_IDENTITY],
-    methodName: "BalanceOf",
-    invocationType: FabricContractInvocationType.Send,
-    signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "userA",
-    },
-  });
+    const balanceUserA = await fabricApiClient.runTransactionV1({
+      contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+      channelName: FABRIC_CHANNEL_NAME,
+      params: [USER_A_FABRIC_IDENTITY],
+      methodName: "BalanceOf",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainRef: "userA",
+      },
+    });
 
-  expect(balanceBridgeEntity.data.functionOutput).toBe("123");
+    expect(balanceUserA.data.functionOutput).toBe(
+      (USER_A_INITIAL_BALANCE - AMOUNT_TO_TRANSFER).toString(),
+    );
 
-  const userBalance = await besuApiClient.invokeContractV1({
-    contractName: CBDCcontractJson.contractName,
-    invocationType: EthContractInvocationType.Call,
-    methodName: "balanceOf",
-    gas: 1000000,
-    params: [EVM_END_USER_ADDRESS],
-    signingCredential: signingCredential,
-    keychainId: apiServer2Keychain.getKeychainId(),
-  } as BesuInvokeContractV1Request);
+    const balanceBridgeEntity = await fabricApiClient.runTransactionV1({
+      contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+      channelName: FABRIC_CHANNEL_NAME,
+      params: [FABRIC_BRIDGE_IDENTITY],
+      methodName: "BalanceOf",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainRef: "userA",
+      },
+    });
 
-  expect(userBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
-
+    expect(balanceBridgeEntity.data.functionOutput).toBe(
+      AMOUNT_TO_TRANSFER.toString(),
+    );
+  }
   // the assets were created in the besu network
   // now we will transfer them back
+  {
+    const besuCreateRes = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Send,
+      methodName: "escrow",
+      gas: 1000000,
+      params: [AMOUNT_TO_TRANSFER, BESU_ASSET_ID],
+      signingCredential: signingCredentialUserA,
+      keychainId: apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
 
-  const odapClientRequest2: ClientV1Request = {
-    clientGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
-    },
-    serverGatewayConfiguration: {
-      apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
-    },
-    version: "0.0.0",
-    loggingProfile: "dummyLoggingProfile",
-    accessControlProfile: "dummyAccessControlProfile",
-    applicationProfile: "dummyApplicationProfile",
-    payloadProfile: {
+    if (besuCreateRes == undefined) {
+      throw new Error("Error when creating asset reference in Besu network.");
+    }
+
+    const bridgeBalance = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Call,
+      methodName: "balanceOf",
+      gas: 1000000,
+      params: [EVM_BRIDGE_ADDRESS],
+      signingCredential: signingCredentialBridge,
+      keychainId: apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
+
+    expect(bridgeBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
+
+    const expiryDate = new Date(2060, 11, 24).toString();
+    const assetProfile: AssetProfile = {
+      expirationDate: expiryDate,
+      issuer: "CB1",
+      assetCode: "CBDC1",
+      // since there is no link with the asset information,
+      // we are just passing the asset parameters like this
+      // [amountBeingTransferred]
+      keyInformationLink: [
+        AMOUNT_TO_TRANSFER.toString(),
+        USER_A_FABRIC_IDENTITY,
+        signingCredentialUserA.ethAccount,
+      ],
+    };
+
+    const odapClientRequest: ClientV1Request = {
+      clientGatewayConfiguration: {
+        apiHost: `http://${API_HOST}:${API_SERVER_2_PORT}`,
+      },
+      serverGatewayConfiguration: {
+        apiHost: `http://${API_HOST}:${API_SERVER_1_PORT}`,
+      },
+      version: "0.0.0",
+      loggingProfile: "dummyLoggingProfile",
+      accessControlProfile: "dummyAccessControlProfile",
+      applicationProfile: "dummyApplicationProfile",
+      payloadProfile: {
+        assetProfile: assetProfile,
+        capabilities: "",
+      },
       assetProfile: assetProfile,
-      capabilities: "",
-    },
-    assetProfile: assetProfile,
-    assetControlProfile: "dummyAssetControlProfile",
-    beneficiaryPubkey: "dummyPubKey",
-    clientDltSystem: "DLT2",
-    originatorPubkey: "dummyPubKey",
-    recipientGatewayDltSystem: "DLT1",
-    recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
-      clientGatewayKeyPair.publicKey,
-    ),
-    serverDltSystem: "DLT1",
-    sourceGatewayDltSystem: "DLT2",
-    clientIdentityPubkey: "",
-    serverIdentityPubkey: "",
-    maxRetries: MAX_RETRIES,
-    maxTimeout: MAX_TIMEOUT,
-    sourceLedgerAssetID: BESU_ASSET_ID,
-    recipientLedgerAssetID: FABRIC_ASSET_ID,
-  };
+      assetControlProfile: "dummyAssetControlProfile",
+      beneficiaryPubkey: "dummyPubKey",
+      clientDltSystem: "DLT2",
+      originatorPubkey: "dummyPubKey",
+      recipientGatewayDltSystem: "DLT1",
+      recipientGatewayPubkey: PluginOdapGateway.bufArray2HexStr(
+        clientGatewayKeyPair.publicKey,
+      ),
+      serverDltSystem: "DLT1",
+      sourceGatewayDltSystem: "DLT2",
+      clientIdentityPubkey: "",
+      serverIdentityPubkey: "",
+      maxRetries: MAX_RETRIES,
+      maxTimeout: MAX_TIMEOUT,
+      sourceLedgerAssetID: BESU_ASSET_ID,
+      recipientLedgerAssetID: FABRIC_ASSET_ID,
+    };
 
-  const res2 = await besuGatewayApi.clientRequestV1(odapClientRequest2);
-  expect(res2.status).toBe(200);
+    const res = await besuGatewayApi.clientRequestV1(odapClientRequest);
+    expect(res.status).toBe(200);
 
-  const exists3 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
-  expect(exists3);
+    const exists1 = await fabricOdapGateway.fabricAssetExists(FABRIC_ASSET_ID);
+    expect(!exists1);
 
-  const exists4 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
-  expect(!exists4);
+    const exists2 = await besuOdapGateway.besuAssetExists(BESU_ASSET_ID);
+    expect(!exists2);
 
-  const userBalanceBesu = await besuApiClient.invokeContractV1({
-    contractName: CBDCcontractJson.contractName,
-    invocationType: EthContractInvocationType.Call,
-    methodName: "balanceOf",
-    gas: 1000000,
-    params: [EVM_END_USER_ADDRESS],
-    signingCredential: signingCredential,
-    keychainId: apiServer2Keychain.getKeychainId(),
-  } as BesuInvokeContractV1Request);
+    const userBalanceBesu = await besuApiClient.invokeContractV1({
+      contractName: CBDCcontractJson.contractName,
+      invocationType: EthContractInvocationType.Call,
+      methodName: "balanceOf",
+      gas: 1000000,
+      params: [EVM_END_USER_ADDRESS],
+      signingCredential: signingCredentialBridge,
+      keychainId: apiServer2Keychain.getKeychainId(),
+    } as BesuInvokeContractV1Request);
 
-  expect(userBalanceBesu.data.callOutput).toBe("0");
+    expect(userBalanceBesu.data.callOutput).toBe("0");
 
-  const userBalanceFabric = await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
-    channelName: FABRIC_CHANNEL_NAME,
-    params: [],
-    methodName: "ClientAccountBalance",
-    invocationType: FabricContractInvocationType.Send,
-    signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "userA",
-    },
-  });
+    const userBalanceFabric = await fabricApiClient.runTransactionV1({
+      contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+      channelName: FABRIC_CHANNEL_NAME,
+      params: [],
+      methodName: "ClientAccountBalance",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainRef: "userA",
+      },
+    });
 
-  expect(userBalanceFabric.data.functionOutput).toBe(
-    USER_A_INITIAL_BALANCE.toString(),
-  );
+    expect(userBalanceFabric.data.functionOutput).toBe(
+      USER_A_INITIAL_BALANCE.toString(),
+    );
 
-  const bridgeBalanceFabric = await fabricApiClient.runTransactionV1({
-    contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
-    channelName: FABRIC_CHANNEL_NAME,
-    params: [],
-    methodName: "ClientAccountBalance",
-    invocationType: FabricContractInvocationType.Send,
-    signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
-      keychainRef: "bridgeEntity",
-    },
-  });
+    const bridgeBalanceFabric = await fabricApiClient.runTransactionV1({
+      contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
+      channelName: FABRIC_CHANNEL_NAME,
+      params: [],
+      methodName: "ClientAccountBalance",
+      invocationType: FabricContractInvocationType.Send,
+      signingCredential: {
+        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainRef: "bridgeEntity",
+      },
+    });
 
-  expect(bridgeBalanceFabric.data.functionOutput).toBe("0");
+    expect(bridgeBalanceFabric.data.functionOutput).toBe("0");
+  }
 });
 
 afterAll(async () => {

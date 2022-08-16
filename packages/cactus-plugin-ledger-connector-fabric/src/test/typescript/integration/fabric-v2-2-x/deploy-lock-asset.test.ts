@@ -82,7 +82,7 @@ test(testCase, async (t: Test) => {
 
   const enrollAdminOut = await ledger.enrollAdmin("org1");
   const adminWallet = enrollAdminOut[1];
-  const [userIdentity] = await ledger.enrollUser(adminWallet, "org1");
+  const [userIdentity] = await ledger.enrollUser(adminWallet, "user2", "org1");
   const sshConfig = await ledger.getSshConfig();
 
   const keychainInstanceId = uuidv4();

@@ -21,7 +21,7 @@ import {
   ClientV1Request,
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+
 import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
 import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
@@ -88,7 +88,6 @@ test("successful run ODAP instance", async () => {
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexClientConnection,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
   };
@@ -97,7 +96,6 @@ test("successful run ODAP instance", async () => {
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
-    knexConfig: knexServerConnection,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
   };

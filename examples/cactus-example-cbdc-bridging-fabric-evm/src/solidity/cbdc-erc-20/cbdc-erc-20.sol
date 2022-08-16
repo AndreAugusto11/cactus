@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract CBDCcontract is Ownable, ERC20 {
 
-    address bridge_address = address(0x17F6AD8Ef982297579C203069C1DbfFE4348c372);
+    address bridge_address = address(0xf28d5769171bfbD2B3628d722e58129a6aE15022);
     address asset_ref_contract = address(0);
 
     constructor() ERC20("CentralBankDigitalCurrency", "CBDC") {

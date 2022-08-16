@@ -7,6 +7,7 @@
 "use strict";
 
 const { Contract } = require("fabric-contract-api");
+const CryptoMaterial = require("../crypto-material/crypto-material.json");
 
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
@@ -346,6 +347,8 @@ class TokenERC20Contract extends Contract {
     await ctx.stub.putState(decimalsKey, Buffer.from(decimals));
 
     console.log(`name: ${name}, symbol: ${symbol}, decimals: ${decimals}`);
+
+    await this.initializeAddressMapping(ctx);
     return true;
   }
 
@@ -534,6 +537,14 @@ class TokenERC20Contract extends Contract {
 
     const from = ctx.clientIdentity.getID();
 
+    const clientEthAddress = await this.getAddressMapping(ctx, from);
+
+    if (clientEthAddress != eth_address) {
+      throw new Error(
+        `Cannot transfer to ethereum address because there is no mapping between ${from} and ${eth_address}`,
+      );
+    }
+
     const transferResp = await this._transfer(
       ctx,
       from,
@@ -558,12 +569,6 @@ class TokenERC20Contract extends Contract {
       ["CreateAssetReference", id, value.toString()],
       ctx.stub.getChannelID(),
     );
-
-    // update mapping between Fabric Identities and Ethereum addresses
-    const addressKey = ctx.stub.createCompositeKey(addressPrefix, [from]);
-
-    console.log("storing address with key: " + addressKey);
-    await ctx.stub.putState(addressKey, Buffer.from(eth_address));
   }
 
   /**
@@ -605,6 +610,36 @@ class TokenERC20Contract extends Contract {
       value: parseInt(value),
     };
     ctx.stub.setEvent("Transfer", Buffer.from(JSON.stringify(transferEvent)));
+  }
+
+  async initializeAddressMapping(ctx) {
+    // initialize mapping between Fabric Identities and Ethereum addresses
+    const accounts = [
+      {
+        fabric:
+          "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
+        ethereum: CryptoMaterial.accounts.userA.address,
+      },
+      {
+        fabric:
+          "x509::/OU=client/OU=org1/OU=department1/CN=userB::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
+        ethereum: CryptoMaterial.accounts.userB.address,
+      },
+      {
+        fabric:
+          "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com",
+        ethereum: CryptoMaterial.accounts.bridge.address,
+      },
+    ];
+
+    for (let account of accounts) {
+      const addressKey = ctx.stub.createCompositeKey(addressPrefix, [
+        account.fabric,
+      ]);
+
+      console.log("storing address with key: " + addressKey);
+      await ctx.stub.putState(addressKey, Buffer.from(account.ethereum));
+    }
   }
 
   async getAddressMapping(ctx, fabricID) {

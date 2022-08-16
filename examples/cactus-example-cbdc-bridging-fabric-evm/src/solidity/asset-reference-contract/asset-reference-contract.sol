@@ -28,9 +28,9 @@ contract AssetReferenceContract is MyOwnable {
         assets[id].recipient = recipient;
 
         assetExists[id] = true;
+      } else {
+        mint(recipient, amount);
       }
-
-      mint(recipient, amount);
   }
 
   function lockAssetReference(string calldata id) public onlyOwner {

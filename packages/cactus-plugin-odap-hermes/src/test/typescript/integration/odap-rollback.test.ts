@@ -53,7 +53,7 @@ import {
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import Web3 from "web3";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+
 import {
   IFabricOdapGatewayConstructorOptions,
   FabricOdapGateway,
@@ -569,7 +569,6 @@ beforeAll(async () => {
       fabricSigningCredential: fabricSigningCredential,
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
-      knexConfig: knexClientConnection,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
     };
@@ -584,7 +583,6 @@ beforeAll(async () => {
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
       besuKeychainId: besuKeychainId,
-      knexConfig: knexServerConnection,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
     };
