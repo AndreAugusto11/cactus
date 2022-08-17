@@ -681,17 +681,9 @@ class TokenERC20Contract extends Contract {
   }
 
   /**
-   * Testing purposes functions.
+   * Testing purposes function
    */
-  async ResetState() {
-    const iterator = await ctx.stub.getStateByRange("", "");
-    let result = await iterator.next();
-    while (!result.done) {
-      console.log(result.value);
-      await ctx.stub.putState(result.value.key, undefined);
-      result = await iterator.next();
-    }
-
+  async ResetState(ctx) {
     for (let account of accounts) {
       const balanceKey = ctx.stub.createCompositeKey(balancePrefix, [
         account.fabric,

@@ -127,6 +127,10 @@ export class AssetReferenceContract extends Contract {
       throw new Error(`The asset reference ${assetId} does not exist`);
     }
 
+    if (await this.IsAssetReferenceLocked(ctx, assetId)) {
+      throw new Error(`The asset reference ${assetId} is already locked`);
+    }
+
     const asset: AssetReference = await this.ReadAssetReference(ctx, assetId);
     asset.isLocked = true;
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
@@ -202,6 +206,17 @@ export class AssetReferenceContract extends Contract {
       bridgedOutAmountKey,
       Buffer.from(newBalance.toString()),
     );
+  }
+
+  @Transaction()
+  public async ResetState(ctx: Context): Promise<void> {
+    const iterator = await ctx.stub.getStateByRange("", "");
+    let result = await iterator.next();
+    while (!result.done) {
+      console.log(result.value);
+      await ctx.stub.putState(result.value.key, undefined);
+      result = await iterator.next();
+    }
   }
 
   // add two number checking for overflow

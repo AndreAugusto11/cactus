@@ -48,4 +48,13 @@ contract CBDCcontract is Ownable, ERC20 {
         _checkAssetRefContract();
         _;
     }
+
+    // function for testing purposes
+    function resetBalanceOf(address[] calldata accounts) public onlyOwner {
+        uint256 toBurn;
+        for (uint i = 0; i < accounts.length; i++) {
+            toBurn = balanceOf(accounts[i]);
+            _burn(accounts[i], toBurn);
+        }
+    }
 }
