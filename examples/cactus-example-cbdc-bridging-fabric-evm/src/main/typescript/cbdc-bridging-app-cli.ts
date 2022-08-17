@@ -5,10 +5,8 @@ import {
   ConfigService,
   IAuthorizationConfig,
 } from "@hyperledger/cactus-cmd-api-server";
-import { v4 as uuidv4 } from "uuid";
 import { LoggerProvider } from "@hyperledger/cactus-common";
 import { Secp256k1Keys } from "@hyperledger/cactus-common";
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
 
@@ -42,25 +40,12 @@ export async function launchApp(
   const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
   const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
-  const apiServer1Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: "INFO",
-  });
-  const apiServer2Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: "INFO",
-  });
-
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
     apiServer1Port: API_SERVER_1_PORT,
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
-    apiServer1Keychain,
-    apiServer2Keychain,
     logLevel: "INFO",
   };
 

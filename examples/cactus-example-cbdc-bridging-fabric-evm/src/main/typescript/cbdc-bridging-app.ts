@@ -1,4 +1,5 @@
 import { AddressInfo } from "net";
+import { v4 as uuidv4 } from "uuid";
 import { Server } from "http";
 import exitHook, { IAsyncExitHookDoneCallback } from "async-exit-hook";
 import { PluginRegistry } from "@hyperledger/cactus-core";
@@ -26,6 +27,7 @@ import { IOdapPluginKeyPair } from "@hyperledger/cactus-plugin-odap-hermes/src/m
 import { DefaultApi as IpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import { FabricOdapGateway } from "./odap-extension/fabric-odap-gateway";
 import { BesuOdapGateway } from "./odap-extension/besu-odap-gateway";
+import CryptoMaterial from "../../crypto-material/crypto-material.json";
 
 export interface ICbdcBridgingApp {
   apiHost: string;
@@ -33,8 +35,6 @@ export interface ICbdcBridgingApp {
   apiServer2Port: number;
   clientGatewayKeyPair: IOdapPluginKeyPair;
   serverGatewayKeyPair: IOdapPluginKeyPair;
-  apiServer1Keychain: PluginKeychainMemory;
-  apiServer2Keychain: PluginKeychainMemory;
   logLevel?: LogLevelDesc;
   apiServerOptions?: ICactusApiServerOptions;
   disableSignalHandlers?: true;
@@ -45,8 +45,6 @@ export class CbdcBridgingApp {
   private readonly log: Logger;
   private readonly shutdownHooks: ShutdownHook[];
   readonly infrastructure: CbdcBridgingAppDummyInfrastructure;
-  private readonly apiServer1Keychain: PluginKeychainMemory;
-  private readonly apiServer2Keychain: PluginKeychainMemory;
 
   public constructor(public readonly options: ICbdcBridgingApp) {
     const fnTag = "CbdcBridgingApp#constructor()";
@@ -62,15 +60,8 @@ export class CbdcBridgingApp {
 
     this.shutdownHooks = [];
 
-    this.apiServer1Keychain = options.apiServer1Keychain;
-    this.apiServer2Keychain = options.apiServer2Keychain;
-    this.log.info("Keychain1ID=%o", this.apiServer1Keychain.getKeychainId());
-    this.log.info("Keychain2ID=%o", this.apiServer2Keychain.getKeychainId());
-
     this.infrastructure = new CbdcBridgingAppDummyInfrastructure({
       logLevel: logLevel || "INFO",
-      apiServer1Keychain: this.apiServer1Keychain,
-      apiServer2Keychain: this.apiServer2Keychain,
     });
   }
 
@@ -123,10 +114,22 @@ export class CbdcBridgingApp {
     );
 
     const clientPluginRegistry = new PluginRegistry({
-      plugins: [this.apiServer1Keychain],
+      plugins: [
+        new PluginKeychainMemory({
+          keychainId: CryptoMaterial.keychains.keychain1.id,
+          instanceId: uuidv4(),
+          logLevel: "INFO",
+        }),
+      ],
     });
     const serverPluginRegistry = new PluginRegistry({
-      plugins: [this.apiServer2Keychain],
+      plugins: [
+        new PluginKeychainMemory({
+          keychainId: CryptoMaterial.keychains.keychain2.id,
+          instanceId: uuidv4(),
+          logLevel: "INFO",
+        }),
+      ],
     });
 
     clientPluginRegistry.add(fabricPlugin);
@@ -174,6 +177,8 @@ export class CbdcBridgingApp {
     );
 
     await this.infrastructure.deployBesuContracts(besuApiClient);
+
+    this.log.info(`Chaincode and smart Contracts deployed.`);
 
     return {
       apiServer1,

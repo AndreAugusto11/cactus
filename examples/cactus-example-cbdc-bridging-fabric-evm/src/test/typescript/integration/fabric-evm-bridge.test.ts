@@ -1,5 +1,4 @@
 import { AuthorizationProtocol } from "@hyperledger/cactus-cmd-api-server";
-import { v4 as uuidv4 } from "uuid";
 import { Checks, Secp256k1Keys } from "@hyperledger/cactus-common";
 import { pruneDockerAllIfGithubAction } from "@hyperledger/cactus-test-tooling";
 import "jest-extended";
@@ -17,7 +16,6 @@ import {
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
@@ -49,9 +47,6 @@ const USER_A_INITIAL_BALANCE = 500;
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
-
-let apiServer1Keychain: PluginKeychainMemory;
-let apiServer2Keychain: PluginKeychainMemory;
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
@@ -96,25 +91,12 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
-  apiServer1Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-  apiServer2Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
     apiServer1Port: API_SERVER_1_PORT,
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
-    apiServer1Keychain,
-    apiServer2Keychain,
     logLevel,
   };
 
@@ -137,7 +119,7 @@ beforeAll(async () => {
     methodName: "Mint",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -153,7 +135,7 @@ beforeAll(async () => {
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -241,7 +223,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     gas: 1000000,
     params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredential,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   expect(finalUserBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
@@ -253,7 +235,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     methodName: "BalanceOf",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -269,7 +251,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     methodName: "BalanceOf",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });

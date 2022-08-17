@@ -15,5 +15,13 @@
       "address": "0xB264c626D7D09789AbfD2a431A28a054366e7b63",
       "privateKey": "0xfe95d40663e60e9a8a2e1f4153c9e207ac26d928e8a5631647735d91e93be402"
     }
+  },
+  "keychains": {
+    "keychain1": {
+      "id": "df05d3c2-ddd5-4074-aae3-526564217459"
+    },
+    "keychain2": {
+      "id": "d741fb4a-c95c-4205-8afa-758a9423234f"
+    }
   }
 }

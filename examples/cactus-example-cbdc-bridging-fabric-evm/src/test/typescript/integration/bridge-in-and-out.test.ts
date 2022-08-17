@@ -1,5 +1,4 @@
 import { AuthorizationProtocol } from "@hyperledger/cactus-cmd-api-server";
-import { v4 as uuidv4 } from "uuid";
 import { Checks, Secp256k1Keys } from "@hyperledger/cactus-common";
 import { pruneDockerAllIfGithubAction } from "@hyperledger/cactus-test-tooling";
 import "jest-extended";
@@ -16,7 +15,6 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 import { FabricContractInvocationType } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import {
   EthContractInvocationType,
@@ -51,9 +49,6 @@ const BESU_ASSET_ID = "3adad48c-ee73-4c7b-a0d0-762679f524f8";
 
 const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
-
-let apiServer1Keychain: PluginKeychainMemory;
-let apiServer2Keychain: PluginKeychainMemory;
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
@@ -110,25 +105,12 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
-  apiServer1Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-  apiServer2Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
     apiServer1Port: API_SERVER_1_PORT,
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
-    apiServer1Keychain,
-    apiServer2Keychain,
     logLevel,
   };
 
@@ -158,7 +140,7 @@ beforeAll(async () => {
     methodName: "Mint",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -174,7 +156,7 @@ beforeAll(async () => {
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -252,7 +234,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       gas: 1000000,
       params: [EVM_END_USER_ADDRESS],
       signingCredential: signingCredentialBridge,
-      keychainId: apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     expect(finalUserBalance.data.callOutput).toBe(
@@ -266,7 +248,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       gas: 1000000,
       params: [EVM_BRIDGE_ADDRESS],
       signingCredential: signingCredentialBridge,
-      keychainId: apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     expect(bridgeBalance.data.callOutput).toBe("0");
@@ -278,7 +260,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       methodName: "BalanceOf",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "userA",
       },
     });
@@ -294,7 +276,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       methodName: "BalanceOf",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "userA",
       },
     });
@@ -313,7 +295,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       gas: 1000000,
       params: [AMOUNT_TO_TRANSFER, BESU_ASSET_ID],
       signingCredential: signingCredentialUserA,
-      keychainId: apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     if (besuCreateRes == undefined) {
@@ -327,7 +309,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       gas: 1000000,
       params: [EVM_BRIDGE_ADDRESS],
       signingCredential: signingCredentialBridge,
-      keychainId: apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     expect(bridgeBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
@@ -397,7 +379,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       gas: 1000000,
       params: [EVM_END_USER_ADDRESS],
       signingCredential: signingCredentialBridge,
-      keychainId: apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     expect(userBalanceBesu.data.callOutput).toBe("0");
@@ -409,7 +391,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       methodName: "ClientAccountBalance",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "userA",
       },
     });
@@ -425,7 +407,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       methodName: "ClientAccountBalance",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "bridgeEntity",
       },
     });

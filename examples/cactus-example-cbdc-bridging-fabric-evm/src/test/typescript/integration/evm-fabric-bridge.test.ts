@@ -1,5 +1,4 @@
 import { AuthorizationProtocol } from "@hyperledger/cactus-cmd-api-server";
-import { v4 as uuidv4 } from "uuid";
 import { Checks, Secp256k1Keys } from "@hyperledger/cactus-common";
 import { pruneDockerAllIfGithubAction } from "@hyperledger/cactus-test-tooling";
 import "jest-extended";
@@ -16,7 +15,6 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
@@ -55,8 +53,6 @@ const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
 
 let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
-let apiServer1Keychain: PluginKeychainMemory;
-let apiServer2Keychain: PluginKeychainMemory;
 
 const signingCredentialBridge = {
   ethAccount: CryptoMaterial.accounts["bridge"].address,
@@ -110,25 +106,12 @@ beforeAll(async () => {
   const apiSrvOpts = config.getProperties();
   const { logLevel } = apiSrvOpts;
 
-  apiServer1Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-  apiServer2Keychain = new PluginKeychainMemory({
-    keychainId: uuidv4(),
-    instanceId: uuidv4(),
-    logLevel: logLevel || "INFO",
-  });
-
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
     apiServer1Port: API_SERVER_1_PORT,
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
-    apiServer1Keychain,
-    apiServer2Keychain,
     logLevel,
   };
 
@@ -151,7 +134,7 @@ beforeAll(async () => {
     methodName: "Mint",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -167,7 +150,7 @@ beforeAll(async () => {
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -179,7 +162,7 @@ beforeAll(async () => {
     methodName: "DeleteAssetReference",
     params: [FABRIC_ASSET_ID],
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "bridgeEntity",
     },
   });
@@ -197,7 +180,7 @@ beforeAll(async () => {
       false,
     ],
     signingCredential: signingCredentialBridge,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   if (besuMintRes == undefined) {
@@ -211,7 +194,7 @@ beforeAll(async () => {
     gas: 1000000,
     params: [AMOUNT_TO_TRANSFER, BESU_ASSET_ID],
     signingCredential: signingCredentialUserA,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   if (besuCreateRes == undefined) {
@@ -225,7 +208,7 @@ beforeAll(async () => {
     gas: 1000000,
     params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredentialBridge,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   expect(userBalance.data.callOutput).toBe("0");
@@ -237,7 +220,7 @@ beforeAll(async () => {
     gas: 1000000,
     params: [EVM_BRIDGE_ADDRESS],
     signingCredential: signingCredentialBridge,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   expect(bridgeBalance.data.callOutput).toBe(AMOUNT_TO_TRANSFER.toString());
@@ -317,7 +300,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     gas: 1000000,
     params: [EVM_END_USER_ADDRESS],
     signingCredential: signingCredentialUserA,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   expect(userBalanceBesu.data.callOutput).toBe("0");
@@ -329,7 +312,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     gas: 1000000,
     params: [EVM_BRIDGE_ADDRESS],
     signingCredential: signingCredentialUserA,
-    keychainId: apiServer2Keychain.getKeychainId(),
+    keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   expect(bridgeBalanceBesu.data.callOutput).toBe("0");
@@ -341,7 +324,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     methodName: "ClientAccountBalance",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "userA",
     },
   });
@@ -357,7 +340,7 @@ test("transfer asset correctly from besu to fabric", async () => {
     methodName: "ClientAccountBalance",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
-      keychainId: apiServer1Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       keychainRef: "bridgeEntity",
     },
   });

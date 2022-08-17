@@ -44,8 +44,6 @@ import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 export interface ICbdcBridgingAppDummyInfrastructureOptions {
   logLevel?: LogLevelDesc;
-  apiServer1Keychain: PluginKeychainMemory;
-  apiServer2Keychain: PluginKeychainMemory;
 }
 
 export class CbdcBridgingAppDummyInfrastructure {
@@ -57,8 +55,6 @@ export class CbdcBridgingAppDummyInfrastructure {
   private readonly besu: BesuTestLedger;
   private readonly fabric: FabricTestLedgerV1;
   private readonly ipfs: GoIpfsTestContainer;
-  private readonly apiServer1Keychain: PluginKeychainMemory;
-  private readonly apiServer2Keychain: PluginKeychainMemory;
   private readonly ipfsParentPath: string;
 
   private readonly log: Logger;
@@ -76,14 +72,9 @@ export class CbdcBridgingAppDummyInfrastructure {
   ) {
     const fnTag = `${this.className}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);
-    Checks.truthy(options.apiServer1Keychain, `${fnTag} arg options,keychain1`);
-    Checks.truthy(options.apiServer2Keychain, `${fnTag} arg options,keychain2`);
 
     const level = this.options.logLevel || "INFO";
     const label = this.className;
-
-    this.apiServer1Keychain = options.apiServer1Keychain;
-    this.apiServer2Keychain = options.apiServer2Keychain;
 
     this.ipfsParentPath = `/${uuidv4()}/${uuidv4()}/`;
 
@@ -208,8 +199,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     const keychainEntryValue3 = JSON.stringify(bridgeIdentity);
 
     const keychainPlugin = new PluginKeychainMemory({
-      instanceId: this.apiServer1Keychain.getInstanceId(),
-      keychainId: this.apiServer1Keychain.getKeychainId(),
+      instanceId: uuidv4(),
+      keychainId: CryptoMaterial.keychains.keychain1.id,
       logLevel: undefined,
       backend: new Map([
         [keychainEntryKey1, keychainEntryValue1],
@@ -253,8 +244,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     const keychainEntryValue2 = JSON.stringify(CBDCcontractJson);
 
     const keychainPlugin = new PluginKeychainMemory({
-      instanceId: this.apiServer2Keychain.getInstanceId(),
-      keychainId: this.apiServer2Keychain.getKeychainId(),
+      instanceId: uuidv4(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
       logLevel: undefined,
       backend: new Map([
         [keychainEntryKey, keychainEntryValue],
@@ -316,7 +307,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       ipfsPath: ipfsPath,
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "bridgeEntity",
       },
       fabricChannelName: "mychannel",
@@ -348,7 +339,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
       besuContractName: AssetReferenceContractJson.contractName,
-      besuKeychainId: this.apiServer2Keychain.getKeychainId(),
+      besuKeychainId: CryptoMaterial.keychains.keychain2.id,
     });
 
     await pluginRecipientGateway.database?.migrate.rollback();
@@ -607,12 +598,10 @@ export class CbdcBridgingAppDummyInfrastructure {
       methodName: "Initialize",
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
-        keychainId: this.apiServer1Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain1.id,
         keychainRef: "userA",
       },
     });
-
-    this.log.info(`Chaincode deployed...`);
   }
 
   public async deployBesuContracts(besuApiClient: BesuApi): Promise<void> {
@@ -620,7 +609,7 @@ export class CbdcBridgingAppDummyInfrastructure {
 
     const deployCbdcContractResponse = await besuApiClient.deployContractSolBytecodeV1(
       {
-        keychainId: this.apiServer2Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain2.id,
         contractName: CBDCcontractJson.contractName,
         contractAbi: CBDCcontractJson.abi,
         constructorArgs: [],
@@ -640,7 +629,7 @@ export class CbdcBridgingAppDummyInfrastructure {
 
     const deployAssetReferenceContractResponse = await besuApiClient.deployContractSolBytecodeV1(
       {
-        keychainId: this.apiServer2Keychain.getKeychainId(),
+        keychainId: CryptoMaterial.keychains.keychain2.id,
         contractName: AssetReferenceContractJson.contractName,
         contractAbi: AssetReferenceContractJson.abi,
         constructorArgs: [
@@ -677,7 +666,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
-      keychainId: this.apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     if (insertARContractAddress == undefined) {
@@ -701,7 +690,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
-      keychainId: this.apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     if (transferOwnership == undefined) {
@@ -724,7 +713,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
-      keychainId: this.apiServer2Keychain.getKeychainId(),
+      keychainId: CryptoMaterial.keychains.keychain2.id,
     } as BesuInvokeContractV1Request);
 
     if (addOwnerToAssetRefContract == undefined) {
@@ -732,7 +721,5 @@ export class CbdcBridgingAppDummyInfrastructure {
         `${fnTag}, error when transfering CBDC smart contract ownership`,
       );
     }
-
-    this.log.info(`Smart Contracts deployed...`);
   }
 }
