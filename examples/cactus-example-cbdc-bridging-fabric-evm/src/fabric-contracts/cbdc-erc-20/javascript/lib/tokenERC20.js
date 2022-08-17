@@ -9,6 +9,24 @@
 const { Contract } = require("fabric-contract-api");
 const CryptoMaterial = require("../crypto-material/crypto-material.json");
 
+const accounts = [
+  {
+    fabric:
+      "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
+    ethereum: CryptoMaterial.accounts.userA.address,
+  },
+  {
+    fabric:
+      "x509::/OU=client/OU=org1/OU=department1/CN=userB::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
+    ethereum: CryptoMaterial.accounts.userB.address,
+  },
+  {
+    fabric:
+      "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com",
+    ethereum: CryptoMaterial.accounts.bridge.address,
+  },
+];
+
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
@@ -614,31 +632,18 @@ class TokenERC20Contract extends Contract {
 
   async initializeAddressMapping(ctx) {
     // initialize mapping between Fabric Identities and Ethereum addresses
-    const accounts = [
-      {
-        fabric:
-          "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
-        ethereum: CryptoMaterial.accounts.userA.address,
-      },
-      {
-        fabric:
-          "x509::/OU=client/OU=org1/OU=department1/CN=userB::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
-        ethereum: CryptoMaterial.accounts.userB.address,
-      },
-      {
-        fabric:
-          "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com",
-        ethereum: CryptoMaterial.accounts.bridge.address,
-      },
-    ];
-
     for (let account of accounts) {
       const addressKey = ctx.stub.createCompositeKey(addressPrefix, [
         account.fabric,
       ]);
 
-      console.log("storing address with key: " + addressKey);
+      // additionally initialize all addresses to 0
+      const balanceKey = ctx.stub.createCompositeKey(balancePrefix, [
+        account.fabric,
+      ]);
+
       await ctx.stub.putState(addressKey, Buffer.from(account.ethereum));
+      await ctx.stub.putState(balanceKey, Buffer.from("0"));
     }
   }
 
@@ -673,6 +678,27 @@ class TokenERC20Contract extends Contract {
       throw new Error(`Math: subtraction overflow occurred ${a} - ${b}`);
     }
     return c;
+  }
+
+  /**
+   * Testing purposes functions.
+   */
+  async ResetState() {
+    const iterator = await ctx.stub.getStateByRange("", "");
+    let result = await iterator.next();
+    while (!result.done) {
+      console.log(result.value);
+      await ctx.stub.putState(result.value.key, undefined);
+      result = await iterator.next();
+    }
+
+    for (let account of accounts) {
+      const balanceKey = ctx.stub.createCompositeKey(balancePrefix, [
+        account.fabric,
+      ]);
+      console.log(balanceKey);
+      await ctx.stub.putState(balanceKey, Buffer.from("0"));
+    }
   }
 }
 

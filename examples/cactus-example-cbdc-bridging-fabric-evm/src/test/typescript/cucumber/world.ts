@@ -1,11 +1,9 @@
 import { IStartInfo } from "../../../main/typescript/cbdc-bridging-app";
 
-import { setWorldConstructor, setDefaultTimeout, World } from "cucumber";
+import { setWorldConstructor, World } from "cucumber";
 
 class CustomWorld implements World {
-  public app: IStartInfo;
+  public app: IStartInfo | undefined;
 }
 
 setWorldConstructor(CustomWorld);
-
-setDefaultTimeout(60 * 1000);
