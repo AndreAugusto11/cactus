@@ -83,11 +83,7 @@ export class AssetReferenceContract extends Contract {
     finalFabricIdentity: string,
     finalEthAddress: string,
   ): Promise<void> {
-    // this needs to be called by entity2 (the bridging entity)
-    const clientMSPID = ctx.clientIdentity.getMSPID();
-    if (clientMSPID !== "Org2MSP") {
-      throw new Error("client is not authorized to bridge back tokens");
-    }
+    this.CheckPermission(ctx);
 
     console.log("Calling unescrow tokens");
     await ctx.stub.invokeChaincode(
@@ -100,6 +96,8 @@ export class AssetReferenceContract extends Contract {
       ],
       ctx.stub.getChannelID(),
     );
+
+    this.DecreaseBridgedAmount(ctx, numberTokens);
   }
 
   @Transaction(false)
@@ -122,6 +120,8 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
+    this.CheckPermission(ctx);
+
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
       throw new Error(`The asset reference ${assetId} does not exist`);
@@ -142,6 +142,8 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
+    this.CheckPermission(ctx);
+
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
       throw new Error(`The asset reference ${assetId} does not exist`);
@@ -158,11 +160,16 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
+    this.CheckPermission(ctx);
+
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
       throw new Error(`The asset reference ${assetId} does not exist`);
     }
+    const asset = await this.ReadAssetReference(ctx, assetId);
     await ctx.stub.deleteState(assetId);
+
+    this.IncreaseBridgedAmount(ctx, asset.numberTokens);
   }
 
   @Transaction(false)
@@ -185,6 +192,8 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     value: number,
   ): Promise<void> {
+    this.CheckPermission(ctx);
+
     const newBalance = this.add(this.GetBridgedOutAmount(ctx), value);
     await ctx.stub.putState(
       bridgedOutAmountKey,
@@ -197,6 +206,8 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     value: number,
   ): Promise<void> {
+    this.CheckPermission(ctx);
+
     const newBalance = this.sub(this.GetBridgedOutAmount(ctx), value);
 
     if (newBalance < 0) {
@@ -235,5 +246,13 @@ export class AssetReferenceContract extends Contract {
       throw new Error(`Math: subtraction overflow occurred ${a} - ${b}`);
     }
     return c;
+  }
+
+  private CheckPermission(ctx: Context) {
+    // this needs to be called by entity2 (the bridging entity)
+    const clientMSPID = ctx.clientIdentity.getMSPID();
+    if (clientMSPID !== "Org2MSP") {
+      throw new Error("client is not authorized to perform the operation");
+    }
   }
 }

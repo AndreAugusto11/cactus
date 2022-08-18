@@ -1,43 +1,44 @@
+@fabric
 Feature: Hyperledger Fabric gateway is working properly
 
-  Scenario: UserA successfully escrows CBDC
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    Then "userA" has 0 CBDC available
-    Then "bridgeEntity" has 123 CBDC available
+  Scenario: Alice successfully escrows CBDC
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then "alice" has 0 CBDC available
+    Then "charlie" has 500 CBDC available
 
-  Scenario: UserA successfully creates an asset reference
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    Then the asset reference chaincode has an asset reference with id "id34"
+  Scenario: Alice successfully creates an asset reference
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then the asset reference chaincode has an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
 
-  Scenario: UserA successfully locks an asset reference
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    When "userA" locks the asset reference with id "id34"
-    Then the asset reference with id "id34" is locked
+  Scenario: Alice successfully locks an asset reference
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    When "charlie" locks the asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then the asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57" is locked
 
-  Scenario: UserA successfully locks an asset reference and UserB tries to lock the same
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    When "userA" locks the asset reference with id "id34"
-    Then "userB" fails to lock the asset reference with id "id34"
+  Scenario: Alice successfully locks an asset reference and Bob tries to lock the same
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    When "charlie" locks the asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then "bob" fails to lock the asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
 
-  Scenario: UserA successfully escrows 123 CBDC and tries to transfer to UserB
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    Then "userA" fails to transfer 123 CBDC to "userB"
+  Scenario: Alice successfully escrows 500 CBDC and tries to transfer to Bob
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then "alice" fails to transfer 500 CBDC to "bob"
 
-  Scenario: UserA successfully deletes an asset reference
-    Given "userA" with 123 CBDC available
-    When "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    When "bridgeEntity" locks and deletes an asset reference with id "id34"
-    Then the asset reference chaincode has no asset reference with id "id34"
+  Scenario: Alice successfully deletes an asset reference
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    When "charlie" locks and deletes an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    Then the asset reference chaincode has no asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
 
-  Scenario: BridgeEntity successfully unescrows CBDC
-    Given "userA" with 123 CBDC available
-    Given "userA" escrows 123 CBDC and creates an asset reference with id "id34"
-    When "bridgeEntity" locks and deletes an asset reference with id "id34"
-    When "bridgeEntity" unescrows 123 CBDC to "userA"
-    Then "bridgeEntity" has 0 CBDC available
-    Then "userA" has 123 CBDC available
+  Scenario: BridgeEntity successfully refunds CBDC
+    Given "alice" with 500 CBDC available
+    Given "alice" escrows 500 CBDC and creates an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    When "charlie" locks and deletes an asset reference with id "00ed12e4-044e-46ff-98ef-a4e25f519b57"
+    When charlie refunds 500 CBDC to "alice"
+    Then "charlie" has 0 CBDC available
+    Then "alice" has 500 CBDC available

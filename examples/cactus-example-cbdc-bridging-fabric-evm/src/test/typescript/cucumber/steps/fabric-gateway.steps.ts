@@ -6,6 +6,7 @@ import {
   deleteFabricAssetReference,
   fabricAssetReferenceExists,
   getFabricBalance,
+  getUserFromPseudonim,
   lockFabricAssetReference,
   readFabricAssetReference,
   resetFabric,
@@ -26,8 +27,7 @@ const USER_B_FABRIC_IDENTITY =
 const FABRIC_BRIDGE_IDENTITY =
   "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
-Before({ timeout: 20 * 1000 }, async function () {
-  // This hook will be executed before all scenarios
+Before({ timeout: 20 * 1000, tags: "@fabric" }, async function () {
   await resetFabric();
 });
 
@@ -45,7 +45,7 @@ Given("{string} with {int} CBDC available", async function (
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: user,
+        keychainRef: getUserFromPseudonim(user),
       },
     },
   );
@@ -66,7 +66,7 @@ When(
         invocationType: "FabricContractInvocationType.SEND",
         signingCredential: {
           keychainId: CryptoMaterial.keychains.keychain1.id,
-          keychainRef: user,
+          keychainRef: getUserFromPseudonim(user),
         },
       },
     );
@@ -88,15 +88,14 @@ When(
   },
 );
 
-When("{string} unescrows {int} CBDC to {string}", async function (
-  userFrom: string,
+When("charlie refunds {int} CBDC to {string}", async function (
   amount: number,
   userTo: string,
 ) {
   const finalUserFabricID =
-    userTo == "userA" ? USER_A_FABRIC_IDENTITY : USER_B_FABRIC_IDENTITY;
+    userTo == "alice" ? USER_A_FABRIC_IDENTITY : USER_B_FABRIC_IDENTITY;
   const finalUserEthAddress =
-    userTo == "userA" ? EVM_USER_A_USER_ADDRESS : EVM_USER_B_USER_ADDRESS;
+    userTo == "alice" ? EVM_USER_A_USER_ADDRESS : EVM_USER_B_USER_ADDRESS;
 
   await unescrowFabricTokens(finalUserFabricID, amount, finalUserEthAddress);
 });
@@ -115,13 +114,13 @@ Then(
           invocationType: "FabricContractInvocationType.CALL",
           signingCredential: {
             keychainId: CryptoMaterial.keychains.keychain1.id,
-            keychainRef: user,
+            keychainRef: getUserFromPseudonim(user),
           },
         },
       )
       .catch((err) => {
         expect(err.response.statusText).to.contain(
-          `The asset reference ${assetRefID} is already locked`,
+          `client is not authorized to perform the operation`,
         );
       });
   },
@@ -133,7 +132,7 @@ Then("{string} fails to transfer {int} CBDC to {string}", async function (
   userTo: string,
 ) {
   let recipient;
-  switch (userTo) {
+  switch (getUserFromPseudonim(userTo)) {
     case "userA":
       recipient = USER_A_FABRIC_IDENTITY;
       break;
@@ -158,7 +157,7 @@ Then("{string} fails to transfer {int} CBDC to {string}", async function (
         invocationType: "FabricContractInvocationType.CALL",
         signingCredential: {
           keychainId: CryptoMaterial.keychains.keychain1.id,
-          keychainRef: userFrom,
+          keychainRef: getUserFromPseudonim(userFrom),
         },
       },
     )
@@ -171,7 +170,7 @@ Then("{string} has {int} CBDC available", async function (
   user: string,
   amount: number,
 ) {
-  switch (user) {
+  switch (getUserFromPseudonim(user)) {
     case "userA":
       expect(await getFabricBalance(USER_A_FABRIC_IDENTITY)).to.equal(amount);
       break;

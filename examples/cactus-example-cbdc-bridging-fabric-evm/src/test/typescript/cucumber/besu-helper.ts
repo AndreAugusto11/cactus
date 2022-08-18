@@ -1,4 +1,5 @@
 import axios from "axios";
+import { assert } from "chai";
 import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
@@ -96,4 +97,17 @@ export async function resetBesu(): Promise<void> {
       keychainId: CryptoMaterial.keychains.keychain2.id,
     },
   );
+}
+
+export function getUserAccount(user: string) {
+  switch (user) {
+    case "alice":
+      return CryptoMaterial.accounts["userA"];
+    case "bob":
+      return CryptoMaterial.accounts["userB"];
+    case "charlie":
+      return CryptoMaterial.accounts["bridge"];
+    default:
+      assert.fail(0, 1, "Invalid user provided");
+  }
 }

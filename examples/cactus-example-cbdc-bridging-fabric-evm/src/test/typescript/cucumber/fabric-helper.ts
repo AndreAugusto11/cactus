@@ -1,4 +1,5 @@
 import axios from "axios";
+import { assert } from "chai";
 import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 const FABRIC_CHANNEL_NAME = "mychannel";
@@ -80,7 +81,7 @@ export async function lockFabricAssetReference(
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: user,
+        keychainRef: getUserFromPseudonim(user),
       },
     },
   );
@@ -100,7 +101,7 @@ export async function deleteFabricAssetReference(
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: user,
+        keychainRef: getUserFromPseudonim(user),
       },
     },
   );
@@ -157,4 +158,17 @@ export async function resetFabric(): Promise<void> {
       },
     },
   );
+}
+
+export function getUserFromPseudonim(user: string) {
+  switch (user) {
+    case "alice":
+      return "userA";
+    case "bob":
+      return "userB";
+    case "charlie":
+      return "bridgeEntity";
+    default:
+      assert.fail(0, 1, "Invalid user provided");
+  }
 }

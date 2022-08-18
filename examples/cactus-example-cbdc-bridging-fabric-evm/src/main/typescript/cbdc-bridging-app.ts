@@ -161,8 +161,6 @@ export class CbdcBridgingApp {
 
     this.log.info("Deploying chaincode and smart contracts...");
 
-    // await initializeAddresses(nodeApiHostB);
-
     // FIXME - without this wait it randomly fails with an error claiming that
     // the endorsement was impossible to be obtained. The fabric-samples script
     // does the same thing, it just waits 10 seconds for good measure so there

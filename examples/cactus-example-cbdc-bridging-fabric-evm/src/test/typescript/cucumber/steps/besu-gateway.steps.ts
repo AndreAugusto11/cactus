@@ -1,9 +1,10 @@
 import { Given, When, Then, Before } from "cucumber";
-import { expect, assert } from "chai";
+import { expect } from "chai";
 import axios from "axios";
 import CryptoMaterial from "../../../../crypto-material/crypto-material.json";
 import {
   getBesuBalance,
+  getUserAccount,
   isBesuAssetReference,
   lockBesuAssetReference,
   resetBesu,
@@ -15,7 +16,6 @@ const BESU_CONTRACT_CBDC_ERC20_NAME = CBDCcontractJson.contractName;
 const BESU_CONTRACT_ASSET_REF_NAME = AssetReferenceContractJson.contractName;
 
 Before({ timeout: 20 * 1000, tags: "@besu" }, async function () {
-  // This hook will be executed before all scenarios
   await resetBesu();
 });
 
@@ -31,8 +31,8 @@ Given(
         gas: 1000000,
         params: [getUserAccount(user).address, amount],
         signingCredential: {
-          ethAccount: getUserAccount("bridgeEntity").address,
-          secret: getUserAccount("bridgeEntity").privateKey,
+          ethAccount: getUserAccount("charlie").address,
+          secret: getUserAccount("charlie").privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -53,8 +53,8 @@ When(
         gas: 1000000,
         params: [amount, assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("userA").address,
-          secret: getUserAccount("userA").privateKey,
+          ethAccount: getUserAccount(user).address,
+          secret: getUserAccount(user).privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -64,18 +64,18 @@ When(
 );
 
 When(
-  "bridgeEntity locks the asset reference with id {string} in the sidechain",
+  "charlie locks the asset reference with id {string} in the sidechain",
   async function (assetRefID: string) {
     await lockBesuAssetReference(
-      getUserAccount("bridgeEntity").address,
-      getUserAccount("bridgeEntity").privateKey,
+      getUserAccount("charlie").address,
+      getUserAccount("charlie").privateKey,
       assetRefID,
     );
   },
 );
 
 When(
-  "bridgeEntity deletes the asset reference with id {string} in the sidechain",
+  "charlie deletes the asset reference with id {string} in the sidechain",
   async function (assetRefID: string) {
     await axios.post(
       "http://localhost:4100/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-besu/invoke-contract",
@@ -86,8 +86,8 @@ When(
         gas: 1000000,
         params: [assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("bridgeEntity").address,
-          secret: getUserAccount("bridgeEntity").privateKey,
+          ethAccount: getUserAccount("charlie").address,
+          secret: getUserAccount("charlie").privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -129,8 +129,8 @@ Then(
         gas: 1000000,
         params: [assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("userA").address,
-          secret: getUserAccount("userA").privateKey,
+          ethAccount: getUserAccount("alice").address,
+          secret: getUserAccount("alice").privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -155,16 +155,3 @@ Then(
     });
   },
 );
-
-function getUserAccount(user: string) {
-  switch (user) {
-    case "userA":
-      return CryptoMaterial.accounts["userA"];
-    case "userB":
-      return CryptoMaterial.accounts["userB"];
-    case "bridgeEntity":
-      return CryptoMaterial.accounts["bridge"];
-    default:
-      assert.fail(0, 1, "Invalid user provided");
-  }
-}
