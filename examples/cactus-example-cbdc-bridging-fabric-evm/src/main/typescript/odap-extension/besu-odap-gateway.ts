@@ -113,9 +113,9 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "createAssetReference",
+        methodName: "mint",
         gas: 1000000,
-        params: [assetId, amount, userEthAddress, false],
+        params: [userEthAddress, amount],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -440,7 +440,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
         invocationType: EthContractInvocationType.Send,
         methodName: "createAssetReference",
         gas: 1000000,
-        params: [assetID, amount, userEthAddress, false],
+        params: [assetID, amount, userEthAddress],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);

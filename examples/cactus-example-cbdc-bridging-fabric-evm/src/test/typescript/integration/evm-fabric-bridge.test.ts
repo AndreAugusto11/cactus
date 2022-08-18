@@ -171,20 +171,15 @@ beforeAll(async () => {
   const besuMintRes = await besuApiClient.invokeContractV1({
     contractName: AssetReferenceContractJson.contractName,
     invocationType: EthContractInvocationType.Send,
-    methodName: "createAssetReference",
+    methodName: "mint",
     gas: 1000000,
-    params: [
-      BESU_ASSET_ID,
-      AMOUNT_TO_TRANSFER,
-      signingCredentialUserA.ethAccount,
-      false,
-    ],
+    params: [signingCredentialUserA.ethAccount, AMOUNT_TO_TRANSFER],
     signingCredential: signingCredentialBridge,
     keychainId: CryptoMaterial.keychains.keychain2.id,
   } as BesuInvokeContractV1Request);
 
   if (besuMintRes == undefined) {
-    throw new Error("Error when creating asset reference in Besu network.");
+    throw new Error("Error when minting tokens in Besu network.");
   }
 
   const besuCreateRes = await besuApiClient.invokeContractV1({
@@ -198,7 +193,7 @@ beforeAll(async () => {
   } as BesuInvokeContractV1Request);
 
   if (besuCreateRes == undefined) {
-    throw new Error("Error when creating asset reference in Besu network.");
+    throw new Error("Error when escrowing tokens in Besu network.");
   }
 
   const userBalance = await besuApiClient.invokeContractV1({

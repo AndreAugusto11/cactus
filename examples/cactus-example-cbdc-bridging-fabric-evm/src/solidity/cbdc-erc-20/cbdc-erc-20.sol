@@ -34,7 +34,7 @@ contract CBDCcontract is Ownable, ERC20 {
         transfer(bridge_address, amount);
 
         (bool success, ) = asset_ref_contract.call(
-            abi.encodeWithSignature("createAssetReference(string,uint256,address,bool)", asset_ref_id, amount, msg.sender, true)
+            abi.encodeWithSignature("createAssetReference(string,uint256,address)", asset_ref_id, amount, msg.sender)
         );
 
         require(success, "createAssetReference call failed");
@@ -50,7 +50,7 @@ contract CBDCcontract is Ownable, ERC20 {
     }
 
     // function for testing purposes
-    function resetBalanceOf(address[] calldata accounts) public onlyOwner {
+    function resetBalanceOf(address[] calldata accounts) external {
         uint256 toBurn;
         for (uint i = 0; i < accounts.length; i++) {
             toBurn = balanceOf(accounts[i]);
