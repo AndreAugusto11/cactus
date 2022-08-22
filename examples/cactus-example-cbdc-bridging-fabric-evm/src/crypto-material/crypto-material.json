@@ -16,6 +16,16 @@
       "privateKey": "0xfe95d40663e60e9a8a2e1f4153c9e207ac26d928e8a5631647735d91e93be402"
     }
   },
+  "gateways": {
+    "gateway1": {
+      "publicKey": "02e2beaa887c53d0ddb8383e2c49553545f50ae19074b4c7f79238dcb59f4b5fcb",
+      "privateKey": "206021a8ffaba949d21e32c02d76d2dc13da25e8197532ab300bb49d91397e52"
+    },
+    "gateway2": {
+      "publicKey": "02309ff54e58748616aa81245c1a4457f11fab47dcdb45b107dbcde24ee772b609",
+      "privateKey": "6bb4c730739969ff3429be71dd62d05459e61bc3f2956326449ae2ca7de50fb6"
+    }
+  },
   "keychains": {
     "keychain1": {
       "id": "df05d3c2-ddd5-4074-aae3-526564217459"

@@ -549,19 +549,11 @@ class TokenERC20Contract extends Contract {
    * @param {Integer} value The amount of token to be transferred
    * @returns {Boolean} Return whether the transfer was successful or not
    */
-  async Escrow(ctx, value, id, eth_address) {
+  async Escrow(ctx, value, id) {
     //check contract options are already set first to execute the function
     await this.CheckInitialized(ctx);
 
     const from = ctx.clientIdentity.getID();
-
-    const clientEthAddress = await this.getAddressMapping(ctx, from);
-
-    if (clientEthAddress != eth_address) {
-      throw new Error(
-        `Cannot transfer to ethereum address because there is no mapping between ${from} and ${eth_address}`,
-      );
-    }
 
     const transferResp = await this._transfer(
       ctx,
@@ -584,7 +576,7 @@ class TokenERC20Contract extends Contract {
     // this means that the transfer was made to the bridging entity
     await ctx.stub.invokeChaincode(
       "asset-reference-contract",
-      ["CreateAssetReference", id, value.toString()],
+      ["CreateAssetReference", id, value.toString(), from.toString()],
       ctx.stub.getChannelID(),
     );
   }
@@ -660,6 +652,14 @@ class TokenERC20Contract extends Contract {
     const address = addressBytes.toString();
 
     return address;
+  }
+
+  async checkAddressMapping(ctx, fabricID, ethAddress) {
+    const storedAddress = await this.getAddressMapping(ctx, fabricID);
+
+    if (storedAddress != ethAddress) {
+      throw new Error(`it is not possible to bridge CBDC to another user.`);
+    }
   }
 
   // add two number checking for overflow

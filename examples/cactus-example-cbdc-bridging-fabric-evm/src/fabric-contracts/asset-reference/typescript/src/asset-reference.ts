@@ -14,4 +14,7 @@ export class AssetReference {
 
   @Property()
   public numberTokens: number;
+
+  @Property()
+  public recipient: string;
 }

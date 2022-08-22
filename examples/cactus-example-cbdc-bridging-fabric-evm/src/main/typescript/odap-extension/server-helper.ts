@@ -1,14 +1,17 @@
 import { SHA256 } from "crypto-js";
 import {
-  PluginOdapGateway,
   SessionData,
   TransferInitializationV1Request,
 } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript";
-import { OdapMessageType } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
+import {
+  OdapMessageType,
+  PluginOdapGateway,
+} from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { ServerGatewayHelper } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/server/server-helper";
+import { FabricOdapGateway } from "./fabric-odap-gateway";
 
 export class ServerHelper extends ServerGatewayHelper {
-  static async checkValidInitializationRequest(
+  async checkValidInitializationRequest(
     request: TransferInitializationV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -57,8 +60,21 @@ export class ServerHelper extends ServerGatewayHelper {
       throw new Error(`${fnTag}, asset code not recognized`);
     }
 
-    if (request.payloadProfile.assetProfile.keyInformationLink?.length != 1) {
-      throw new Error(`${fnTag}, asset amount not specified`);
+    if (request.payloadProfile.assetProfile.keyInformationLink?.length != 3) {
+      throw new Error(`${fnTag}, CBDC parameters not specified`);
+    }
+
+    if (odap instanceof FabricOdapGateway) {
+      odap
+        .verifyValidTransferOfCBDC(
+          request.recipientLedgerAssetID,
+          request.payloadProfile.assetProfile.keyInformationLink[0].toString(), // Amount
+          request.payloadProfile.assetProfile.keyInformationLink[1].toString(), // FabricID
+          request.payloadProfile.assetProfile.keyInformationLink[2].toString(), // ETH Address
+        )
+        .catch((err) => {
+          throw new Error(`${err.response.data.error}`);
+        });
     }
 
     const expiryDate: string =

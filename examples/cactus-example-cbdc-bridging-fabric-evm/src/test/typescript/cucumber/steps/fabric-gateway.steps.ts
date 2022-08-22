@@ -61,7 +61,7 @@ When(
       {
         contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
         channelName: FABRIC_CHANNEL_NAME,
-        params: [amount.toString(), assetRefID, EVM_USER_A_USER_ADDRESS],
+        params: [amount.toString(), assetRefID],
         methodName: "Escrow",
         invocationType: "FabricContractInvocationType.SEND",
         signingCredential: {

@@ -42,7 +42,7 @@ export class AssetReferenceContract extends Contract {
       const asset = JSON.parse(assetJSON.toString());
       return asset.isLocked;
     } else {
-      throw new Error(`The asset ${id} does not exist`);
+      throw new Error(`The asset reference ${id} does not exist`);
     }
   }
 
@@ -52,6 +52,7 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
     numberTokens: number,
+    recipient: string,
   ): Promise<void> {
     console.log(
       "Creating new asset reference with id: " +
@@ -70,6 +71,7 @@ export class AssetReferenceContract extends Contract {
       id: assetId,
       isLocked: false,
       numberTokens: numberTokens,
+      recipient: recipient,
     };
 
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
@@ -83,9 +85,14 @@ export class AssetReferenceContract extends Contract {
     finalFabricIdentity: string,
     finalEthAddress: string,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
-    console.log("Calling unescrow tokens");
+    console.log(
+      "Calling unescrow tokens to " +
+        finalFabricIdentity +
+        " from " +
+        finalEthAddress,
+    );
     await ctx.stub.invokeChaincode(
       "cbdc-erc20",
       [
@@ -97,7 +104,7 @@ export class AssetReferenceContract extends Contract {
       ctx.stub.getChannelID(),
     );
 
-    this.DecreaseBridgedAmount(ctx, numberTokens);
+    await this.DecreaseBridgedAmount(ctx, numberTokens);
   }
 
   @Transaction(false)
@@ -120,7 +127,7 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
@@ -134,7 +141,39 @@ export class AssetReferenceContract extends Contract {
     const asset: AssetReference = await this.ReadAssetReference(ctx, assetId);
     asset.isLocked = true;
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
+
+    console.log("Locking asset reference with id: " + assetId);
     await ctx.stub.putState(assetId, buffer);
+  }
+
+  @Transaction(false)
+  public async CheckValidTransfer(
+    ctx: Context,
+    assetId: string,
+    amount: string,
+    fabricID: string,
+    ethAddress: string,
+  ): Promise<void> {
+    // check if this transfer is allowed
+    const asset: AssetReference = await this.ReadAssetReference(ctx, assetId);
+
+    if (asset.recipient != fabricID) {
+      throw new Error(
+        `it is not possible to transfer tokens escrowed by another user`,
+      );
+    }
+
+    if (asset.numberTokens != parseInt(amount)) {
+      throw new Error(
+        `it is not possible to transfer a different amount of CBDC than the ones escrowed`,
+      );
+    }
+
+    await ctx.stub.invokeChaincode(
+      "cbdc-erc20",
+      ["checkAddressMapping", fabricID, ethAddress],
+      ctx.stub.getChannelID(),
+    );
   }
 
   @Transaction()
@@ -142,7 +181,7 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
@@ -152,6 +191,8 @@ export class AssetReferenceContract extends Contract {
     const asset: AssetReference = await this.ReadAssetReference(ctx, assetId);
     asset.isLocked = false;
     const buffer: Buffer = Buffer.from(JSON.stringify(asset));
+
+    console.log("Unlocking asset reference with id: " + assetId);
     await ctx.stub.putState(assetId, buffer);
   }
 
@@ -160,20 +201,21 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     assetId: string,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (!exists) {
       throw new Error(`The asset reference ${assetId} does not exist`);
     }
     const asset = await this.ReadAssetReference(ctx, assetId);
-    await ctx.stub.deleteState(assetId);
+    await this.IncreaseBridgedAmount(ctx, asset.numberTokens);
 
-    this.IncreaseBridgedAmount(ctx, asset.numberTokens);
+    console.log("Deleting asset reference with id: " + assetId);
+    await ctx.stub.deleteState(assetId);
   }
 
   @Transaction(false)
-  public async GetBridgedOutAmount(ctx: Context): Promise<void> {
+  public async GetBridgedOutAmount(ctx: Context): Promise<number> {
     const amountBytes = await ctx.stub.getState(bridgedOutAmountKey);
 
     let amountValue;
@@ -192,9 +234,9 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     value: number,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
-    const newBalance = this.add(this.GetBridgedOutAmount(ctx), value);
+    const newBalance = this.add(await this.GetBridgedOutAmount(ctx), value);
     await ctx.stub.putState(
       bridgedOutAmountKey,
       Buffer.from(newBalance.toString()),
@@ -206,9 +248,9 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     value: number,
   ): Promise<void> {
-    this.CheckPermission(ctx);
+    await this.CheckPermission(ctx);
 
-    const newBalance = this.sub(this.GetBridgedOutAmount(ctx), value);
+    const newBalance = this.sub(await this.GetBridgedOutAmount(ctx), value);
 
     if (newBalance < 0) {
       throw new Error(`Bridged back too many tokens`);
@@ -228,6 +270,8 @@ export class AssetReferenceContract extends Contract {
       await ctx.stub.putState(result.value.key, undefined);
       result = await iterator.next();
     }
+
+    await ctx.stub.putState(bridgedOutAmountKey, Buffer.from("0"));
   }
 
   // add two number checking for overflow
@@ -248,11 +292,13 @@ export class AssetReferenceContract extends Contract {
     return c;
   }
 
-  private CheckPermission(ctx: Context) {
+  private async CheckPermission(ctx: Context) {
     // this needs to be called by entity2 (the bridging entity)
-    const clientMSPID = ctx.clientIdentity.getMSPID();
+    const clientMSPID = await ctx.clientIdentity.getMSPID();
     if (clientMSPID !== "Org2MSP") {
-      throw new Error("client is not authorized to perform the operation");
+      throw new Error(
+        `client is not authorized to perform the operation. ${clientMSPID} != "Org2MSP"`,
+      );
     }
   }
 }

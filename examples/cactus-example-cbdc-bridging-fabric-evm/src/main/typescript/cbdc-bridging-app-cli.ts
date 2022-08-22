@@ -6,9 +6,8 @@ import {
   IAuthorizationConfig,
 } from "@hyperledger/cactus-cmd-api-server";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { Secp256k1Keys } from "@hyperledger/cactus-common";
-import { PluginOdapGateway } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
+import CryptoMaterial from "../../crypto-material/crypto-material.json";
 
 export async function launchApp(
   env?: NodeJS.ProcessEnv,
@@ -37,8 +36,23 @@ export async function launchApp(
   const API_SERVER_1_PORT = 4000;
   const API_SERVER_2_PORT = 4100;
 
-  const clientGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
-  const serverGatewayKeyPair = Secp256k1Keys.generateKeyPairsBuffer();
+  const clientGatewayKeyPair = {
+    privateKey: Uint8Array.from(
+      Buffer.from(CryptoMaterial.gateways["gateway1"].privateKey, "hex"),
+    ),
+    publicKey: Uint8Array.from(
+      Buffer.from(CryptoMaterial.gateways["gateway1"].publicKey, "hex"),
+    ),
+  };
+
+  const serverGatewayKeyPair = {
+    privateKey: Uint8Array.from(
+      Buffer.from(CryptoMaterial.gateways["gateway2"].privateKey, "hex"),
+    ),
+    publicKey: Uint8Array.from(
+      Buffer.from(CryptoMaterial.gateways["gateway2"].publicKey, "hex"),
+    ),
+  };
 
   const appOptions: ICbdcBridgingApp = {
     apiHost: API_HOST,
@@ -49,17 +63,13 @@ export async function launchApp(
     logLevel: "INFO",
   };
 
-  const serverkey = PluginOdapGateway.bufArray2HexStr(
-    serverGatewayKeyPair.publicKey,
-  );
-  console.log(serverkey);
   const cbdcBridgingApp = new CbdcBridgingApp(appOptions);
   try {
     await cbdcBridgingApp.start();
     console.info("CbdcBridgingApp running...");
   } catch (ex) {
     console.error(`CbdcBridgingApp crashed. Existing...`, ex);
-    await cbdcBridgingApp?.stop();
+    await cbdcBridgingApp.stop();
     process.exit(-1);
   }
 }

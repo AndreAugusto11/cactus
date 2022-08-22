@@ -18,23 +18,23 @@ import { OdapMessageType, PluginOdapGateway } from "../plugin-odap-gateway";
 
 export class ServerGatewayHelper {
   public static readonly CLASS_NAME = "ServerGatewayHelper";
-  private static _log: Logger;
+  private _log: Logger;
 
   constructor() {
     const level = "INFO";
     const label = ServerGatewayHelper.CLASS_NAME;
-    ServerGatewayHelper._log = LoggerProvider.getOrCreate({ level, label });
+    this._log = LoggerProvider.getOrCreate({ level, label });
   }
 
   public static get className(): string {
     return ServerGatewayHelper.CLASS_NAME;
   }
 
-  public static get log(): Logger {
-    return ServerGatewayHelper._log;
+  public get log(): Logger {
+    return this._log;
   }
 
-  static async sendTransferInitializationResponse(
+  async sendTransferInitializationResponse(
     sessionID: string,
     odap: PluginOdapGateway,
     remote: boolean,
@@ -104,7 +104,7 @@ export class ServerGatewayHelper {
     );
   }
 
-  static async checkValidInitializationRequest(
+  async checkValidInitializationRequest(
     request: TransferInitializationV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -197,7 +197,7 @@ export class ServerGatewayHelper {
     this.log.info(`TransferInitializationRequest passed all checks.`);
   }
 
-  static async sendTransferCommenceResponse(
+  async sendTransferCommenceResponse(
     sessionID: string,
     odap: PluginOdapGateway,
     remote: boolean,
@@ -264,7 +264,7 @@ export class ServerGatewayHelper {
     );
   }
 
-  static async checkValidtransferCommenceRequest(
+  async checkValidtransferCommenceRequest(
     request: TransferCommenceV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -358,7 +358,7 @@ export class ServerGatewayHelper {
     this.log.info(`TransferCommenceRequest passed all checks.`);
   }
 
-  static async sendLockEvidenceResponse(
+  async sendLockEvidenceResponse(
     sessionID: string,
     odap: PluginOdapGateway,
     remote: boolean,
@@ -425,7 +425,7 @@ export class ServerGatewayHelper {
     );
   }
 
-  static async checkValidLockEvidenceRequest(
+  async checkValidLockEvidenceRequest(
     request: LockEvidenceV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -534,7 +534,7 @@ export class ServerGatewayHelper {
     this.log.info(`LockEvidenceRequest passed all checks.`);
   }
 
-  static async sendCommitPreparationResponse(
+  async sendCommitPreparationResponse(
     sessionID: string,
     odap: PluginOdapGateway,
     remote: boolean,
@@ -600,7 +600,7 @@ export class ServerGatewayHelper {
     );
   }
 
-  static async checkValidCommitPreparationRequest(
+  async checkValidCommitPreparationRequest(
     request: CommitPreparationV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -685,7 +685,7 @@ export class ServerGatewayHelper {
     this.log.info(`CommitPreparationRequest passed all checks.`);
   }
 
-  static async sendCommitFinalResponse(
+  async sendCommitFinalResponse(
     sessionID: string,
     odap: PluginOdapGateway,
     remote: boolean,
@@ -754,7 +754,7 @@ export class ServerGatewayHelper {
     );
   }
 
-  static async checkValidCommitFinalRequest(
+  async checkValidCommitFinalRequest(
     request: CommitFinalV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {
@@ -857,7 +857,7 @@ export class ServerGatewayHelper {
     this.log.info(`CommitFinalRequest passed all checks.`);
   }
 
-  static async checkValidTransferCompleteRequest(
+  async checkValidTransferCompleteRequest(
     request: TransferCompleteV1Request,
     odap: PluginOdapGateway,
   ): Promise<void> {

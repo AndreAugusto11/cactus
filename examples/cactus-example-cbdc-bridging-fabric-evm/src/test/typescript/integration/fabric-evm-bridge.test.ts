@@ -127,11 +127,7 @@ beforeAll(async () => {
   await fabricApiClient.runTransactionV1({
     contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
     channelName: FABRIC_CHANNEL_NAME,
-    params: [
-      AMOUNT_TO_TRANSFER.toString(),
-      FABRIC_ASSET_ID,
-      EVM_END_USER_ADDRESS,
-    ],
+    params: [AMOUNT_TO_TRANSFER.toString(), FABRIC_ASSET_ID],
     methodName: "Escrow",
     invocationType: FabricContractInvocationType.Send,
     signingCredential: {
@@ -157,7 +153,7 @@ test("transfer asset correctly from fabric to besu", async () => {
     assetCode: "CBDC1",
     // since there is no link with the asset information,
     // we are just passing the asset parameters like this
-    // [amountBeingTransferred]
+    // [amountBeingTransferred, fabricID, ethAddress]
     keyInformationLink: [AMOUNT_TO_TRANSFER.toString(), EVM_END_USER_ADDRESS],
   };
 

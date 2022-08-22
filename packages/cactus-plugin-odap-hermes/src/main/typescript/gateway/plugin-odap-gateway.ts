@@ -694,77 +694,77 @@ export abstract class PluginOdapGateway
 
     switch (sessionData.step) {
       case 1:
-        return await ClientGatewayHelper.sendTransferInitializationRequest(
+        return await this.clientHelper.sendTransferInitializationRequest(
           sessionID,
           this,
           remote,
         );
 
       case 2:
-        return await ServerGatewayHelper.sendTransferInitializationResponse(
+        return await this.serverHelper.sendTransferInitializationResponse(
           sessionID,
           this,
           remote,
         );
 
       case 3:
-        return await ClientGatewayHelper.sendTransferCommenceRequest(
+        return await this.clientHelper.sendTransferCommenceRequest(
           sessionID,
           this,
           remote,
         );
 
       case 4:
-        return await ServerGatewayHelper.sendTransferCommenceResponse(
+        return await this.serverHelper.sendTransferCommenceResponse(
           sessionID,
           this,
           remote,
         );
 
       case 5:
-        return await ClientGatewayHelper.sendLockEvidenceRequest(
+        return await this.clientHelper.sendLockEvidenceRequest(
           sessionID,
           this,
           remote,
         );
 
       case 6:
-        return await ServerGatewayHelper.sendLockEvidenceResponse(
+        return await this.serverHelper.sendLockEvidenceResponse(
           sessionID,
           this,
           remote,
         );
 
       case 7:
-        return await ClientGatewayHelper.sendCommitPreparationRequest(
+        return await this.clientHelper.sendCommitPreparationRequest(
           sessionID,
           this,
           remote,
         );
 
       case 8:
-        return await ServerGatewayHelper.sendCommitPreparationResponse(
+        return await this.serverHelper.sendCommitPreparationResponse(
           sessionID,
           this,
           remote,
         );
 
       case 9:
-        return await ClientGatewayHelper.sendCommitFinalRequest(
+        return await this.clientHelper.sendCommitFinalRequest(
           sessionID,
           this,
           remote,
         );
 
       case 10:
-        return await ServerGatewayHelper.sendCommitFinalResponse(
+        return await this.serverHelper.sendCommitFinalResponse(
           sessionID,
           this,
           remote,
         );
 
       case 11:
-        return await ClientGatewayHelper.sendTransferCompleteRequest(
+        return await this.clientHelper.sendTransferCompleteRequest(
           sessionID,
           this,
           remote,
@@ -805,8 +805,8 @@ export abstract class PluginOdapGateway
       )}`,
     );
 
-    await ServerGatewayHelper.checkValidInitializationRequest(request, this);
-    await ServerGatewayHelper.sendTransferInitializationResponse(
+    await this.serverHelper.checkValidInitializationRequest(request, this);
+    await this.serverHelper.sendTransferInitializationResponse(
       request.sessionID,
       this,
       true,
@@ -825,8 +825,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ServerGatewayHelper.checkValidtransferCommenceRequest(request, this);
-    await ServerGatewayHelper.sendTransferCommenceResponse(
+    await this.serverHelper.checkValidtransferCommenceRequest(request, this);
+    await this.serverHelper.sendTransferCommenceResponse(
       request.sessionID,
       this,
       true,
@@ -843,8 +843,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ServerGatewayHelper.checkValidLockEvidenceRequest(request, this);
-    await ServerGatewayHelper.sendLockEvidenceResponse(
+    await this.serverHelper.checkValidLockEvidenceRequest(request, this);
+    await this.serverHelper.sendLockEvidenceResponse(
       request.sessionID,
       this,
       true,
@@ -863,8 +863,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ServerGatewayHelper.checkValidCommitPreparationRequest(request, this);
-    await ServerGatewayHelper.sendCommitPreparationResponse(
+    await this.serverHelper.checkValidCommitPreparationRequest(request, this);
+    await this.serverHelper.sendCommitPreparationResponse(
       request.sessionID,
       this,
       true,
@@ -881,9 +881,9 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ServerGatewayHelper.checkValidCommitFinalRequest(request, this);
+    await this.serverHelper.checkValidCommitFinalRequest(request, this);
     await this.createAsset(request.sessionID);
-    await ServerGatewayHelper.sendCommitFinalResponse(
+    await this.serverHelper.sendCommitFinalResponse(
       request.sessionID,
       this,
       true,
@@ -902,7 +902,7 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ServerGatewayHelper.checkValidTransferCompleteRequest(request, this);
+    await this.serverHelper.checkValidTransferCompleteRequest(request, this);
     //this.deleteDatabaseEntries(request.sessionID);
   }
 
@@ -922,8 +922,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ClientGatewayHelper.checkValidInitializationResponse(request, this);
-    await ClientGatewayHelper.sendTransferCommenceRequest(
+    await this.clientHelper.checkValidInitializationResponse(request, this);
+    await this.clientHelper.sendTransferCommenceRequest(
       request.sessionID,
       this,
       true,
@@ -942,9 +942,9 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ClientGatewayHelper.checkValidTransferCommenceResponse(request, this);
+    await this.clientHelper.checkValidTransferCommenceResponse(request, this);
     await this.lockAsset(request.sessionID);
-    await ClientGatewayHelper.sendLockEvidenceRequest(
+    await this.clientHelper.sendLockEvidenceRequest(
       request.sessionID,
       this,
       true,
@@ -963,8 +963,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ClientGatewayHelper.checkValidLockEvidenceResponse(request, this);
-    await ClientGatewayHelper.sendCommitPreparationRequest(
+    await this.clientHelper.checkValidLockEvidenceResponse(request, this);
+    await this.clientHelper.sendCommitPreparationRequest(
       request.sessionID,
       this,
       true,
@@ -978,12 +978,9 @@ export abstract class PluginOdapGateway
     this.log.info(`${fnTag}, start processing, time: ${Date.now()}`);
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ClientGatewayHelper.checkValidCommitPreparationResponse(
-      request,
-      this,
-    );
+    await this.clientHelper.checkValidCommitPreparationResponse(request, this);
     await this.deleteAsset(request.sessionID);
-    await ClientGatewayHelper.sendCommitFinalRequest(
+    await this.clientHelper.sendCommitFinalRequest(
       request.sessionID,
       this,
       true,
@@ -1000,8 +997,8 @@ export abstract class PluginOdapGateway
     );
 
     this.updateLastMessageReceivedTimestamp(request.sessionID);
-    await ClientGatewayHelper.checkValidCommitFinalResponse(request, this);
-    await ClientGatewayHelper.sendTransferCompleteRequest(
+    await this.clientHelper.checkValidCommitFinalResponse(request, this);
+    await this.clientHelper.sendTransferCompleteRequest(
       request.sessionID,
       this,
       true,
@@ -1108,7 +1105,7 @@ export abstract class PluginOdapGateway
       );
     }
 
-    await ClientGatewayHelper.sendTransferInitializationRequest(
+    await this.clientHelper.sendTransferInitializationRequest(
       sessionID,
       this,
       true,

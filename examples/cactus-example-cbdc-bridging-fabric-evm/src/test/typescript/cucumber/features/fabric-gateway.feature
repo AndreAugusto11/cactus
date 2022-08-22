@@ -42,3 +42,16 @@ Feature: Hyperledger Fabric gateway is working properly
     When charlie refunds 500 CBDC to "alice"
     Then "charlie" has 0 CBDC available
     Then "alice" has 500 CBDC available
+
+  Scenario: Chaincode correctly tracks amount of bridged out CBDC (1)
+    Given "alice" with 500 CBDC available
+    When "alice" escrows 500 CBDC and creates an asset reference with id "c5dfbd04-a71b-4848-92d1-78cd1fafaaf1"
+    When "charlie" locks and deletes an asset reference with id "c5dfbd04-a71b-4848-92d1-78cd1fafaaf1"
+    Then the bridged out amount is 500 CBDC
+
+  Scenario: Chaincode correctly tracks amount of bridged out CBDC (2)
+    Given "alice" with 500 CBDC available
+    Given "alice" escrows 500 CBDC and creates an asset reference with id "c5dfbd04-a71b-4848-92d1-78cd1fafaaf1"
+    When "charlie" locks and deletes an asset reference with id "c5dfbd04-a71b-4848-92d1-78cd1fafaaf1"
+    When charlie refunds 500 CBDC to "alice"
+    Then the bridged out amount is 0 CBDC

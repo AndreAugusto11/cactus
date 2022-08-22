@@ -75,6 +75,27 @@ export class FabricOdapGateway extends PluginOdapGateway {
     this.fabricContractName = options.fabricContractName;
   }
 
+  async verifyValidTransferOfCBDC(
+    assetID: string,
+    amount: number,
+    fabricID: string,
+    ethAddress: string,
+  ) {
+    // we should verify if the CBDC being bridged is valid or not
+    // e.g. if a client is trying to send CBDC to another client in the sidechain, this should fail
+
+    if (this.fabricApi != undefined) {
+      await this.fabricApi.runTransactionV1({
+        signingCredential: this.fabricSigningCredential,
+        channelName: this.fabricChannelName,
+        contractName: this.fabricContractName,
+        invocationType: FabricContractInvocationType.Call,
+        methodName: "CheckValidTransfer",
+        params: [assetID, amount, fabricID, ethAddress],
+      } as FabricRunTransactionRequest);
+    }
+  }
+
   async lockAsset(sessionID: string, assetId?: string): Promise<string> {
     const fnTag = `${this.className}#lockAsset()`;
 
@@ -498,7 +519,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
         contractName: this.fabricContractName,
         invocationType: FabricContractInvocationType.Send,
         methodName: "LockAssetReference",
-        params: [assetID],
+        params: [assetID], // we need to provide the other arguments
       } as FabricRunTransactionRequest);
 
       const response = await this.fabricApi.runTransactionV1({

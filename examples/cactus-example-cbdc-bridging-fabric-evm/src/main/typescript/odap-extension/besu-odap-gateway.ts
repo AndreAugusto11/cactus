@@ -88,7 +88,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       sessionData == undefined ||
       sessionData.assetProfile == undefined ||
       sessionData.assetProfile.keyInformationLink == undefined ||
-      sessionData.assetProfile.keyInformationLink.length != 2
+      sessionData.assetProfile.keyInformationLink.length != 3
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
@@ -108,7 +108,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
 
     if (this.besuApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
-      const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
+      const userEthAddress = sessionData.assetProfile.keyInformationLink[2].toString();
 
       const besuCreateRes = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
@@ -417,7 +417,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       sessionData.rollbackProofs == undefined ||
       sessionData.assetProfile == undefined ||
       sessionData.assetProfile.keyInformationLink == undefined ||
-      sessionData.assetProfile.keyInformationLink.length != 2
+      sessionData.assetProfile.keyInformationLink.length != 3
     ) {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
