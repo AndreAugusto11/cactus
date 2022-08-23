@@ -1,9 +1,9 @@
 import axios from "axios";
-import { assert } from "chai";
+import { getUserFromPseudonim } from "./steps/common";
 import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 
 const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
+const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc";
 const FABRIC_CONTRACT_ASSET_REF_NAME = "asset-reference-contract";
 
 export async function getFabricBalance(identity: string): Promise<number> {
@@ -158,17 +158,4 @@ export async function resetFabric(): Promise<void> {
       },
     },
   );
-}
-
-export function getUserFromPseudonim(user: string) {
-  switch (user) {
-    case "alice":
-      return "userA";
-    case "bob":
-      return "userB";
-    case "charlie":
-      return "bridgeEntity";
-    default:
-      assert.fail(0, 1, "Invalid user provided");
-  }
 }

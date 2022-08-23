@@ -33,7 +33,7 @@ const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
 const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
+const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc";
 const FABRIC_CONTRACT_AR_ERC20_NAME = "asset-reference-contract";
 
 const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;

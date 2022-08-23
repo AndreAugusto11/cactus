@@ -2,11 +2,11 @@ import { Given, When, Then, Before } from "cucumber";
 import { expect, assert } from "chai";
 import axios from "axios";
 import CryptoMaterial from "../../../../crypto-material/crypto-material.json";
+import { getUserFromPseudonim } from "./common";
 import {
   deleteFabricAssetReference,
   fabricAssetReferenceExists,
   getFabricBalance,
-  getUserFromPseudonim,
   lockFabricAssetReference,
   readFabricAssetReference,
   resetFabric,
@@ -17,7 +17,7 @@ const EVM_USER_A_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
 const EVM_USER_B_USER_ADDRESS = CryptoMaterial.accounts["userB"].address;
 
 const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc-erc20";
+const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc";
 const FABRIC_CONTRACT_ASSET_REF_NAME = "asset-reference-contract";
 
 const USER_A_FABRIC_IDENTITY =
@@ -45,7 +45,7 @@ Given("{string} with {int} CBDC available", async function (
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: getUserFromPseudonim(user),
+        keychainRef: getUserFromPseudonim("alice"),
       },
     },
   );
@@ -82,6 +82,7 @@ When("{string} locks the asset reference with id {string}", async function (
 
 When(
   "{string} locks and deletes an asset reference with id {string}",
+  { timeout: 10 * 1000 },
   async function (user: string, assetRefID: string) {
     await lockFabricAssetReference(user, assetRefID);
     await deleteFabricAssetReference(user, assetRefID);

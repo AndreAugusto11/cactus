@@ -64,19 +64,6 @@ export class ServerHelper extends ServerGatewayHelper {
       throw new Error(`${fnTag}, CBDC parameters not specified`);
     }
 
-    if (odap instanceof FabricOdapGateway) {
-      odap
-        .verifyValidTransferOfCBDC(
-          request.recipientLedgerAssetID,
-          request.payloadProfile.assetProfile.keyInformationLink[0].toString(), // Amount
-          request.payloadProfile.assetProfile.keyInformationLink[1].toString(), // FabricID
-          request.payloadProfile.assetProfile.keyInformationLink[2].toString(), // ETH Address
-        )
-        .catch((err) => {
-          throw new Error(`${err.response.data.error}`);
-        });
-    }
-
     const expiryDate: string =
       request.payloadProfile.assetProfile.expirationDate;
     const isDataExpired: boolean = new Date() >= new Date(expiryDate);
@@ -118,6 +105,17 @@ export class ServerHelper extends ServerGatewayHelper {
     sessionData.initializationRequestMessageProcessedTimeStamp = Date.now().toString();
 
     odap.sessions.set(request.sessionID, sessionData);
+
+    if (odap instanceof FabricOdapGateway) {
+      await odap
+        .isValidBridgeBackCBDC(
+          request.payloadProfile.assetProfile.keyInformationLink[1].toString(), // FabricID
+          request.payloadProfile.assetProfile.keyInformationLink[2].toString(), // ETH Address
+        )
+        .catch((err) => {
+          throw new Error(`${err.response.data.error}`);
+        });
+    }
 
     await odap.storeOdapLog({
       sessionID: sessionID,

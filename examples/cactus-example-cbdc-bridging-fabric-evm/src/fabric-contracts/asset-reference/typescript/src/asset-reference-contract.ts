@@ -83,7 +83,7 @@ export class AssetReferenceContract extends Contract {
     ctx: Context,
     numberTokens: number,
     finalFabricIdentity: string,
-    finalEthAddress: string,
+    ethAddress: string,
   ): Promise<void> {
     await this.CheckPermission(ctx);
 
@@ -91,16 +91,11 @@ export class AssetReferenceContract extends Contract {
       "Calling unescrow tokens to " +
         finalFabricIdentity +
         " from " +
-        finalEthAddress,
+        ethAddress,
     );
     await ctx.stub.invokeChaincode(
-      "cbdc-erc20",
-      [
-        "UnEscrow",
-        finalFabricIdentity,
-        numberTokens.toString(),
-        finalEthAddress,
-      ],
+      "cbdc",
+      ["UnEscrow", finalFabricIdentity, numberTokens.toString(), ethAddress],
       ctx.stub.getChannelID(),
     );
 
@@ -147,7 +142,7 @@ export class AssetReferenceContract extends Contract {
   }
 
   @Transaction(false)
-  public async CheckValidTransfer(
+  public async CheckValidBridgeOut(
     ctx: Context,
     assetId: string,
     amount: string,
@@ -170,7 +165,20 @@ export class AssetReferenceContract extends Contract {
     }
 
     await ctx.stub.invokeChaincode(
-      "cbdc-erc20",
+      "cbdc",
+      ["checkAddressMapping", fabricID, ethAddress],
+      ctx.stub.getChannelID(),
+    );
+  }
+
+  @Transaction(false)
+  public async CheckValidBridgeBack(
+    ctx: Context,
+    fabricID: string,
+    ethAddress: string,
+  ): Promise<void> {
+    await ctx.stub.invokeChaincode(
+      "cbdc",
       ["checkAddressMapping", fabricID, ethAddress],
       ctx.stub.getChannelID(),
     );

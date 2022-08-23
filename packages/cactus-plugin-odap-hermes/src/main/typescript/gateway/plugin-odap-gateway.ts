@@ -1202,7 +1202,12 @@ export abstract class PluginOdapGateway
     let response = undefined;
 
     while (numberOfTries < sessionData.maxRetries) {
-      response = await request.catch(() => {
+      response = await request.catch((err) => {
+        if (err.response.status == 500) {
+          throw new Error(
+            `${fnTag}, ${message} message failed. ${err.response.data.error}`,
+          );
+        }
         this.log.info(`${fnTag}, ${message} message failed. Trying again...`);
         numberOfTries++;
       });
@@ -1235,9 +1240,9 @@ export abstract class PluginOdapGateway
           );
         }
 
-        const differenceOfTime =
-          new Date().getTime() -
-          new Date(sessionData.lastMessageReceivedTimestamp).getTime();
+        const now = new Date().getTime();
+        const last = parseInt(sessionData.lastMessageReceivedTimestamp);
+        const differenceOfTime = now - last;
 
         if (differenceOfTime > sessionData.maxTimeout) {
           this.log.info(`${fnTag}, no response received, rolling back`);

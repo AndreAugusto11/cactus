@@ -486,7 +486,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     const channelId = "mychannel";
     const channelName = channelId;
 
-    const contractName = "cbdc-erc20";
+    const contractName = "cbdc";
 
     const contractRelPath = "../../../fabric-contracts/cbdc-erc-20/javascript";
     const contractDir = path.join(__dirname, contractRelPath);
@@ -548,7 +548,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       ccName: contractName,
       targetOrganizations: [this.org1Env, this.org2Env],
       caFile: `${this.orgCfgDir}ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`,
-      ccLabel: "cbdc-erc20",
+      ccLabel: "cbdc",
       ccLang: ChainCodeProgrammingLanguage.Javascript,
       ccSequence: 1,
       orderer: "orderer.example.com:7050",

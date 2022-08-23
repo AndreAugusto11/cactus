@@ -6,6 +6,7 @@ import {
 import { ClientGatewayHelper } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/client/client-helper";
 import { OdapMessageType } from "@hyperledger/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-odap-gateway";
 import { FabricOdapGateway } from "./fabric-odap-gateway";
+import { BesuOdapGateway } from "./besu-odap-gateway";
 
 export class ClientHelper extends ClientGatewayHelper {
   async sendTransferInitializationRequest(
@@ -102,7 +103,7 @@ export class ClientHelper extends ClientGatewayHelper {
 
     if (odap instanceof FabricOdapGateway) {
       await odap
-        .verifyValidTransferOfCBDC(
+        .isValidBridgeOutCBDC(
           sessionData.sourceLedgerAssetID,
           sessionData.assetProfile.keyInformationLink[0].toString(), // Amount
           sessionData.assetProfile.keyInformationLink[1].toString(), // FabricID
@@ -110,6 +111,15 @@ export class ClientHelper extends ClientGatewayHelper {
         )
         .catch((err) => {
           throw new Error(`${err.response.data.error}`);
+        });
+    } else if (odap instanceof BesuOdapGateway) {
+      await odap
+        .isValidBridgeBackCBDC(
+          sessionData.sourceLedgerAssetID,
+          sessionData.assetProfile.keyInformationLink[0].toString(), // Amount
+        )
+        .catch((err) => {
+          throw new Error(`${err}`);
         });
     }
 

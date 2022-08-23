@@ -1,36 +1,14 @@
-import { When, Then } from "cucumber";
+import { Then } from "cucumber";
 import { expect } from "chai";
 import axios from "axios";
 import CryptoMaterial from "../../../../crypto-material/crypto-material.json";
-import { getUserFromPseudonim, getFabricId, getEthAddress } from "./common";
+import { getFabricId, getEthAddress } from "./common";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
-const FABRIC_CHANNEL_NAME = "mychannel";
-const FABRIC_CONTRACT_ASSET_REF_NAME = "asset-reference-contract";
-
-Then("the bridged out amount is {int} CBDC", async function (amount: string) {
-  const response = await axios.post(
-    "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
-    {
-      contractName: FABRIC_CONTRACT_ASSET_REF_NAME,
-      channelName: FABRIC_CHANNEL_NAME,
-      params: [],
-      methodName: "GetBridgedOutAmount",
-      invocationType: "FabricContractInvocationType.CALL",
-      signingCredential: {
-        keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: getUserFromPseudonim("charlie"),
-      },
-    },
-  );
-
-  expect(parseInt(response.data.functionOutput)).to.equal(amount);
-});
-
-When(
-  "{string} initiates bridge out of {int} CBDC referenced by id {string} to {string} address in the sidechain",
+Then(
+  "{string} initiates bridge back of {int} CBDC referenced by id {string} to {string} address in the source chain",
   { timeout: 60 * 1000 },
   async function (
     user: string,
@@ -38,8 +16,8 @@ When(
     assetRefID: string,
     finalUser: string,
   ) {
-    const fabricID = getFabricId(user);
-    const address = getEthAddress(finalUser);
+    const address = getEthAddress(user);
+    const fabricID = getFabricId(finalUser);
 
     const assetProfile = {
       expirationDate: new Date(2060, 11, 24).toString(),
@@ -52,13 +30,13 @@ When(
     };
 
     const response = await axios.post(
-      "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
+      "http://localhost:4100/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
       {
         clientGatewayConfiguration: {
-          apiHost: `http://localhost:4000`,
+          apiHost: `http://localhost:4100`,
         },
         serverGatewayConfiguration: {
-          apiHost: `http://localhost:4100`,
+          apiHost: `http://localhost:4000`,
         },
         version: "0.0.0",
         loggingProfile: "dummyLoggingProfile",
@@ -71,12 +49,12 @@ When(
         assetProfile: assetProfile,
         assetControlProfile: "dummyAssetControlProfile",
         beneficiaryPubkey: "dummyPubKey",
-        clientDltSystem: "DLT1",
+        clientDltSystem: "DLT2",
         originatorPubkey: "dummyPubKey",
-        recipientGatewayDltSystem: "DLT2",
-        recipientGatewayPubkey: CryptoMaterial.gateways["gateway2"].publicKey,
-        serverDltSystem: "DLT2",
-        sourceGatewayDltSystem: "DLT1",
+        recipientGatewayDltSystem: "DLT1",
+        recipientGatewayPubkey: CryptoMaterial.gateways["gateway1"].publicKey,
+        serverDltSystem: "DLT1",
+        sourceGatewayDltSystem: "DLT2",
         clientIdentityPubkey: "",
         serverIdentityPubkey: "",
         maxRetries: MAX_RETRIES,
@@ -91,17 +69,16 @@ When(
 );
 
 Then(
-  "{string} tries to initiate bridge out of {int} CBDC referenced by id {string} to {string} address in the sidechain and operation fails because {string}",
+  "{string} fails to initiate bridge back of {int} CBDC referenced by id {string} to {string} address in the source chain",
   { timeout: 60 * 1000 },
   async function (
     user: string,
     amount: number,
     assetRefID: string,
     finalUser: string,
-    failureReason: string,
   ) {
-    const fabricID = getFabricId(user);
-    const address = getEthAddress(finalUser);
+    const address = getEthAddress(user);
+    const fabricID = getFabricId(finalUser);
 
     const assetProfile = {
       expirationDate: new Date(2060, 11, 24).toString(),
@@ -115,13 +92,13 @@ Then(
 
     await axios
       .post(
-        "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
+        "http://localhost:4100/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
         {
           clientGatewayConfiguration: {
-            apiHost: `http://localhost:4000`,
+            apiHost: `http://localhost:4100`,
           },
           serverGatewayConfiguration: {
-            apiHost: `http://localhost:4100`,
+            apiHost: `http://localhost:4000`,
           },
           version: "0.0.0",
           loggingProfile: "dummyLoggingProfile",
@@ -134,22 +111,23 @@ Then(
           assetProfile: assetProfile,
           assetControlProfile: "dummyAssetControlProfile",
           beneficiaryPubkey: "dummyPubKey",
-          clientDltSystem: "DLT1",
+          clientDltSystem: "DLT2",
           originatorPubkey: "dummyPubKey",
-          recipientGatewayDltSystem: "DLT2",
-          recipientGatewayPubkey: CryptoMaterial.gateways["gateway2"].publicKey,
-          serverDltSystem: "DLT2",
-          sourceGatewayDltSystem: "DLT1",
+          recipientGatewayDltSystem: "DLT1",
+          recipientGatewayPubkey: CryptoMaterial.gateways["gateway1"].publicKey,
+          serverDltSystem: "DLT1",
+          sourceGatewayDltSystem: "DLT2",
           clientIdentityPubkey: "",
           serverIdentityPubkey: "",
           maxRetries: MAX_RETRIES,
           maxTimeout: MAX_TIMEOUT,
           sourceLedgerAssetID: assetRefID,
-          recipientLedgerAssetID: "BESU_ASSET_ID",
+          recipientLedgerAssetID: "FABRIC_ASSET_ID",
         },
       )
       .catch((err) => {
-        expect(err.response.data.error).to.contain(failureReason);
+        //expect(err.response.data.error).to.equal(check if we can make an assertion with the error message or not);
+        expect(err.response.status).to.equal(500);
       });
   },
 );

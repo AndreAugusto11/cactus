@@ -1,5 +1,5 @@
 {
-    "name": "cbdc-erc20",
+    "name": "cbdc",
     "version": "0.0.1",
     "description": "Token-ERC20 contract implemented in JavaScript",
     "main": "index.js",
@@ -17,10 +17,11 @@
     "author": "Hyperledger",
     "license": "Apache-2.0",
     "dependencies": {
-        "fabric-contract-api": "^2.0.0",
+        "fabric-contract-api": "^2.2.3",
         "fabric-shim": "^2.0.0"
     },
     "devDependencies": {
+        "@types/sinon-chai": "^3.2.8",
         "chai": "^4.1.2",
         "chai-as-promised": "^7.1.1",
         "eslint": "^4.19.1",

@@ -229,7 +229,7 @@ describe("AssetReference", () => {
     const amount2 = "500";
 
     it("should be a valid transfer bridging out CBDC to own address", async () => {
-      await contract.CheckValidTransfer(
+      await contract.CheckValidBridgeOut(
         ctx,
         assetID,
         amount1,
@@ -240,7 +240,7 @@ describe("AssetReference", () => {
 
     it("should throw an error transfer CBDC escrowed by another user", async () => {
       await contract
-        .CheckValidTransfer(
+        .CheckValidBridgeOut(
           ctx,
           assetID,
           amount1,
@@ -254,7 +254,7 @@ describe("AssetReference", () => {
 
     it("should throw an error bridging out more than the escrowed CBDC", async () => {
       await contract
-        .CheckValidTransfer(
+        .CheckValidBridgeOut(
           ctx,
           assetID,
           amount2,
@@ -279,6 +279,17 @@ describe("AssetReference", () => {
     it("subtract two numbers", () => {
       const result = contract.sub(number2, number1);
       chai.expect(result).to.equal(number2 - number1);
+    });
+  });
+
+  describe("#checkPermission", () => {
+    it("user from organization other than Org2 is not authorized to perform operations", () => {
+      ctx.clientIdentity.getMSPID.resolves("Org1MSP");
+      contract
+        .LockAssetReference(ctx, "1001")
+        .should.be.rejectedWith(
+          `client is not authorized to perform the operation. Org1MSP != "Org2MSP"`,
+        );
     });
   });
 });

@@ -79,6 +79,27 @@ export class BesuOdapGateway extends PluginOdapGateway {
     this.besuKeychainId = options.besuKeychainId;
   }
 
+  async isValidBridgeBackCBDC(assetID: string, amount: number): Promise<void> {
+    // we should verify if the CBDC being bridged is valid or not
+    // e.g. if a client is trying to send more CBDC than what was escrowed
+
+    if (this.besuApi != undefined) {
+      const response = await this.besuApi.invokeContractV1({
+        contractName: this.besuContractName,
+        invocationType: EthContractInvocationType.Call,
+        methodName: "checkValidBridgeBack",
+        gas: 1000000,
+        params: [assetID, amount],
+        signingCredential: this.besuWeb3SigningCredential,
+        keychainId: this.besuKeychainId,
+      } as BesuInvokeContractV1Request);
+
+      if (response.data.callOutput != true) {
+        throw new Error(`${response.statusText}`);
+      }
+    }
+  }
+
   async createAsset(sessionID: string, assetId?: string): Promise<string> {
     const fnTag = `${this.className}#createAsset()`;
 
