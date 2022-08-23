@@ -31,8 +31,8 @@ Given(
         gas: 1000000,
         params: [getUserAccount(user).address, amount],
         signingCredential: {
-          ethAccount: getUserAccount("charlie").address,
-          secret: getUserAccount("charlie").privateKey,
+          ethAccount: getUserAccount("bob").address,
+          secret: getUserAccount("bob").privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -64,18 +64,18 @@ When(
 );
 
 When(
-  "charlie locks the asset reference with id {string} in the sidechain",
+  "bob locks the asset reference with id {string} in the sidechain",
   async function (assetRefID: string) {
     await lockBesuAssetReference(
-      getUserAccount("charlie").address,
-      getUserAccount("charlie").privateKey,
+      getUserAccount("bob").address,
+      getUserAccount("bob").privateKey,
       assetRefID,
     );
   },
 );
 
 When(
-  "charlie deletes the asset reference with id {string} in the sidechain",
+  "bob deletes the asset reference with id {string} in the sidechain",
   async function (assetRefID: string) {
     await axios.post(
       "http://localhost:4100/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-besu/invoke-contract",
@@ -86,8 +86,8 @@ When(
         gas: 1000000,
         params: [assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("charlie").address,
-          secret: getUserAccount("charlie").privateKey,
+          ethAccount: getUserAccount("bob").address,
+          secret: getUserAccount("bob").privateKey,
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,

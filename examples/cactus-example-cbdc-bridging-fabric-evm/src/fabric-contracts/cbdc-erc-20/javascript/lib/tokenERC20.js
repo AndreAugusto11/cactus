@@ -582,7 +582,7 @@ class TokenERC20Contract extends Contract {
   }
 
   /**
-   *  UnEscrow transfers tokens from the bridging entity account to the client account.
+   *  Refunds transfers tokens from the bridging entity account to the client account.
    *  recipient account must be a valid clientID as returned by the ClientAccountID() function.
    *
    * @param {Context} ctx the transaction context
@@ -590,14 +590,14 @@ class TokenERC20Contract extends Contract {
    * @param {Integer} value The amount of token to be transferred
    * @returns {Boolean} Return whether the transfer was successful or not
    */
-  async UnEscrow(ctx, to, value, eth_address) {
+  async Refund(ctx, to, value, eth_address) {
     //check contract options are already set first to execute the function
     await this.CheckInitialized(ctx);
 
     const from = ctx.clientIdentity.getID();
 
     if (from !== FABRIC_BRIDGE_IDENTITY) {
-      throw new Error("client is not authorized to unescrow tokens");
+      throw new Error("client is not authorized to refund tokens");
     }
 
     const clientEthAddress = await this.getAddressMapping(ctx, to);

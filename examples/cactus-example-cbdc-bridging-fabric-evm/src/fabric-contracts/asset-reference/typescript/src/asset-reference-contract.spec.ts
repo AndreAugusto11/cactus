@@ -213,9 +213,9 @@ describe("AssetReference", () => {
     });
   });
 
-  describe("#Unescrow", () => {
+  describe("#Refund", () => {
     it("should decrease bridged out amount", async () => {
-      await contract.Unescrow(ctx, 20, USER_A_FABRIC_ID, USER_A_ETH_ADDRESS);
+      await contract.Refund(ctx, 20, USER_A_FABRIC_ID, USER_A_ETH_ADDRESS);
       ctx.stub.putState.should.have.been.calledOnceWithExactly(
         bridgedOutAmountKey,
         Buffer.from("30"),

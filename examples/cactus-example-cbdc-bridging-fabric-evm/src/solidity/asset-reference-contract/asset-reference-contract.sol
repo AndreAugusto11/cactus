@@ -80,9 +80,9 @@ contract AssetReferenceContract is MyOwnable {
     require(success, "burn call failed");
   }
 
-  function checkValidBridgeBack(string calldata id, uint256 amount) public view returns (bool) {
+  function checkValidBridgeBack(string calldata id, uint256 amount, address user) public view returns (bool) {
     require(isPresent(id), "The asset reference does not exist");
     
-    return (assets[id].amount >= amount);
+    return (assets[id].amount >= amount) && (assets[id].recipient == user);
   }
 }

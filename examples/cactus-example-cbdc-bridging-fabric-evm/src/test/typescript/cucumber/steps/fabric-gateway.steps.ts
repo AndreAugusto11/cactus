@@ -10,7 +10,7 @@ import {
   lockFabricAssetReference,
   readFabricAssetReference,
   resetFabric,
-  unescrowFabricTokens,
+  refundFabricTokens,
 } from "../fabric-helper";
 
 const EVM_USER_A_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
@@ -31,7 +31,7 @@ Before({ timeout: 20 * 1000, tags: "@fabric" }, async function () {
   await resetFabric();
 });
 
-Given("{string} with {int} CBDC available", async function (
+Given("{string} with {int} CBDC available in the source chain", async function (
   user: string,
   amount: number,
 ) {
@@ -54,7 +54,7 @@ Given("{string} with {int} CBDC available", async function (
 });
 
 When(
-  "{string} escrows {int} CBDC and creates an asset reference with id {string}",
+  "{string} escrows {int} CBDC and creates an asset reference with id {string} in the source chain",
   async function (user: string, amount: number, assetRefID: string) {
     await axios.post(
       "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
@@ -73,15 +73,15 @@ When(
   },
 );
 
-When("{string} locks the asset reference with id {string}", async function (
-  user: string,
-  assetRefID: string,
-) {
-  await lockFabricAssetReference(user, assetRefID);
-});
+When(
+  "{string} locks the asset reference with id {string} in the source chain",
+  async function (user: string, assetRefID: string) {
+    await lockFabricAssetReference(user, assetRefID);
+  },
+);
 
 When(
-  "{string} locks and deletes an asset reference with id {string}",
+  "{string} locks and deletes an asset reference with id {string} in the source chain",
   { timeout: 10 * 1000 },
   async function (user: string, assetRefID: string) {
     await lockFabricAssetReference(user, assetRefID);
@@ -89,7 +89,7 @@ When(
   },
 );
 
-When("charlie refunds {int} CBDC to {string}", async function (
+When("bob refunds {int} CBDC to {string} in the source chain", async function (
   amount: number,
   userTo: string,
 ) {
@@ -98,11 +98,11 @@ When("charlie refunds {int} CBDC to {string}", async function (
   const finalUserEthAddress =
     userTo == "alice" ? EVM_USER_A_USER_ADDRESS : EVM_USER_B_USER_ADDRESS;
 
-  await unescrowFabricTokens(finalUserFabricID, amount, finalUserEthAddress);
+  await refundFabricTokens(finalUserFabricID, amount, finalUserEthAddress);
 });
 
 Then(
-  "{string} fails to lock the asset reference with id {string}",
+  "{string} fails to lock the asset reference with id {string} in the source chain",
   async function (user: string, assetRefID: string) {
     return axios
       .post(
@@ -167,7 +167,7 @@ Then("{string} fails to transfer {int} CBDC to {string}", async function (
     });
 });
 
-Then("{string} has {int} CBDC available", async function (
+Then("{string} has {int} CBDC available in the source chain", async function (
   user: string,
   amount: number,
 ) {
@@ -193,11 +193,14 @@ Then(
   },
 );
 
-Then("the asset reference with id {string} is locked", async function (
-  assetRefID: string,
-) {
-  expect((await readFabricAssetReference(assetRefID)).isLocked).to.equal(true);
-});
+Then(
+  "the asset reference with id {string} is locked in the source chain",
+  async function (assetRefID: string) {
+    expect((await readFabricAssetReference(assetRefID)).isLocked).to.equal(
+      true,
+    );
+  },
+);
 
 Then(
   "the asset reference chaincode has no asset reference with id {string}",

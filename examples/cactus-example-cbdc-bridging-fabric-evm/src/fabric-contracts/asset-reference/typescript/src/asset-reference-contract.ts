@@ -79,7 +79,7 @@ export class AssetReferenceContract extends Contract {
   }
 
   @Transaction()
-  public async Unescrow(
+  public async Refund(
     ctx: Context,
     numberTokens: number,
     finalFabricIdentity: string,
@@ -88,14 +88,11 @@ export class AssetReferenceContract extends Contract {
     await this.CheckPermission(ctx);
 
     console.log(
-      "Calling unescrow tokens to " +
-        finalFabricIdentity +
-        " from " +
-        ethAddress,
+      "Calling refund tokens to " + finalFabricIdentity + " from " + ethAddress,
     );
     await ctx.stub.invokeChaincode(
       "cbdc",
-      ["UnEscrow", finalFabricIdentity, numberTokens.toString(), ethAddress],
+      ["Refund", finalFabricIdentity, numberTokens.toString(), ethAddress],
       ctx.stub.getChannelID(),
     );
 

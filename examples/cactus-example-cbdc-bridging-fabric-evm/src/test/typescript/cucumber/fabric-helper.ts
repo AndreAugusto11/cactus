@@ -107,7 +107,7 @@ export async function deleteFabricAssetReference(
   );
 }
 
-export async function unescrowFabricTokens(
+export async function refundFabricTokens(
   finalUserFabricID: string,
   amount: number,
   finalUserEthAddress: string,
@@ -118,7 +118,7 @@ export async function unescrowFabricTokens(
       contractName: FABRIC_CONTRACT_ASSET_REF_NAME,
       channelName: FABRIC_CHANNEL_NAME,
       params: [amount.toString(), finalUserFabricID, finalUserEthAddress],
-      methodName: "Unescrow",
+      methodName: "Refund",
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,

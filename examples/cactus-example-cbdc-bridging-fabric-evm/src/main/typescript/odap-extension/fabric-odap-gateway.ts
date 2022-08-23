@@ -291,7 +291,7 @@ export class FabricOdapGateway extends PluginOdapGateway {
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
         params: [amount, fabricClientID, userEthAddress],
-        methodName: "Unescrow",
+        methodName: "Refund",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,
       } as FabricRunTransactionRequest);
@@ -445,12 +445,12 @@ export class FabricOdapGateway extends PluginOdapGateway {
 
     if (this.fabricApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
-      // const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
+      const userEthAddress = sessionData.assetProfile.keyInformationLink[2].toString();
 
       const response = await this.fabricApi.runTransactionV1({
         contractName: this.fabricContractName,
         channelName: this.fabricChannelName,
-        params: [assetID!, amount, "false"],
+        params: [assetID, amount, userEthAddress],
         methodName: "CreateAssetReference",
         invocationType: FabricContractInvocationType.Send,
         signingCredential: this.fabricSigningCredential,

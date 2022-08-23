@@ -12,9 +12,9 @@ export function getUserAccount(user: string): any {
   switch (user) {
     case "alice":
       return CryptoMaterial.accounts["userA"];
-    case "bob":
-      return CryptoMaterial.accounts["userB"];
     case "charlie":
+      return CryptoMaterial.accounts["userB"];
+    case "bob":
       return CryptoMaterial.accounts["bridge"];
     default:
       assert.fail(0, 1, "Invalid user provided");
@@ -25,9 +25,9 @@ export function getUserFromPseudonim(user: string): string {
   switch (user) {
     case "alice":
       return "userA";
-    case "bob":
-      return "userB";
     case "charlie":
+      return "userB";
+    case "bob":
       return "bridgeEntity";
     default:
       assert.fail(0, 1, "Invalid user provided");

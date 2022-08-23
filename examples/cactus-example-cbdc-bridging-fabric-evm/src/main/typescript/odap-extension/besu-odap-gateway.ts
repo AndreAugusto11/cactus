@@ -79,7 +79,11 @@ export class BesuOdapGateway extends PluginOdapGateway {
     this.besuKeychainId = options.besuKeychainId;
   }
 
-  async isValidBridgeBackCBDC(assetID: string, amount: number): Promise<void> {
+  async isValidBridgeBackCBDC(
+    assetID: string,
+    amount: number,
+    user: string,
+  ): Promise<void> {
     // we should verify if the CBDC being bridged is valid or not
     // e.g. if a client is trying to send more CBDC than what was escrowed
 
@@ -89,7 +93,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
         invocationType: EthContractInvocationType.Call,
         methodName: "checkValidBridgeBack",
         gas: 1000000,
-        params: [assetID, amount],
+        params: [assetID, amount, user],
         signingCredential: this.besuWeb3SigningCredential,
         keychainId: this.besuKeychainId,
       } as BesuInvokeContractV1Request);
@@ -368,7 +372,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
       const assetUnlockResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,
         invocationType: EthContractInvocationType.Send,
-        methodName: "unlockAssetReference",
+        methodName: "unLockAssetReference",
         gas: 1000000,
         params: [assetId],
         signingCredential: this.besuWeb3SigningCredential,
@@ -454,7 +458,7 @@ export class BesuOdapGateway extends PluginOdapGateway {
 
     if (this.besuApi != undefined) {
       const amount = sessionData.assetProfile.keyInformationLink[0].toString();
-      const userEthAddress = sessionData.assetProfile.keyInformationLink[1].toString();
+      const userEthAddress = sessionData.assetProfile.keyInformationLink[2].toString();
 
       const assetCreateResponse = await this.besuApi.invokeContractV1({
         contractName: this.besuContractName,

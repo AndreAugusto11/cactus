@@ -117,6 +117,7 @@ export class ClientHelper extends ClientGatewayHelper {
         .isValidBridgeBackCBDC(
           sessionData.sourceLedgerAssetID,
           sessionData.assetProfile.keyInformationLink[0].toString(), // Amount
+          sessionData.assetProfile.keyInformationLink[2].toString(), // Amount
         )
         .catch((err) => {
           throw new Error(`${err}`);

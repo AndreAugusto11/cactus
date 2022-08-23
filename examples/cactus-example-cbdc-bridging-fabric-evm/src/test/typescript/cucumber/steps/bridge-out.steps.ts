@@ -10,7 +10,9 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_ASSET_REF_NAME = "asset-reference-contract";
 
-Then("the bridged out amount is {int} CBDC", async function (amount: string) {
+Then("the bridged out amount in the chaincode is {int} CBDC", async function (
+  amount: string,
+) {
   const response = await axios.post(
     "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
     {
@@ -21,7 +23,7 @@ Then("the bridged out amount is {int} CBDC", async function (amount: string) {
       invocationType: "FabricContractInvocationType.CALL",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: getUserFromPseudonim("charlie"),
+        keychainRef: getUserFromPseudonim("bob"),
       },
     },
   );

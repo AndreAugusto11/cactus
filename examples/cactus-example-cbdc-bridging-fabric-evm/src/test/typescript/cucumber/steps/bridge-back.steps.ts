@@ -126,7 +126,6 @@ Then(
         },
       )
       .catch((err) => {
-        //expect(err.response.data.error).to.equal(check if we can make an assertion with the error message or not);
         expect(err.response.status).to.equal(500);
       });
   },
