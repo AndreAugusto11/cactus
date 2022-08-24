@@ -89,6 +89,7 @@ import {
   sendRollbackAckMessage,
 } from "./recovery/rollback-ack";
 import { ClientRequestEndpointV1 } from "../web-services/client-side/client-request-endpoint";
+import { RollbackAckMessageEndpointV1 } from "../web-services/recovery/rollback-ack-message-endpoint";
 
 export enum OdapMessageType {
   InitializationRequest = "urn:ietf:odap:msgtype:init-transfer-msg",
@@ -306,6 +307,10 @@ export abstract class PluginOdapGateway
       gateway: this,
     });
 
+    const rollbackAckEndpoint = new RollbackAckMessageEndpointV1({
+      gateway: this,
+    });
+
     this.endpoints = [
       transferInitiationRequestEndpoint,
       transferCommenceRequestEndpoint,
@@ -324,6 +329,7 @@ export abstract class PluginOdapGateway
       recoverUpdateAckEndpoint,
       recoverSuccessEndpoint,
       rollbackEndpoint,
+      rollbackAckEndpoint,
     ];
     return this.endpoints;
   }
