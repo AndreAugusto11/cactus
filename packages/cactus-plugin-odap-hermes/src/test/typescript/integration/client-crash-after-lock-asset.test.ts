@@ -679,7 +679,7 @@ test("client gateway crashes after lock fabric asset", async () => {
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
+  const transferInitializationRequest = await pluginSourceGateway.clientHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -690,12 +690,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await ServerGatewayHelper.sendTransferInitializationResponse(
+  const transferInitializationResponse = await pluginRecipientGateway.serverHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -706,12 +706,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
+  await pluginSourceGateway.clientHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );
 
-  const transferCommenceRequest = await ClientGatewayHelper.sendTransferCommenceRequest(
+  const transferCommenceRequest = await pluginSourceGateway.clientHelper.sendTransferCommenceRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -722,12 +722,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidtransferCommenceRequest(
     transferCommenceRequest,
     pluginRecipientGateway,
   );
 
-  const transferCommenceResponse = await ServerGatewayHelper.sendTransferCommenceResponse(
+  const transferCommenceResponse = await pluginRecipientGateway.serverHelper.sendTransferCommenceResponse(
     transferCommenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -738,7 +738,7 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidTransferCommenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );

@@ -224,7 +224,7 @@ beforeAll(async () => {
 test("server gateway crashes after transfer initiation flow", async () => {
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
+  const transferInitializationRequest = await pluginSourceGateway.clientHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -235,7 +235,7 @@ test("server gateway crashes after transfer initiation flow", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );

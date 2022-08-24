@@ -201,7 +201,7 @@ test("valid lock evidence request", async () => {
     JSON.stringify(lockEvidenceRequestMessage),
   ).toString();
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequestMessage,
     pluginRecipientGateway,
   );
@@ -237,10 +237,11 @@ test("lock evidence request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
-    lockEvidenceRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidLockEvidenceRequest(
+      lockEvidenceRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -268,10 +269,11 @@ test("lock evidence request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
-    lockEvidenceRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidLockEvidenceRequest(
+      lockEvidenceRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -297,10 +299,11 @@ test("lock evidence request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
-    lockEvidenceRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidLockEvidenceRequest(
+      lockEvidenceRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -326,10 +329,11 @@ test("transfer commence flow with invalid claim", async () => {
     pluginSourceGateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
-    lockEvidenceRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidLockEvidenceRequest(
+      lockEvidenceRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -358,16 +362,13 @@ test("timeout in lock evidence response because no client gateway is connected",
 
   pluginRecipientGateway.sessions.set(sessionID, sessionData);
 
-  await ServerGatewayHelper.sendLockEvidenceResponse(
-    sessionID,
-    pluginRecipientGateway,
-    true,
-  )
+  await pluginRecipientGateway.serverHelper
+    .sendLockEvidenceResponse(sessionID, pluginRecipientGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

@@ -197,7 +197,7 @@ test("valid commit final request", async () => {
     JSON.stringify(commitFinalRequestMessage),
   ).toString();
 
-  await ServerGatewayHelper.checkValidCommitFinalRequest(
+  await pluginRecipientGateway.serverHelper.checkValidCommitFinalRequest(
     commitFinalRequestMessage,
     pluginRecipientGateway,
   );
@@ -233,10 +233,11 @@ test("commit final request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitFinalRequest(
-    commitFinalRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitFinalRequest(
+      commitFinalRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -263,10 +264,11 @@ test("commit final request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitFinalRequest(
-    commitFinalRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitFinalRequest(
+      commitFinalRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -291,10 +293,11 @@ test("commit final request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitFinalRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitFinalRequest(
-    commitFinalRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitFinalRequest(
+      commitFinalRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -323,16 +326,13 @@ test("timeout in commit final response because no client gateway is connected", 
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ServerGatewayHelper.sendCommitFinalResponse(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginRecipientGateway.serverHelper
+    .sendCommitFinalResponse(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

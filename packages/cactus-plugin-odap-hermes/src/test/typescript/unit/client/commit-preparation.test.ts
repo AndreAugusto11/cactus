@@ -102,7 +102,7 @@ test("valid commit preparation response", async () => {
     JSON.stringify(commitPreparationResponse),
   ).toString();
 
-  await ClientGatewayHelper.checkValidCommitPreparationResponse(
+  await pluginSourceGateway.clientHelper.checkValidCommitPreparationResponse(
     commitPreparationResponse,
     pluginSourceGateway,
   );
@@ -137,10 +137,11 @@ test("commit preparation response invalid because of wrong previous message hash
     ),
   );
 
-  await ClientGatewayHelper.checkValidCommitPreparationResponse(
-    commitPreparationResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidCommitPreparationResponse(
+      commitPreparationResponse,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -166,10 +167,11 @@ test("commit preparation response invalid because of wrong signature", async () 
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await ClientGatewayHelper.checkValidCommitPreparationResponse(
-    commitPreparationResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidCommitPreparationResponse(
+      commitPreparationResponse,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -197,16 +199,13 @@ test("timeout in commit preparation request because no server gateway is connect
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ClientGatewayHelper.sendCommitPreparationRequest(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginSourceGateway.clientHelper
+    .sendCommitPreparationRequest(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

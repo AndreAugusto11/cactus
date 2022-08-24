@@ -189,7 +189,7 @@ test("valid commit final response", async () => {
 
   const messageHash = SHA256(JSON.stringify(commitFinalResponse)).toString();
 
-  await ClientGatewayHelper.checkValidCommitFinalResponse(
+  await pluginSourceGateway.clientHelper.checkValidCommitFinalResponse(
     commitFinalResponse,
     pluginSourceGateway,
   );
@@ -224,10 +224,8 @@ test("commit final response invalid because of wrong previous message hash", asy
     await pluginRecipientGateway.sign(JSON.stringify(commitFinalResponse)),
   );
 
-  await ClientGatewayHelper.checkValidCommitFinalResponse(
-    commitFinalResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidCommitFinalResponse(commitFinalResponse, pluginSourceGateway)
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -254,10 +252,8 @@ test("commit final response invalid because of wrong signature", async () => {
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await ClientGatewayHelper.checkValidCommitFinalResponse(
-    commitFinalResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidCommitFinalResponse(commitFinalResponse, pluginSourceGateway)
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -286,16 +282,13 @@ test("timeout in commit final request because no server gateway is connected", a
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ClientGatewayHelper.sendCommitFinalRequest(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginSourceGateway.clientHelper
+    .sendCommitFinalRequest(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

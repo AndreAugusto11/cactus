@@ -103,7 +103,7 @@ test("valid commit prepare request", async () => {
     JSON.stringify(commitPrepareRequestMessage),
   ).toString();
 
-  await ServerGatewayHelper.checkValidCommitPreparationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidCommitPreparationRequest(
     commitPrepareRequestMessage,
     pluginRecipientGateway,
   );
@@ -136,10 +136,11 @@ test("commit prepare request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitPrepareRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitPreparationRequest(
-    commitPrepareRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitPreparationRequest(
+      commitPrepareRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -165,10 +166,11 @@ test("commit prepare request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitPrepareRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitPreparationRequest(
-    commitPrepareRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitPreparationRequest(
+      commitPrepareRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -194,10 +196,11 @@ test("commit prepare request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(commitPrepareRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidCommitPreparationRequest(
-    commitPrepareRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidCommitPreparationRequest(
+      commitPrepareRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -225,16 +228,13 @@ test("timeout in commit preparation response because no client gateway is connec
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ServerGatewayHelper.sendCommitPreparationResponse(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginRecipientGateway.serverHelper
+    .sendCommitPreparationResponse(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

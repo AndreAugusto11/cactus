@@ -100,7 +100,7 @@ test("valid transfer commence response", async () => {
     JSON.stringify(transferCommenceResponse),
   ).toString();
 
-  await ClientGatewayHelper.checkValidTransferCommenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );
@@ -133,10 +133,11 @@ test("transfer commence response invalid because of wrong previous message hash"
     await pluginRecipientGateway.sign(JSON.stringify(transferCommenceResponse)),
   );
 
-  await ClientGatewayHelper.checkValidTransferCommenceResponse(
-    transferCommenceResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidTransferCommenceResponse(
+      transferCommenceResponse,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -162,10 +163,11 @@ test("transfer commence response invalid because of wrong signature", async () =
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await ClientGatewayHelper.checkValidTransferCommenceResponse(
-    transferCommenceResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidTransferCommenceResponse(
+      transferCommenceResponse,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -209,16 +211,13 @@ test("timeout in transfer commence request because no server gateway is connecte
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ClientGatewayHelper.sendTransferCommenceRequest(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginSourceGateway.clientHelper
+    .sendTransferCommenceRequest(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

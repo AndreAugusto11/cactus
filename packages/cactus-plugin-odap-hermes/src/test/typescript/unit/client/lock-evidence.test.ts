@@ -98,7 +98,7 @@ test("valid lock evidence response", async () => {
 
   const messageHash = SHA256(JSON.stringify(lockEvidenceResponse)).toString();
 
-  await ClientGatewayHelper.checkValidLockEvidenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidLockEvidenceResponse(
     lockEvidenceResponse,
     pluginSourceGateway,
   );
@@ -131,10 +131,8 @@ test("lock evidence response invalid because of wrong previous message hash", as
     await pluginRecipientGateway.sign(JSON.stringify(lockEvidenceResponse)),
   );
 
-  await ClientGatewayHelper.checkValidLockEvidenceResponse(
-    lockEvidenceResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidLockEvidenceResponse(lockEvidenceResponse, pluginSourceGateway)
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -160,10 +158,8 @@ test("lock evidence response invalid because of wrong signature", async () => {
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
-  await ClientGatewayHelper.checkValidLockEvidenceResponse(
-    lockEvidenceResponse,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidLockEvidenceResponse(lockEvidenceResponse, pluginSourceGateway)
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -194,16 +190,13 @@ test("timeout in lock evidence request because no server gateway is connected", 
 
   await pluginSourceGateway.lockAsset(sessionID);
 
-  await ClientGatewayHelper.sendLockEvidenceRequest(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginSourceGateway.clientHelper
+    .sendLockEvidenceRequest(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

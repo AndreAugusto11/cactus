@@ -103,12 +103,14 @@ test("dummy test for transfer complete flow", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCompleteRequestMessage)),
   );
 
-  ServerGatewayHelper.checkValidTransferCompleteRequest(
-    transferCompleteRequestMessage,
-    pluginRecipientGateway,
-  ).catch(() => {
-    throw new Error("Test failed");
-  });
+  pluginRecipientGateway.serverHelper
+    .checkValidTransferCompleteRequest(
+      transferCompleteRequestMessage,
+      pluginRecipientGateway,
+    )
+    .catch(() => {
+      throw new Error("Test failed");
+    });
 });
 
 afterEach(() => {

@@ -1209,10 +1209,8 @@ export abstract class PluginOdapGateway
 
     while (numberOfTries < sessionData.maxRetries) {
       response = await request.catch((err) => {
-        if (err.response.status == 500) {
-          throw new Error(
-            `${fnTag}, ${message} message failed. ${err.response.data.error}`,
-          );
+        if (err.response == undefined || err.response.status == 500) {
+          throw new Error(`${fnTag}, ${message} message failed. ${err}`);
         }
         this.log.info(`${fnTag}, ${message} message failed. Trying again...`);
         numberOfTries++;

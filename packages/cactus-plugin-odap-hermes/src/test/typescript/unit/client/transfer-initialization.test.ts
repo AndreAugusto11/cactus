@@ -105,7 +105,7 @@ test("valid transfer initiation response", async () => {
     JSON.stringify(initializationResponseMessage),
   ).toString();
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
+  await pluginSourceGateway.clientHelper.checkValidInitializationResponse(
     initializationResponseMessage,
     pluginSourceGateway,
   );
@@ -148,10 +148,11 @@ test("transfer initiation response invalid because of wrong previous message has
     ),
   );
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
-    initializationResponseMessage,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidInitializationResponse(
+      initializationResponseMessage,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -181,10 +182,11 @@ test("transfer initiation response invalid because it does not match transfer in
     ),
   );
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
-    initializationResponseMessage,
-    pluginSourceGateway,
-  )
+  await pluginSourceGateway.clientHelper
+    .checkValidInitializationResponse(
+      initializationResponseMessage,
+      pluginSourceGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -226,16 +228,13 @@ test("timeout in transfer initiation request because no server gateway is connec
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ClientGatewayHelper.sendTransferInitializationRequest(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginSourceGateway.clientHelper
+    .sendTransferInitializationRequest(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

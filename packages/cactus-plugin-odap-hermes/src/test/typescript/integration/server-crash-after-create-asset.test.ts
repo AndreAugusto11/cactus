@@ -679,7 +679,7 @@ test("server gateway crashes after creating besu asset", async () => {
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
+  const transferInitializationRequest = await pluginSourceGateway.clientHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -690,12 +690,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await ServerGatewayHelper.sendTransferInitializationResponse(
+  const transferInitializationResponse = await pluginRecipientGateway.serverHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -706,12 +706,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
+  await pluginSourceGateway.clientHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );
 
-  const transferCommenceRequest = await ClientGatewayHelper.sendTransferCommenceRequest(
+  const transferCommenceRequest = await pluginSourceGateway.clientHelper.sendTransferCommenceRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -722,12 +722,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidtransferCommenceRequest(
     transferCommenceRequest,
     pluginRecipientGateway,
   );
 
-  const transferCommenceResponse = await ServerGatewayHelper.sendTransferCommenceResponse(
+  const transferCommenceResponse = await pluginRecipientGateway.serverHelper.sendTransferCommenceResponse(
     transferCommenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -738,14 +738,14 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidTransferCommenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );
 
   await pluginSourceGateway.lockAsset(sessionID);
 
-  const lockEvidenceRequest = await ClientGatewayHelper.sendLockEvidenceRequest(
+  const lockEvidenceRequest = await pluginSourceGateway.clientHelper.sendLockEvidenceRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -756,12 +756,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidLockEvidenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidLockEvidenceRequest(
     lockEvidenceRequest,
     pluginRecipientGateway,
   );
 
-  const lockEvidenceResponse = await ServerGatewayHelper.sendLockEvidenceResponse(
+  const lockEvidenceResponse = await pluginRecipientGateway.serverHelper.sendLockEvidenceResponse(
     lockEvidenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -772,12 +772,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidLockEvidenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidLockEvidenceResponse(
     lockEvidenceResponse,
     pluginSourceGateway,
   );
 
-  const commitPreparationRequest = await ClientGatewayHelper.sendCommitPreparationRequest(
+  const commitPreparationRequest = await pluginSourceGateway.clientHelper.sendCommitPreparationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -788,12 +788,12 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidCommitPreparationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidCommitPreparationRequest(
     commitPreparationRequest,
     pluginRecipientGateway,
   );
 
-  const commitPreparationResponse = await ServerGatewayHelper.sendCommitPreparationResponse(
+  const commitPreparationResponse = await pluginRecipientGateway.serverHelper.sendCommitPreparationResponse(
     lockEvidenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -804,14 +804,14 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ClientGatewayHelper.checkValidCommitPreparationResponse(
+  await pluginSourceGateway.clientHelper.checkValidCommitPreparationResponse(
     commitPreparationResponse,
     pluginSourceGateway,
   );
 
   await pluginSourceGateway.deleteAsset(sessionID);
 
-  const commitFinalRequest = await ClientGatewayHelper.sendCommitFinalRequest(
+  const commitFinalRequest = await pluginSourceGateway.clientHelper.sendCommitFinalRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -822,7 +822,7 @@ test("server gateway crashes after creating besu asset", async () => {
     return;
   }
 
-  await ServerGatewayHelper.checkValidCommitFinalRequest(
+  await pluginRecipientGateway.serverHelper.checkValidCommitFinalRequest(
     commitFinalRequest,
     pluginRecipientGateway,
   );

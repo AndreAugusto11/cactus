@@ -26,6 +26,8 @@ import { checkValidRecoverMessage } from "../../../../main/typescript/gateway/re
 
 import { BesuOdapGateway } from "../../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
 const logLevel: LogLevelDesc = "TRACE";
 
@@ -90,6 +92,8 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
   recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
@@ -97,6 +101,8 @@ beforeAll(async () => {
     instanceId: uuidV4(),
     ipfsPath: ipfsApiHost,
     keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 });
 

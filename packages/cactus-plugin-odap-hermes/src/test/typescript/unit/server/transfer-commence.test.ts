@@ -122,7 +122,7 @@ test("valid transfer commence request", async () => {
     JSON.stringify(transferCommenceRequest),
   ).toString();
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidtransferCommenceRequest(
     transferCommenceRequest,
     pluginRecipientGateway,
   );
@@ -163,10 +163,11 @@ test("transfer commence request with wrong sessionId", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCommenceRequest)),
   );
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
-    transferCommenceRequest,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidtransferCommenceRequest(
+      transferCommenceRequest,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -197,10 +198,11 @@ test("transfer commence request with wrong message type", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCommenceRequest)),
   );
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
-    transferCommenceRequest,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidtransferCommenceRequest(
+      transferCommenceRequest,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -231,10 +233,11 @@ test("transfer commence request with wrong signature", async () => {
     pluginSourceGateway.sign(JSON.stringify("wrongData")),
   );
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
-    transferCommenceRequest,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidtransferCommenceRequest(
+      transferCommenceRequest,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -265,10 +268,11 @@ test("transfer commence request with wrong previous message hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCommenceRequest)),
   );
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
-    transferCommenceRequest,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidtransferCommenceRequest(
+      transferCommenceRequest,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -299,10 +303,11 @@ test("transfer commence request with wrong asset profile hash", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCommenceRequest)),
   );
 
-  await ServerGatewayHelper.checkValidtransferCommenceRequest(
-    transferCommenceRequest,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidtransferCommenceRequest(
+      transferCommenceRequest,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -331,16 +336,13 @@ test("timeout in transfer commence response because no client gateway is connect
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ServerGatewayHelper.sendTransferCommenceResponse(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginRecipientGateway.serverHelper
+    .sendTransferCommenceResponse(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 

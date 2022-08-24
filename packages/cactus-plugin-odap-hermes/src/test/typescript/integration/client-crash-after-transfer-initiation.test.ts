@@ -243,7 +243,7 @@ afterEach(() => {
 test("successful run ODAP after client gateway crashed after after receiving transfer initiation response", async () => {
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await ClientGatewayHelper.sendTransferInitializationRequest(
+  const transferInitializationRequest = await pluginSourceGateway.clientHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -254,12 +254,12 @@ test("successful run ODAP after client gateway crashed after after receiving tra
     return;
   }
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await ServerGatewayHelper.sendTransferInitializationResponse(
+  const transferInitializationResponse = await pluginRecipientGateway.serverHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -270,7 +270,7 @@ test("successful run ODAP after client gateway crashed after after receiving tra
     return;
   }
 
-  await ClientGatewayHelper.checkValidInitializationResponse(
+  await pluginSourceGateway.clientHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );

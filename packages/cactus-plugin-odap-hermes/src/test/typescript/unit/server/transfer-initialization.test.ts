@@ -102,7 +102,7 @@ test("valid transfer initiation request", async () => {
     JSON.stringify(initializationRequestMessage),
   ).toString();
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     initializationRequestMessage,
     pluginRecipientGateway,
   );
@@ -166,10 +166,11 @@ test("transfer initiation request invalid because of incompatible DLTs", async (
     ),
   );
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
-    initializationRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidInitializationRequest(
+      initializationRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -214,10 +215,11 @@ test("transfer initiation request invalid because of asset expired", async () =>
     pluginSourceGateway.sign(JSON.stringify(initializationRequestMessage)),
   );
 
-  await ServerGatewayHelper.checkValidInitializationRequest(
-    initializationRequestMessage,
-    pluginRecipientGateway,
-  )
+  await pluginRecipientGateway.serverHelper
+    .checkValidInitializationRequest(
+      initializationRequestMessage,
+      pluginRecipientGateway,
+    )
     .then(() => {
       throw new Error("Test Failed");
     })
@@ -246,16 +248,13 @@ test("timeout in commit final response because no client gateway is connected", 
 
   pluginSourceGateway.sessions.set(sessionID, sessionData);
 
-  await ServerGatewayHelper.sendTransferInitializationResponse(
-    sessionID,
-    pluginSourceGateway,
-    true,
-  )
+  await pluginRecipientGateway.serverHelper
+    .sendTransferInitializationResponse(sessionID, pluginSourceGateway, true)
     .then(() => {
       throw new Error("Test Failed");
     })
     .catch((ex: Error) => {
-      expect(ex.message).toMatch("Timeout exceeded.");
+      expect(ex.message).toMatch("message failed.");
     });
 });
 
