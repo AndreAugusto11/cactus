@@ -122,7 +122,7 @@ export async function refundFabricTokens(
       invocationType: "FabricContractInvocationType.SEND",
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: "bridgeEntity",
+        keychainRef: "bridge",
       },
     },
   );

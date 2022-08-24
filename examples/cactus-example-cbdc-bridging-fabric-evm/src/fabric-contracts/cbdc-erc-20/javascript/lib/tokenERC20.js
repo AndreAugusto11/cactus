@@ -11,24 +11,21 @@ const CryptoMaterial = require("../crypto-material/crypto-material.json");
 
 const accounts = [
   {
-    fabric:
-      "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
-    ethereum: CryptoMaterial.accounts.userA.address,
+    fabric: CryptoMaterial.accounts.userA.fabricID,
+    ethereum: CryptoMaterial.accounts.userA.ethAddress,
   },
   {
-    fabric:
-      "x509::/OU=client/OU=org1/OU=department1/CN=userB::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com",
-    ethereum: CryptoMaterial.accounts.userB.address,
+    fabric: CryptoMaterial.accounts.userB.fabricID,
+    ethereum: CryptoMaterial.accounts.userB.ethAddress,
   },
   {
-    fabric:
-      "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com",
-    ethereum: CryptoMaterial.accounts.bridge.address,
+    fabric: CryptoMaterial.accounts.bridge.fabricID,
+    ethereum: CryptoMaterial.accounts.bridge.ethAddress,
   },
 ];
 
 const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+  "x509::/OU=client/OU=org2/OU=department1/CN=bridge::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
 // Define objectType names for prefix
 const balancePrefix = "balance";

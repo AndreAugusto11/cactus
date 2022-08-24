@@ -1,8 +1,8 @@
 import { Given, When, Then, Before } from "cucumber";
-import { expect, assert } from "chai";
+import { expect } from "chai";
 import axios from "axios";
 import CryptoMaterial from "../../../../crypto-material/crypto-material.json";
-import { getUserFromPseudonim } from "./common";
+import { getEthAddress, getFabricId, getUserFromPseudonim } from "./common";
 import {
   deleteFabricAssetReference,
   fabricAssetReferenceExists,
@@ -13,19 +13,9 @@ import {
   refundFabricTokens,
 } from "../fabric-helper";
 
-const EVM_USER_A_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
-const EVM_USER_B_USER_ADDRESS = CryptoMaterial.accounts["userB"].address;
-
 const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc";
 const FABRIC_CONTRACT_ASSET_REF_NAME = "asset-reference-contract";
-
-const USER_A_FABRIC_IDENTITY =
-  "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
-const USER_B_FABRIC_IDENTITY =
-  "x509::/OU=client/OU=org1/OU=department1/CN=userB::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
-const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
 Before({ timeout: 20 * 1000, tags: "@fabric" }, async function () {
   await resetFabric();
@@ -50,7 +40,7 @@ Given("{string} with {int} CBDC available in the source chain", async function (
     },
   );
 
-  expect(await getFabricBalance(USER_A_FABRIC_IDENTITY)).to.equal(amount);
+  expect(await getFabricBalance(getFabricId(user))).to.equal(amount);
 });
 
 When(
@@ -93,10 +83,8 @@ When("bob refunds {int} CBDC to {string} in the source chain", async function (
   amount: number,
   userTo: string,
 ) {
-  const finalUserFabricID =
-    userTo == "alice" ? USER_A_FABRIC_IDENTITY : USER_B_FABRIC_IDENTITY;
-  const finalUserEthAddress =
-    userTo == "alice" ? EVM_USER_A_USER_ADDRESS : EVM_USER_B_USER_ADDRESS;
+  const finalUserFabricID = getFabricId(userTo);
+  const finalUserEthAddress = getEthAddress(userTo);
 
   await refundFabricTokens(finalUserFabricID, amount, finalUserEthAddress);
 });
@@ -132,20 +120,7 @@ Then("{string} fails to transfer {int} CBDC to {string}", async function (
   amount: number,
   userTo: string,
 ) {
-  let recipient;
-  switch (getUserFromPseudonim(userTo)) {
-    case "userA":
-      recipient = USER_A_FABRIC_IDENTITY;
-      break;
-    case "userB":
-      recipient = USER_B_FABRIC_IDENTITY;
-      break;
-    case "bridgeEntity":
-      recipient = FABRIC_BRIDGE_IDENTITY;
-      break;
-    default:
-      assert.fail(0, 1, "Invalid user provided");
-  }
+  const recipient = getFabricId(userTo);
 
   axios
     .post(
@@ -171,19 +146,7 @@ Then("{string} has {int} CBDC available in the source chain", async function (
   user: string,
   amount: number,
 ) {
-  switch (getUserFromPseudonim(user)) {
-    case "userA":
-      expect(await getFabricBalance(USER_A_FABRIC_IDENTITY)).to.equal(amount);
-      break;
-    case "userB":
-      expect(await getFabricBalance(USER_B_FABRIC_IDENTITY)).to.equal(amount);
-      break;
-    case "bridgeEntity":
-      expect(await getFabricBalance(FABRIC_BRIDGE_IDENTITY)).to.equal(amount);
-      break;
-    default:
-      assert.fail(0, 1, "Invalid user provided");
-  }
+  expect(await getFabricBalance(getFabricId(user))).to.equal(amount);
 });
 
 Then(

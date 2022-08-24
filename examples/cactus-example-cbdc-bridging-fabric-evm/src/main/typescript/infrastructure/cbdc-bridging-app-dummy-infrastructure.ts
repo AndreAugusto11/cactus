@@ -183,7 +183,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     const adminWallet = enrollAdminOut[1];
     const [bridgeIdentity] = await this.fabric.enrollUser(
       adminWallet,
-      "bridgeEntity",
+      "bridge",
       "org2",
     );
 
@@ -195,7 +195,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     const keychainEntryKey2 = "userB";
     const keychainEntryValue2 = JSON.stringify(userIdentity2);
 
-    const keychainEntryKey3 = "bridgeEntity";
+    const keychainEntryKey3 = "bridge";
     const keychainEntryValue3 = JSON.stringify(bridgeIdentity);
 
     const keychainPlugin = new PluginKeychainMemory({
@@ -266,9 +266,9 @@ export class CbdcBridgingAppDummyInfrastructure {
     });
 
     const accounts = [
-      CryptoMaterial.accounts.userA.address,
-      CryptoMaterial.accounts.userB.address,
-      CryptoMaterial.accounts.bridge.address,
+      CryptoMaterial.accounts.userA.ethAddress,
+      CryptoMaterial.accounts.userB.ethAddress,
+      CryptoMaterial.accounts.bridge.ethAddress,
     ];
 
     for (const account of accounts) {
@@ -308,7 +308,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       fabricPath: nodeApiHost,
       fabricSigningCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: "bridgeEntity",
+        keychainRef: "bridge",
       },
       fabricChannelName: "mychannel",
       fabricContractName: "asset-reference-contract",
@@ -334,7 +334,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       ipfsPath: ipfsPath,
       besuPath: nodeApiHost,
       besuWeb3SigningCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
@@ -614,7 +614,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         contractAbi: CBDCcontractJson.abi,
         constructorArgs: [],
         web3SigningCredential: {
-          ethAccount: CryptoMaterial.accounts["bridge"].address,
+          ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
           secret: CryptoMaterial.accounts["bridge"].privateKey,
           type: Web3SigningCredentialType.PrivateKeyHex,
         },
@@ -636,7 +636,7 @@ export class CbdcBridgingAppDummyInfrastructure {
           deployCbdcContractResponse.data.transactionReceipt.contractAddress,
         ],
         web3SigningCredential: {
-          ethAccount: CryptoMaterial.accounts["bridge"].address,
+          ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
           secret: CryptoMaterial.accounts["bridge"].privateKey,
           type: Web3SigningCredentialType.PrivateKeyHex,
         },
@@ -662,7 +662,7 @@ export class CbdcBridgingAppDummyInfrastructure {
           .contractAddress,
       ],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
@@ -686,7 +686,7 @@ export class CbdcBridgingAppDummyInfrastructure {
           .contractAddress,
       ],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
@@ -709,7 +709,7 @@ export class CbdcBridgingAppDummyInfrastructure {
         deployCbdcContractResponse.data.transactionReceipt.contractAddress,
       ],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },

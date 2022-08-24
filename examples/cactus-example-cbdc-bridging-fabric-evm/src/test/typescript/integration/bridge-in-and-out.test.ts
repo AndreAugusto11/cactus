@@ -34,12 +34,12 @@ const MAX_TIMEOUT = 5000;
 const FABRIC_CHANNEL_NAME = "mychannel";
 const FABRIC_CONTRACT_CBDC_ERC20_NAME = "cbdc";
 
-const EVM_BRIDGE_ADDRESS = CryptoMaterial.accounts["bridge"].address;
-const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].address;
+const EVM_BRIDGE_ADDRESS = CryptoMaterial.accounts["bridge"].ethAddress;
+const EVM_END_USER_ADDRESS = CryptoMaterial.accounts["userA"].ethAddress;
 const USER_A_FABRIC_IDENTITY =
   "x509::/OU=client/OU=org1/OU=department1/CN=userA::/C=US/ST=North Carolina/L=Durham/O=org1.example.com/CN=ca.org1.example.com";
 const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org2/OU=department1/CN=bridgeEntity::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+  "x509::/OU=client/OU=org2/OU=department1/CN=bridge::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
 
 const USER_A_INITIAL_BALANCE = 500;
 const AMOUNT_TO_TRANSFER = 123;
@@ -54,13 +54,13 @@ let startResult: IStartInfo;
 let cbdcBridgingApp: CbdcBridgingApp;
 
 const signingCredentialBridge = {
-  ethAccount: CryptoMaterial.accounts["bridge"].address,
+  ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
   secret: CryptoMaterial.accounts["bridge"].privateKey,
   type: Web3SigningCredentialType.PrivateKeyHex,
 } as Web3SigningCredentialPrivateKeyHex;
 
 const signingCredentialUserA = {
-  ethAccount: CryptoMaterial.accounts["userA"].address,
+  ethAccount: CryptoMaterial.accounts["userA"].ethAddress,
   secret: CryptoMaterial.accounts["userA"].privateKey,
   type: Web3SigningCredentialType.PrivateKeyHex,
 } as Web3SigningCredentialPrivateKeyHex;
@@ -404,7 +404,7 @@ test("transfer asset correctly from fabric to besu, and the other way around", a
       invocationType: FabricContractInvocationType.Send,
       signingCredential: {
         keychainId: CryptoMaterial.keychains.keychain1.id,
-        keychainRef: "bridgeEntity",
+        keychainRef: "bridge",
       },
     });
 

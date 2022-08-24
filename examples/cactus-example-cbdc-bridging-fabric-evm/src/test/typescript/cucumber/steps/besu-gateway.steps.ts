@@ -10,7 +10,7 @@ import {
 } from "../besu-helper";
 import AssetReferenceContractJson from "../../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../../solidity/cbdc-erc-20/CBDCcontract.json";
-import { getUserAccount } from "./common";
+import { getEthAddress, getPrvKey } from "./common";
 
 const BESU_CONTRACT_CBDC_ERC20_NAME = CBDCcontractJson.contractName;
 const BESU_CONTRACT_ASSET_REF_NAME = AssetReferenceContractJson.contractName;
@@ -29,10 +29,10 @@ Given(
         invocationType: "SEND",
         methodName: "mint",
         gas: 1000000,
-        params: [getUserAccount(user).address, amount],
+        params: [getEthAddress(user), amount],
         signingCredential: {
-          ethAccount: getUserAccount("bob").address,
-          secret: getUserAccount("bob").privateKey,
+          ethAccount: getEthAddress(user),
+          secret: getPrvKey("bob"),
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -53,8 +53,8 @@ When(
         gas: 1000000,
         params: [amount, assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount(user).address,
-          secret: getUserAccount(user).privateKey,
+          ethAccount: getEthAddress(user),
+          secret: getPrvKey(user),
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -67,8 +67,8 @@ When(
   "bob locks the asset reference with id {string} in the sidechain",
   async function (assetRefID: string) {
     await lockBesuAssetReference(
-      getUserAccount("bob").address,
-      getUserAccount("bob").privateKey,
+      getEthAddress("bob"),
+      getPrvKey("bob"),
       assetRefID,
     );
   },
@@ -86,8 +86,8 @@ When(
         gas: 1000000,
         params: [assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("bob").address,
-          secret: getUserAccount("bob").privateKey,
+          ethAccount: getEthAddress("bob"),
+          secret: getPrvKey("bob"),
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -114,7 +114,7 @@ Then("{string} has {int} CBDC available in the sidechain", async function (
   user: string,
   amount: number,
 ) {
-  expect(await getBesuBalance(getUserAccount(user).address)).to.equal(amount);
+  expect(await getBesuBalance(getEthAddress(user))).to.equal(amount);
 });
 
 Then(
@@ -129,8 +129,8 @@ Then(
         gas: 1000000,
         params: [assetRefID],
         signingCredential: {
-          ethAccount: getUserAccount("alice").address,
-          secret: getUserAccount("alice").privateKey,
+          ethAccount: getEthAddress("alice"),
+          secret: getPrvKey("alice"),
           type: "PRIVATE_KEY_HEX",
         },
         keychainId: CryptoMaterial.keychains.keychain2.id,
@@ -145,8 +145,8 @@ Then(
   "{string} fails to lock the asset reference with id {string} in the sidechain",
   async function (user: string, assetRefID: string) {
     await lockBesuAssetReference(
-      getUserAccount(user).address,
-      getUserAccount(user).privateKey,
+      getEthAddress(user),
+      getPrvKey(user),
       assetRefID,
     ).catch((err) => {
       expect(err.response.data.error).to.contain(

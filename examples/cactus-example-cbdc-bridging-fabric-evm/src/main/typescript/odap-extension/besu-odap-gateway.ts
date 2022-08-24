@@ -523,100 +523,9 @@ export class BesuOdapGateway extends PluginOdapGateway {
     sessionID: string,
     assetID?: string,
   ): Promise<string> {
-    const fnTag = `${this.className}#deleteAssetToRollback()`;
-
-    const sessionData = this.sessions.get(sessionID);
-
-    if (
-      sessionData == undefined ||
-      sessionData.rollbackActionsPerformed == undefined ||
-      sessionData.rollbackProofs == undefined
-    ) {
-      throw new Error(`${fnTag}, session data is not correctly initialized`);
-    }
-
-    let besuDeleteAssetProof = "";
-
-    if (assetID == undefined) {
-      assetID = sessionData.recipientLedgerAssetID;
-    }
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "exec-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    if (this.besuApi != undefined) {
-      // we need to lock the asset first
-      await this.besuApi.invokeContractV1({
-        contractName: this.besuContractName,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "lockAssetReference",
-        gas: 1000000,
-        params: [assetID],
-        signingCredential: this.besuWeb3SigningCredential,
-        keychainId: this.besuKeychainId,
-      } as BesuInvokeContractV1Request);
-
-      const assetDeletionResponse = await this.besuApi.invokeContractV1({
-        contractName: this.besuContractName,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "deleteAssetReference",
-        gas: 1000000,
-        params: [assetID],
-        signingCredential: this.besuWeb3SigningCredential,
-        keychainId: this.besuKeychainId,
-      } as BesuInvokeContractV1Request);
-
-      if (assetDeletionResponse.status != 200) {
-        throw new Error(`${fnTag}, besu delete asset error`);
-      }
-
-      const assetDeletionResponseDataJson = JSON.parse(
-        JSON.stringify(assetDeletionResponse.data),
-      );
-
-      if (assetDeletionResponseDataJson.out == undefined) {
-        throw new Error(`${fnTag}, besu res data out undefined`);
-      }
-
-      if (assetDeletionResponseDataJson.out.transactionReceipt == undefined) {
-        throw new Error(`${fnTag}, undefined besu transact receipt`);
-      }
-
-      const besuCreateAssetReceipt =
-        assetDeletionResponseDataJson.out.transactionReceipt;
-      besuDeleteAssetProof = JSON.stringify(besuCreateAssetReceipt);
-    }
-
-    sessionData.rollbackActionsPerformed.push(
-      SessionDataRollbackActionsPerformedEnum.Delete,
-    );
-    sessionData.rollbackProofs.push(besuDeleteAssetProof);
-
-    this.sessions.set(sessionID, sessionData);
-
-    this.log.info(
-      `${fnTag}, proof of the asset deletion: ${besuDeleteAssetProof}`,
-    );
-
-    await this.storeOdapProof({
-      sessionID: sessionID,
-      type: "proof-rollback",
-      operation: "delete",
-      data: besuDeleteAssetProof,
-    });
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "done-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    return besuDeleteAssetProof;
+    // not implemented. We assume the agreement was reached after the final interactions in each ledger
+    // (delete in the source chain and create in the side chain)
+    return `not implemented: ${sessionID}, ${assetID}`;
   }
 
   async rollback(sessionID: string) {
@@ -657,14 +566,6 @@ export class BesuOdapGateway extends PluginOdapGateway {
         await this.createAssetToRollback(
           sessionID,
           sessionData.sourceLedgerAssetID,
-        );
-      }
-    } else {
-      if (await this.besuAssetExists(sessionData.recipientLedgerAssetID)) {
-        // Rollback creation of the asset
-        await this.deleteAssetToRollback(
-          sessionID,
-          sessionData.recipientLedgerAssetID,
         );
       }
     }

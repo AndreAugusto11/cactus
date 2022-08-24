@@ -502,90 +502,9 @@ export class FabricOdapGateway extends PluginOdapGateway {
     sessionID: string,
     assetID?: string,
   ): Promise<string> {
-    const fnTag = `${this.className}#deleteAssetToRollback()`;
-
-    const sessionData = this.sessions.get(sessionID);
-
-    if (
-      sessionData == undefined ||
-      sessionData.rollbackActionsPerformed == undefined ||
-      sessionData.rollbackProofs == undefined
-    ) {
-      throw new Error(`${fnTag}, session data is not correctly initialized`);
-    }
-
-    let fabricDeleteAssetProof = "";
-
-    if (assetID == undefined) {
-      assetID = sessionData.recipientLedgerAssetID;
-    }
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "exec-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    if (this.fabricApi != undefined) {
-      // we need to lock the asset first
-      await this.fabricApi.runTransactionV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
-        contractName: this.fabricContractName,
-        invocationType: FabricContractInvocationType.Send,
-        methodName: "LockAssetReference",
-        params: [assetID], // we need to provide the other arguments
-      } as FabricRunTransactionRequest);
-
-      const response = await this.fabricApi.runTransactionV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
-        contractName: this.fabricContractName,
-        invocationType: FabricContractInvocationType.Send,
-        methodName: "DeleteAssetReference",
-        params: [assetID],
-      } as FabricRunTransactionRequest);
-
-      const receiptCreate = await this.fabricApi.getTransactionReceiptByTxIDV1({
-        signingCredential: this.fabricSigningCredential,
-        channelName: this.fabricChannelName,
-        contractName: "qscc",
-        invocationType: FabricContractInvocationType.Call,
-        methodName: "GetBlockByTxID",
-        params: [this.fabricChannelName, response.data.transactionId],
-      } as FabricRunTransactionRequest);
-
-      this.log.warn(receiptCreate.data);
-      fabricDeleteAssetProof = JSON.stringify(receiptCreate.data);
-    }
-
-    sessionData.rollbackActionsPerformed.push(
-      SessionDataRollbackActionsPerformedEnum.Delete,
-    );
-    sessionData.rollbackProofs.push(fabricDeleteAssetProof);
-
-    this.sessions.set(sessionID, sessionData);
-
-    this.log.info(
-      `${fnTag}, proof of the asset deletion: ${fabricDeleteAssetProof}`,
-    );
-
-    await this.storeOdapProof({
-      sessionID: sessionID,
-      type: "proof-rollback",
-      operation: "delete",
-      data: fabricDeleteAssetProof,
-    });
-
-    await this.storeOdapLog({
-      sessionID: sessionID,
-      type: "done-rollback",
-      operation: "delete-asset",
-      data: JSON.stringify(sessionData),
-    });
-
-    return fabricDeleteAssetProof;
+    // not implemented. We assume the agreement was reached after the final interactions in each ledger
+    // (delete in the source chain and create in the side chain)
+    return `not implemented: ${sessionID}, ${assetID}`;
   }
 
   async rollback(sessionID: string): Promise<void> {
@@ -626,13 +545,6 @@ export class FabricOdapGateway extends PluginOdapGateway {
         await this.createAssetToRollback(
           sessionID,
           sessionData.sourceLedgerAssetID,
-        );
-      }
-    } else {
-      if (await this.fabricAssetExists(sessionData.sourceLedgerAssetID)) {
-        await this.deleteAssetToRollback(
-          sessionID,
-          sessionData.recipientLedgerAssetID,
         );
       }
     }

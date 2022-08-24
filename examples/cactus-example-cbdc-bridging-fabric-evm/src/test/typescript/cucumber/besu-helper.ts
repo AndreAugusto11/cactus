@@ -39,7 +39,7 @@ export async function getBesuBalance(address: string): Promise<number> {
       gas: 1000000,
       params: [address],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: "PRIVATE_KEY_HEX",
       },
@@ -62,7 +62,7 @@ export async function isBesuAssetReference(
       gas: 1000000,
       params: [assetRefID],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: "PRIVATE_KEY_HEX",
       },
@@ -83,13 +83,13 @@ export async function resetBesu(): Promise<void> {
       gas: 1000000,
       params: [
         [
-          CryptoMaterial.accounts["userA"].address,
-          CryptoMaterial.accounts["userB"].address,
-          CryptoMaterial.accounts["bridge"].address,
+          CryptoMaterial.accounts["userA"].ethAddress,
+          CryptoMaterial.accounts["userB"].ethAddress,
+          CryptoMaterial.accounts["bridge"].ethAddress,
         ],
       ],
       signingCredential: {
-        ethAccount: CryptoMaterial.accounts["bridge"].address,
+        ethAccount: CryptoMaterial.accounts["bridge"].ethAddress,
         secret: CryptoMaterial.accounts["bridge"].privateKey,
         type: "PRIVATE_KEY_HEX",
       },
