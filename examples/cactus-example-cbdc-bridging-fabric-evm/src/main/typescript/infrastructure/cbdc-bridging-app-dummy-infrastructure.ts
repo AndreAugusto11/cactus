@@ -81,7 +81,7 @@ export class CbdcBridgingAppDummyInfrastructure {
     this.log = LoggerProvider.getOrCreate({ level, label });
 
     this.besu = new BesuTestLedger({
-      logLevel: "TRACE",
+      logLevel: level || "DEBUG",
       emitContainerLogs: true,
       envVars: ["BESU_NETWORK=dev"],
     });
@@ -90,11 +90,11 @@ export class CbdcBridgingAppDummyInfrastructure {
       publishAllPorts: true,
       imageName: "ghcr.io/hyperledger/cactus-fabric2-all-in-one",
       envVars: new Map([["FABRIC_VERSION", "2.2.0"]]),
-      logLevel: level || "INFO",
+      logLevel: level || "DEBUG",
     });
 
     this.ipfs = new GoIpfsTestContainer({
-      logLevel: level || "INFO",
+      logLevel: level || "DEBUG",
     });
   }
 

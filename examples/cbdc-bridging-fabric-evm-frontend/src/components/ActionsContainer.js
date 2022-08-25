@@ -1,7 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Button from "@material-ui/core/Button";
 import Grid from "@material-ui/core/Grid";
+import MintDialog from "./dialogs/MintDialog";
+import TransferDialog from "./dialogs/TransferDialog";
+import EscrowDialog from "./dialogs/EscrowDialog";
+import BridgeOutDialog from "./dialogs/BridgeOutDialog";
 
 const useStyles = makeStyles((theme) => ({
   buttonTransfer: {
@@ -86,53 +90,106 @@ const useStyles = makeStyles((theme) => ({
 
 export default function Ledger(props) {
   const classes = useStyles();
-
-  useEffect(() => {
-  });
+  const [mintDialog, setMintDialog] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(false);
+  const [escrowDialog, setEscrowDialog] = useState(false);
+  const [bridgeOutDialog, setBridgeOutDialog] = useState(false);
 
   return (
-    <Grid container spacing={1}>
-      <Grid item lg={5} className={classes.username}>
-        <span>{props.user}</span>
-      </Grid>
-      <Grid item lg={1} />
-      <Grid item lg={6} className={classes.userAmount}>
-        <span>500 CBDC</span>
-      </Grid>
+    <div>
+      <Grid container spacing={1}>
+        <Grid item lg={5} className={classes.username}>
+          <span>{props.user}</span>
+        </Grid>
+        <Grid item lg={1} />
+        <Grid item lg={6} className={classes.userAmount}>
+          <span>500 CBDC</span>
+        </Grid>
 
-      {
-        props.user === "Bridge" ?
-        <Grid item md={12} lg={12}>
-          <Button variant="contained" className={classes.buttonTransferFullWidth}>Transfer</Button>
-        </Grid>
-        : (
-          props.ledger === "Besu" ?
-          <Grid item md={12} lg={12}>
-            <Button variant="contained" className={classes.buttonTransferFullWidth}>Transfer</Button>
-          </Grid> :
-          <Grid item md={12} lg={6}>
-            <Button variant="contained" className={classes.buttonTransfer}>Transfer</Button>
+        {
+          props.user !== "Bridge" && props.ledger !== "Besu" &&
+          <Grid item md={12} lg={6} className={classes.buttonItem}>
+            <Button variant="contained" className={classes.buttonMint} onClick={() => setMintDialog(true)}>Mint</Button>
           </Grid>
-        )
-      }
-      {
-        props.user !== "Bridge" && props.ledger !== "Besu" &&
+        }
+        {
+          props.user === "Bridge" ?
+          <Grid item md={12} lg={12}>
+            <Button
+            variant="contained"
+            onClick={() => setTransferDialog(true)}
+            className={classes.buttonTransferFullWidth}
+            >
+              Transfer
+            </Button>
+          </Grid>
+          : (
+            props.ledger === "Besu" ?
+            <Grid item md={12} lg={12}>
+              <Button
+              variant="contained"
+              onClick={() => setTransferDialog(true)}
+              className={classes.buttonTransferFullWidth}
+              >
+                Transfer
+              </Button>
+            </Grid> :
+            <Grid item md={12} lg={6}>
+              <Button
+              variant="contained"
+              onClick={() => setTransferDialog(true)}
+              className={classes.buttonTransfer}
+              >
+                Transfer
+              </Button>
+            </Grid>
+          )
+        }
+        {
+          props.user !== "Bridge" && 
         <Grid item md={12} lg={6} className={classes.buttonItem}>
-          <Button variant="contained" className={classes.buttonMint}>Mint</Button>
+          <Button
+          variant="contained"
+          onClick={() => setEscrowDialog(true)}
+          className={classes.buttonEscrow}
+        >
+          Escrow
+        </Button>
         </Grid>
-      }
-      {
-        props.user !== "Bridge" && 
-      <Grid item md={12} lg={6} className={classes.buttonItem}>
-        <Button variant="contained" className={classes.buttonEscrow}>Escrow</Button>
+        }
+        {
+          props.user !== "Bridge" && 
+        <Grid item md={12} lg={6} className={classes.buttonItem}>
+          <Button
+          variant="contained"
+          onClick={() => setBridgeOutDialog(true)}
+          className={classes.buttonBridgeOut}
+        >
+          Bridge Out
+        </Button>
+        </Grid>
+        }
       </Grid>
-      }
-      {
-        props.user !== "Bridge" && 
-      <Grid item md={12} lg={6} className={classes.buttonItem}>
-        <Button variant="contained" className={classes.buttonBridgeOut}>Bridge Out</Button>
-      </Grid>
-      }
-    </Grid>
+      <MintDialog
+        open={mintDialog}
+        user={props.user}
+        onClose={() => setMintDialog(false)}
+      />
+      <TransferDialog
+        open={transferDialog}
+        user={props.user}
+        onClose={() => setTransferDialog(false)}
+      />
+      <EscrowDialog
+        open={escrowDialog}
+        user={props.user}
+        onClose={() => setEscrowDialog(false)}
+      />
+      <BridgeOutDialog
+        open={bridgeOutDialog}
+        user={props.user}
+        onClose={() => setBridgeOutDialog(false)}
+      />
+    </div>
   );
 }

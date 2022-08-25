@@ -45,7 +45,7 @@ export default function Ledger(props) {
   }, [props.ledger]);
 
   return (
-    <Paper elevation="1" className={classes.paper}>
+    <Paper elevation={1} className={classes.paper}>
       <h2>Hyperledger {props.ledger}</h2>
       {
         props.ledger === "Fabric" ?
@@ -54,12 +54,12 @@ export default function Ledger(props) {
       }
       <Grid container spacing={2}>
         <Grid item sm={12} md={6}>
-          <Paper elevation="0" className={classes.userContainer}>
+          <Paper elevation={0} className={classes.userContainer}>
             <ActionsContainer user={"Alice"} ledger={props.ledger}/>
           </Paper>
         </Grid>
         <Grid item sm={12} md={6}>
-          <Paper elevation="0" className={classes.userContainer}>
+          <Paper elevation={0} className={classes.userContainer}>
             <ActionsContainer user={"Charlie"} ledger={props.ledger}/>
           </Paper>
         </Grid>
@@ -69,7 +69,7 @@ export default function Ledger(props) {
         <p className={classes.label}>Org2</p> :
         <div className={classes.spacing}></div>
       }
-      <Paper elevation="0" className={classes.userContainer}>
+      <Paper elevation={0} className={classes.userContainer}>
         <ActionsContainer user={"Bridge"} ledger={props.ledger}/>
       </Paper>
       <p className={classes.label}>Asset References</p>

@@ -61,7 +61,7 @@ export class CbdcBridgingApp {
     this.shutdownHooks = [];
 
     this.infrastructure = new CbdcBridgingAppDummyInfrastructure({
-      logLevel: logLevel || "INFO",
+      logLevel: level,
     });
   }
 

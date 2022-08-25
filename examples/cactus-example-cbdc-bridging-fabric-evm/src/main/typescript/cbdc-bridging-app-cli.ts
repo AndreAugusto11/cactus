@@ -60,7 +60,7 @@ export async function launchApp(
     apiServer2Port: API_SERVER_2_PORT,
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
-    logLevel: "INFO",
+    logLevel: "DEBUG",
   };
 
   const cbdcBridgingApp = new CbdcBridgingApp(appOptions);
