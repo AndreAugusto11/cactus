@@ -73,7 +73,7 @@ export default function Ledger(props) {
         <ActionsContainer user={"Bridge"} ledger={props.ledger}/>
       </Paper>
       <p className={classes.label}>Asset References</p>
-      <AssetReferencesTable />
+      <AssetReferencesTable ledger={props.ledger}/>
     </Paper>
   );
 }

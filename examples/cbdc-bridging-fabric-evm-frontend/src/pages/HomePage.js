@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Grid from "@material-ui/core/Grid";
 import Ledger from "../components/Ledger";
+import { checkApiServer1Connection, checkApiServer2Connection } from "../remote-calls/common";
+import ConnectionErrorDialog from "../components/dialogs/ConnectionErrorDialog";
 
 const useStyles = makeStyles((theme) => ({
   container: {
@@ -20,6 +22,23 @@ const useStyles = makeStyles((theme) => ({
 
 export default function HomePage() {
   const classes = useStyles();
+  const [errorDialog, setErrorDialog] = useState(false);
+
+  useEffect(() => {
+    async function checkConnection() {
+      const response1 = await checkApiServer1Connection();
+      const response2 = await checkApiServer2Connection();
+    
+      if (!response1 || !response2) {
+        //setErrorDialog(true);
+      } else {
+        setErrorDialog(false);
+      }
+    }
+
+    checkConnection();
+  }, [])
+  
 
   return (
     <div className={classes.container}>
@@ -35,6 +54,10 @@ export default function HomePage() {
           <Ledger ledger={"Besu"}/>
         </Grid>
       </Grid>
+      <ConnectionErrorDialog
+        open={errorDialog}
+        onClose={() => setErrorDialog(false)}
+      />
     </div>
   );
 }

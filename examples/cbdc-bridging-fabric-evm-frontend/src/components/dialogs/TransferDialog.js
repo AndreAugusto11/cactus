@@ -10,6 +10,8 @@ import Select from "@material-ui/core/Select";
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
+import { transferTokensFabric } from '../../remote-calls/fabric-api-calls';
+import { transferTokensBesu } from '../../remote-calls/besu-api-calls';
 
 const recipients = [
   "Alice",
@@ -53,6 +55,20 @@ export default function TransferDialog(props) {
 
   const handleChangeRecipient = (event) => {
     setRecipient(event.target.value);
+  }
+
+  const performTransferTransaction = async () => {
+    if (parseInt(amount) === 0) {
+      setErrorMessage("Amount must be a positive value");
+    } else {
+      if (props.ledger === "Fabric") {
+        await transferTokensFabric(props.user, recipient, amount.toString());
+      } else {
+        await transferTokensBesu(props.user, recipient, parseInt(amount));
+      }
+
+      props.onClose();
+    }
   }
 
   return (
@@ -101,7 +117,7 @@ export default function TransferDialog(props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={props.onClose}>Confirm</Button>
+        <Button onClick={performTransferTransaction}>Confirm</Button>
       </DialogActions>
     </Dialog>
   );

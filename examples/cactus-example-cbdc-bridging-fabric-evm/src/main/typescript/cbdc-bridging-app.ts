@@ -161,11 +161,11 @@ export class CbdcBridgingApp {
 
     this.log.info("Deploying chaincode and smart contracts...");
 
+    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
+
     await this.infrastructure.deployFabricAssetReferenceContract(
       fabricApiClient,
     );
-
-    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
 
     await this.infrastructure.deployBesuContracts(besuApiClient);
 
@@ -217,11 +217,13 @@ export class CbdcBridgingApp {
       config = convictConfig.getProperties();
       config.plugins = [];
       config.configFile = "";
-      config.apiPort = addressInfoApi.port;
+      (config.apiCorsDomainCsv = "http://localhost:2000"),
+        (config.cockpitCorsDomainCsv = "http://localhost:2000"),
+        (config.apiPort = addressInfoApi.port);
       config.apiHost = addressInfoApi.address;
       config.cockpitHost = addressInfoCockpit.address;
       config.cockpitPort = addressInfoCockpit.port;
-      config.grpcPort = 0; // TODO - make this configurable as well
+      config.grpcPort = 0;
       config.logLevel = this.options.logLevel || "INFO";
       config.authorizationProtocol = AuthorizationProtocol.NONE;
     }

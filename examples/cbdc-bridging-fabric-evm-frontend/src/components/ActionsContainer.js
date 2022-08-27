@@ -1,16 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Button from "@material-ui/core/Button";
 import Grid from "@material-ui/core/Grid";
+import CircularProgress from '@material-ui/core/CircularProgress';
 import MintDialog from "./dialogs/MintDialog";
 import TransferDialog from "./dialogs/TransferDialog";
 import EscrowDialog from "./dialogs/EscrowDialog";
 import BridgeOutDialog from "./dialogs/BridgeOutDialog";
+import BridgeBackDialog from "./dialogs/BridgeBackDialog";
+import { getFabricBalance } from "../remote-calls/fabric-api-calls";
+import { getBesuBalance } from "../remote-calls/besu-api-calls";
 
 const useStyles = makeStyles((theme) => ({
   buttonTransfer: {
     margin: "auto",
-    width: "105px",
+    width: "100%",
+    fontSize: "13px",
     textTransform: "none",
     background: "#2B9BF6",
     color: "#FFFFFF",
@@ -18,11 +23,15 @@ const useStyles = makeStyles((theme) => ({
     "&:hover": {
       backgroundColor: "#444444",
       color: "#FFFFFF"
+    },
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
     },
   },
   buttonMint: {
     margin: "auto",
-    width: "105px",
+    width: "100%",
+    fontSize: "13px",
     textTransform: "none",
     background: "#2B9BF6",
     color: "#FFFFFF",
@@ -31,10 +40,14 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: "#444444",
       color: "#FFFFFF"
     },
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
+    },
   },
   buttonEscrow: {
     margin: "auto",
-    width: "105px",
+    width: "100%",
+    fontSize: "13px",
     textTransform: "none",
     background: "#FF584B",
     color: "#FFFFFF",
@@ -43,10 +56,14 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: "#444444",
       color: "#FFFFFF"
     },
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
+    },
   },
-  buttonBridgeOut: {
+  buttonBridge: {
     margin: "auto",
-    width: "105px",
+    width: "100%",
+    fontSize: "13px",
     textTransform: "none",
     background: "#FF584B",
     color: "#FFFFFF",
@@ -54,11 +71,15 @@ const useStyles = makeStyles((theme) => ({
     "&:hover": {
       backgroundColor: "#444444",
       color: "#FFFFFF"
+    },
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
     },
   },
   buttonTransferFullWidth: {
     margin: "auto",
     width: "100%",
+    fontSize: "13px",
     textTransform: "none",
     background: "#2B9BF6",
     color: "#FFFFFF",
@@ -67,10 +88,6 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: "#444444",
       color: "#FFFFFF"
     },
-  },
-  buttonItem: {
-    width: "105px",
-    fontSize: "8px"
   },
   actionsContainer: {
     padding: "1rem",
@@ -85,91 +102,136 @@ const useStyles = makeStyles((theme) => ({
     textAlign: "right",
     fontSize: "13px",
     marginBottom: "1rem",
+  },
+  grid: {
+  },
+  blur: {
+    opacity: "0.5"
+  },
+  progress: {
+    zIndex: 1000,
+    marginTop: "1rem"
   }
 }));
 
 export default function Ledger(props) {
   const classes = useStyles();
+  const [amount, setAmount] = useState(0);
   const [mintDialog, setMintDialog] = useState(false);
   const [transferDialog, setTransferDialog] = useState(false);
   const [escrowDialog, setEscrowDialog] = useState(false);
   const [bridgeOutDialog, setBridgeOutDialog] = useState(false);
+  const [bridgeBackDialog, setBridgeBackDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      let response;
+      if (props.ledger === "Fabric") {
+        response = await getFabricBalance(props.user);
+        setAmount(response);
+      } else if (props.ledger === "Besu") {
+        response = await getBesuBalance(props.user);
+        setAmount(response);
+      }
+      setLoading(false);
+    }
+
+    setLoading(true);
+    fetchData();
+
+  }, [props.user, props.ledger]);
 
   return (
     <div>
-      <Grid container spacing={1}>
-        <Grid item lg={5} className={classes.username}>
-          <span>{props.user}</span>
-        </Grid>
-        <Grid item lg={1} />
-        <Grid item lg={6} className={classes.userAmount}>
-          <span>500 CBDC</span>
-        </Grid>
+      { loading ? <CircularProgress className={classes.progress}/> :
+        <Grid container spacing={1} className={loading ? classes.blur : classes.grid}>
+          <Grid item lg={5} className={classes.username}>
+            <span>{props.user}</span>
+          </Grid>
+          <Grid item lg={1} />
+          <Grid item lg={6} className={classes.userAmount}>
+            <span>{amount} CBDC</span>
+          </Grid>
 
-        {
-          props.user !== "Bridge" && props.ledger !== "Besu" &&
-          <Grid item md={12} lg={6} className={classes.buttonItem}>
-            <Button variant="contained" className={classes.buttonMint} onClick={() => setMintDialog(true)}>Mint</Button>
-          </Grid>
-        }
-        {
-          props.user === "Bridge" ?
-          <Grid item md={12} lg={12}>
-            <Button
-            variant="contained"
-            onClick={() => setTransferDialog(true)}
-            className={classes.buttonTransferFullWidth}
-            >
-              Transfer
-            </Button>
-          </Grid>
-          : (
-            props.ledger === "Besu" ?
-            <Grid item md={12} lg={12}>
+          {
+            props.user !== "Bridge" && props.ledger !== "Besu" &&
+            <Grid item xs={12} lg={6}>
+              <Button variant="contained" className={classes.buttonMint} onClick={() => setMintDialog(true)}>Mint</Button>
+            </Grid>
+          }
+          {
+            props.user === "Bridge" ?
+            <Grid item xs={12} lg={12}>
               <Button
               variant="contained"
+              fullWidth
               onClick={() => setTransferDialog(true)}
               className={classes.buttonTransferFullWidth}
               >
                 Transfer
               </Button>
-            </Grid> :
-            <Grid item md={12} lg={6}>
+            </Grid>
+            : (
+              props.ledger === "Besu" ?
+              <Grid item xs={12} lg={12}>
+                <Button
+                variant="contained"
+                onClick={() => setTransferDialog(true)}
+                className={classes.buttonTransferFullWidth}
+                >
+                  Transfer
+                </Button>
+              </Grid> :
+              <Grid item xs={12} lg={6}>
+                <Button
+                variant="contained"
+                onClick={() => setTransferDialog(true)}
+                className={classes.buttonTransfer}
+                >
+                  Transfer
+                </Button>
+              </Grid>
+            )
+          }
+          {
+            props.user !== "Bridge" && 
+          <Grid item xs={12} lg={6}>
+            <Button
+            variant="contained"
+            onClick={() => setEscrowDialog(true)}
+            className={classes.buttonEscrow}
+          >
+            Escrow
+          </Button>
+          </Grid>
+          }
+          {
+            props.ledger === "Fabric" && props.user !== "Bridge" &&
+            <Grid item xs={12} lg={6}>
               <Button
               variant="contained"
-              onClick={() => setTransferDialog(true)}
-              className={classes.buttonTransfer}
+              onClick={() => setBridgeOutDialog(true)}
+              className={classes.buttonBridge}
               >
-                Transfer
+                Bridge Out
               </Button>
             </Grid>
-          )
-        }
-        {
-          props.user !== "Bridge" && 
-        <Grid item md={12} lg={6} className={classes.buttonItem}>
-          <Button
-          variant="contained"
-          onClick={() => setEscrowDialog(true)}
-          className={classes.buttonEscrow}
-        >
-          Escrow
-        </Button>
+          }
+          {
+            props.ledger === "Besu" && props.user !== "Bridge" &&
+            <Grid item xs={12} lg={6}>
+              <Button
+              variant="contained"
+              onClick={() => setBridgeBackDialog(true)}
+              className={classes.buttonBridge}
+              >
+                Bridge Back
+              </Button>
+            </Grid>
+          }
         </Grid>
-        }
-        {
-          props.user !== "Bridge" && 
-        <Grid item md={12} lg={6} className={classes.buttonItem}>
-          <Button
-          variant="contained"
-          onClick={() => setBridgeOutDialog(true)}
-          className={classes.buttonBridgeOut}
-        >
-          Bridge Out
-        </Button>
-        </Grid>
-        }
-      </Grid>
+      }
       <MintDialog
         open={mintDialog}
         user={props.user}
@@ -178,17 +240,24 @@ export default function Ledger(props) {
       <TransferDialog
         open={transferDialog}
         user={props.user}
+        ledger={props.ledger}
         onClose={() => setTransferDialog(false)}
       />
       <EscrowDialog
         open={escrowDialog}
         user={props.user}
+        ledger={props.ledger}
         onClose={() => setEscrowDialog(false)}
       />
       <BridgeOutDialog
         open={bridgeOutDialog}
         user={props.user}
         onClose={() => setBridgeOutDialog(false)}
+      />
+      <BridgeBackDialog
+        open={bridgeBackDialog}
+        user={props.user}
+        onClose={() => setBridgeBackDialog(false)}
       />
     </div>
   );

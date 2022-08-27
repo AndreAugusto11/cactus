@@ -8,16 +8,16 @@ import Select from '@material-ui/core/Select';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
-import { bridgeOutTokensFabric, getAssetReferencesFabric } from '../../remote-calls/fabric-api-calls';
+import { bridgeBackTokensBesu, getAssetReferencesBesu } from '../../remote-calls/besu-api-calls';
 
-export default function BridgeOutDialog(props) {
+export default function BridgeBackDialog(props) {
   const [assetRefs, setAssetRefs] = useState([]);
   const [assetRefID, setAssetRefID] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function fetchData() {
-      const list = await getAssetReferencesFabric(props.user);
+      const list = await getAssetReferencesBesu(props.user);
       setAssetRefs(list.filter(asset => asset.recipient === props.user));
     }
 
@@ -25,18 +25,18 @@ export default function BridgeOutDialog(props) {
       setAssetRefID("");
       fetchData();
     }
-  }, [props.open]);
+  }, [props.open, props.user]);
 
   const handleChangeAssetRefID = (event) => {
     setAssetRefID(event.target.value);
   }
 
-  const performBridgeOutTransaction = async () => {
+  const performBridgeBackTransaction = async () => {
     if (assetRefID === "") {
       setErrorMessage("Please choose a valid Asset Reference ID");
     } else {
       const amount = assetRefs.find(asset => asset.id === assetRefID).numberTokens;
-      bridgeOutTokensFabric(props.user, amount, assetRefID);
+      bridgeBackTokensBesu(props.user, amount, assetRefID);
       props.onClose();
     }
   }
@@ -47,14 +47,14 @@ export default function BridgeOutDialog(props) {
       keepMounted
       onClose={props.onClose}
     >
-      <DialogTitle>{"Bridge Out CBDC"}</DialogTitle>
+      <DialogTitle>{"Bridge Back CBDC"}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Select the {props.user}'s Asset Reference that represents the amount to bridge out.
+          Select the {props.user}'s Asset Reference that represents the amount to bridge back.
         </DialogContentText>
         {
           assetRefs.length === 0 ?
-          <Alert severity="error">Must escrow tokens before trying to bridge out CBDC.</Alert> :
+          <Alert severity="error">Must escrow tokens before trying to bridge back CBDC.</Alert> :
           <Select
             fullWidth
             name="assetRefID"
@@ -77,7 +77,7 @@ export default function BridgeOutDialog(props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={performBridgeOutTransaction}>Confirm</Button>
+        <Button onClick={performBridgeBackTransaction}>Confirm</Button>
       </DialogActions>
     </Dialog>
   );

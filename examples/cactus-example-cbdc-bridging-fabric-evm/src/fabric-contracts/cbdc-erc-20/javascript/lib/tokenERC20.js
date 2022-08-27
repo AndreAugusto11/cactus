@@ -24,8 +24,7 @@ const accounts = [
   },
 ];
 
-const FABRIC_BRIDGE_IDENTITY =
-  "x509::/OU=client/OU=org2/OU=department1/CN=bridge::/C=UK/ST=Hampshire/L=Hursley/O=org2.example.com/CN=ca.org2.example.com";
+const FABRIC_BRIDGE_IDENTITY = CryptoMaterial.accounts.bridge.fabricID;
 
 // Define objectType names for prefix
 const balancePrefix = "balance";

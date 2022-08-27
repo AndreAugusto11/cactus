@@ -591,6 +591,8 @@ export class CbdcBridgingAppDummyInfrastructure {
     Checks.truthy(packaging, `packaging truthy OK`);
     Checks.truthy(queryCommitted, `queryCommitted truthy OK`);
 
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
     await fabricApiClient.runTransactionV1({
       contractName,
       channelName,

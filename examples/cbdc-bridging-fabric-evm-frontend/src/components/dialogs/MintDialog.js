@@ -8,6 +8,7 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
+import { mintTokensFabric } from '../../remote-calls/fabric-api-calls';
 
 const useStyles = makeStyles((theme) => ({
   errorMessage: {
@@ -33,13 +34,23 @@ export default function MintDialog(props) {
     const value = event.target.value;
 
     if (value < 0) {
-      setErrorMessage("Amount must be a positive value")
+      setErrorMessage("Amount must be a positive value");
       setAmount(0);
     } else {
-      setErrorMessage("")
+      setErrorMessage("");
       setAmount(value);
     }
   };
+
+  const performMintTransaction = async () => {
+    if (parseInt(amount) === 0) {
+      setErrorMessage("Amount must be a positive value");
+    } else {
+      await mintTokensFabric(props.user, amount.toString());
+
+      props.onClose();
+    }
+  }
 
   return (
     <Dialog
@@ -72,7 +83,7 @@ export default function MintDialog(props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={props.onClose}>Confirm</Button>
+        <Button onClick={performMintTransaction}>Confirm</Button>
       </DialogActions>
     </Dialog>
   );

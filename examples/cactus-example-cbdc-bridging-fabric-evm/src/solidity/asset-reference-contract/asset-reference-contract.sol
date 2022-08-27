@@ -15,6 +15,11 @@ contract AssetReferenceContract is MyOwnable {
   address cbdc_contract;
   mapping (string => AssetReference) assets;
   mapping (string => bool) assetExists;
+  
+  // only used for UI purposes. The list is not updated in each operation
+  // so it should not be used for other ends than this
+  // The main use for this is to demonstrate in the UI the asset references list
+  AssetReference[] assetRefsList;
 
   constructor(address account) {
     cbdc_contract = account;
@@ -27,6 +32,14 @@ contract AssetReferenceContract is MyOwnable {
     assets[id].recipient = recipient;
 
     assetExists[id] = true;
+
+    // used for UI purposes only
+    assetRefsList.push(AssetReference(
+      id,
+      false,
+      amount,
+      recipient
+    ));
   }
 
   function lockAssetReference(string calldata id) public onlyOwner {
@@ -50,6 +63,13 @@ contract AssetReferenceContract is MyOwnable {
 
     delete assets[id];
     assetExists[id] = false;
+
+    // used for UI purposes only
+    for (uint i = 0; i < assetRefsList.length; i++) {
+      if (keccak256(abi.encodePacked(assetRefsList[i].id)) == keccak256(abi.encodePacked(id))) {
+        removeItemFromList(i);
+      }
+    }
   }
 
   function isPresent(string calldata id) public view returns (bool) {
@@ -84,5 +104,20 @@ contract AssetReferenceContract is MyOwnable {
     require(isPresent(id), "The asset reference does not exist");
     
     return (assets[id].amount >= amount) && (assets[id].recipient == user);
+  }
+
+  // used for UI purposes only
+  function removeItemFromList(uint _index) public {
+    require(_index < assetRefsList.length, "index out of bound");
+
+    for (uint i = _index; i < assetRefsList.length-1; i++) {
+        assetRefsList[i] = assetRefsList[i + 1];
+    }
+    assetRefsList.pop();
+  }
+
+  // used for UI purposes only
+  function getAllAssetReferences() public view returns (AssetReference[] memory) {
+    return assetRefsList;
   }
 }

@@ -9,6 +9,8 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
+import { escrowTokensFabric } from '../../remote-calls/fabric-api-calls';
+import { escrowTokensBesu } from '../../remote-calls/besu-api-calls';
 
 const useStyles = makeStyles((theme) => ({
   errorMessage: {
@@ -43,6 +45,20 @@ export default function EscrowDialog(props) {
       setAmount(value);
     }
   };
+
+  const performEscrowTransaction = async () => {
+    if (parseInt(amount) === 0) {
+      setErrorMessage("Amount must be a positive value");
+    } else {
+      if (props.ledger === "Fabric") {
+        await escrowTokensFabric(props.user, amount.toString(), assetRefID);
+      } else {
+        await escrowTokensBesu(props.user, amount, assetRefID);
+      }
+
+      props.onClose();
+    }
+  }
 
   return (
     <Dialog
@@ -86,7 +102,7 @@ export default function EscrowDialog(props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={props.onClose}>Confirm</Button>
+        <Button onClick={performEscrowTransaction}>Confirm</Button>
       </DialogActions>
     </Dialog>
   );

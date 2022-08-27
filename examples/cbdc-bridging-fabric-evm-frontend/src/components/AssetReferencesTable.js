@@ -1,20 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
-
-function createData(id, amount, owner) {
-  return { id, amount, owner };
-}
-
-const filteredRows = [
-  createData('c5dfbd04-a71b-4848-92d1-78cd1fafaaf1', 500, "Alice"),
-  createData('889242f8-58ae-449e-b938-fa28fdca65b6', 500, "Charlie"),
-  createData('d25fbcbb-0895-4905-b8d5-502d5e83b122', 1000, "Alice"),
-];
+import { getAssetReferencesFabric } from "../remote-calls/fabric-api-calls";
+import { getAssetReferencesBesu } from "../remote-calls/besu-api-calls";
 
 const headCells = [
   {
@@ -29,7 +21,7 @@ const headCells = [
   }
 ];
 
-function ItemsTableHead(props) {
+function ItemsTableHead() {
   return (
     <TableHead>
       <TableRow>
@@ -57,28 +49,44 @@ function ItemsTableHead(props) {
   );
 }
 
-export default function AssetReferencesTable() {
+export default function AssetReferencesTable(props) {
+  const [assets, setAssets] = useState([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (props.ledger === "Fabric") {
+        let list = await getAssetReferencesFabric("Alice");
+        setAssets(list);
+      } else {
+        let list = await getAssetReferencesBesu("Alice");
+        setAssets(list);
+      }
+    }
+
+    fetchData();
+  }, []);
+
   return (
-    <TableContainer>
-      <Table size="small" aria-label="a dense table">
-        <ItemsTableHead
-            rowCount={filteredRows.length}
-          />
-        <TableBody>
-          {filteredRows.map((row) => (
-            <TableRow
-              key={row.id}
-              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                {row.id}
-              </TableCell>
-              <TableCell align="center">{row.amount}</TableCell>
-              <TableCell align="center">{row.owner}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <div>
+      {assets && <TableContainer>
+        <Table size="small" aria-label="a dense table">
+          <ItemsTableHead />
+          <TableBody>
+            {assets.map((row) => (
+              <TableRow
+                key={row.id}
+                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              >
+                <TableCell component="th" scope="row">
+                  {row.id}
+                </TableCell>
+                <TableCell align="center">{row.numberTokens}</TableCell>
+                <TableCell align="center">{row.recipient}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>}
+    </div>
   );
 }
