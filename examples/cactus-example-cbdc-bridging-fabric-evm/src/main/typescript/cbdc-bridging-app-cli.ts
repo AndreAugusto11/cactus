@@ -8,6 +8,7 @@ import {
 import { LoggerProvider } from "@hyperledger/cactus-common";
 import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
 import CryptoMaterial from "../../crypto-material/crypto-material.json";
+import "dotenv/config";
 
 export async function launchApp(
   env?: NodeJS.ProcessEnv,
@@ -32,10 +33,6 @@ export async function launchApp(
 
   LoggerProvider.setLogLevel(serverOptions.logLevel);
 
-  const API_HOST = "localhost";
-  const API_SERVER_1_PORT = 4000;
-  const API_SERVER_2_PORT = 4100;
-
   const clientGatewayKeyPair = {
     privateKey: Uint8Array.from(
       Buffer.from(CryptoMaterial.gateways["gateway1"].privateKey, "hex"),
@@ -54,10 +51,18 @@ export async function launchApp(
     ),
   };
 
+  if (
+    process.env.API_HOST == undefined ||
+    process.env.API_SERVER_1_PORT == undefined ||
+    process.env.API_SERVER_2_PORT == undefined
+  ) {
+    throw new Error("Env variables not set");
+  }
+
   const appOptions: ICbdcBridgingApp = {
-    apiHost: API_HOST,
-    apiServer1Port: API_SERVER_1_PORT,
-    apiServer2Port: API_SERVER_2_PORT,
+    apiHost: process.env.API_HOST,
+    apiServer1Port: parseInt(process.env.API_SERVER_1_PORT),
+    apiServer2Port: parseInt(process.env.API_SERVER_2_PORT),
     clientGatewayKeyPair: clientGatewayKeyPair,
     serverGatewayKeyPair: serverGatewayKeyPair,
     logLevel: "DEBUG",

@@ -92,8 +92,6 @@ export class CbdcBridgingApp {
       this.options.apiServer2Port,
       this.options.apiHost,
     );
-    const httpGuiA = await Servers.startOnPort(3000, this.options.apiHost);
-    const httpGuiB = await Servers.startOnPort(3100, this.options.apiHost);
 
     const addressInfoA = httpApiA.address() as AddressInfo;
     const nodeApiHostA = `http://${this.options.apiHost}:${addressInfoA.port}`;
@@ -140,16 +138,8 @@ export class CbdcBridgingApp {
     serverPluginRegistry.add(serverIpfsPlugin);
     serverPluginRegistry.add(besuOdapGateway);
 
-    const apiServer1 = await this.startNode(
-      httpApiA,
-      httpGuiA,
-      clientPluginRegistry,
-    );
-    const apiServer2 = await this.startNode(
-      httpApiB,
-      httpGuiB,
-      serverPluginRegistry,
-    );
+    const apiServer1 = await this.startNode(httpApiA, clientPluginRegistry);
+    const apiServer2 = await this.startNode(httpApiB, serverPluginRegistry);
 
     const fabricApiClient = new FabricApi(
       new Configuration({ basePath: nodeApiHostA }),
@@ -200,13 +190,11 @@ export class CbdcBridgingApp {
 
   public async startNode(
     httpServerApi: Server,
-    httpServerCockpit: Server,
     pluginRegistry: PluginRegistry,
   ): Promise<ApiServer> {
     this.log.info(`Starting API Server node...`);
 
     const addressInfoApi = httpServerApi.address() as AddressInfo;
-    const addressInfoCockpit = httpServerCockpit.address() as AddressInfo;
 
     let config;
     if (this.options.apiServerOptions) {
@@ -215,14 +203,11 @@ export class CbdcBridgingApp {
       const configService = new ConfigService();
       const convictConfig = await configService.getOrCreate();
       config = convictConfig.getProperties();
-      config.plugins = [];
       config.configFile = "";
-      (config.apiCorsDomainCsv = "http://localhost:2000"),
-        (config.cockpitCorsDomainCsv = "http://localhost:2000"),
-        (config.apiPort = addressInfoApi.port);
+      config.apiCorsDomainCsv = `http://${process.env.API_HOST_FRONTEND}:${process.env.API_PORT_FRONTEND}`;
+      config.cockpitCorsDomainCsv = `http://${process.env.API_HOST_FRONTEND}:${process.env.API_PORT_FRONTEND}`;
+      config.apiPort = addressInfoApi.port;
       config.apiHost = addressInfoApi.address;
-      config.cockpitHost = addressInfoCockpit.address;
-      config.cockpitPort = addressInfoCockpit.port;
       config.grpcPort = 0;
       config.logLevel = this.options.logLevel || "INFO";
       config.authorizationProtocol = AuthorizationProtocol.NONE;
@@ -231,7 +216,6 @@ export class CbdcBridgingApp {
     const apiServer = new ApiServer({
       config,
       httpServerApi,
-      httpServerCockpit,
       pluginRegistry,
     });
 
