@@ -4,8 +4,8 @@ import AssetReferencesTable from "./AssetReferencesTable";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import ActionsContainer from "./ActionsContainer";
-import { getAssetReferencesFabric } from "../remote-calls/fabric-api-calls";
-import { getAssetReferencesBesu } from "../remote-calls/besu-api-calls";
+import { getAssetReferencesFabric } from "../api-calls/fabric-api";
+import { getAssetReferencesBesu } from "../api-calls/besu-api";
 
 const useStyles = makeStyles((theme) => ({
   container: {

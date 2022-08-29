@@ -55,27 +55,15 @@ export function getEthUserPrKey(user) {
 }
 
 export async function checkApiServer1Connection() {
-  let success = true;
-
   await axios.get(
     "http://localhost:4000/api/v1/api-server/healthcheck",
     { timeout: 2000 }
-  ).catch(() => {
-    success = false;
-  });
-
-  return success;
+  );
 }
 
 export async function checkApiServer2Connection() {
-  let success = true;
-
   await axios.get(
     "http://localhost:4100/api/v1/api-server/healthcheck",
     { timeout: 2000 }
-  ).catch(() => {
-    success = false;
-  });
-
-  return success;
+  );
 }

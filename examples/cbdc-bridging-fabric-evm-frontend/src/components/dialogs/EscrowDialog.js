@@ -9,8 +9,8 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
-import { escrowTokensFabric } from '../../remote-calls/fabric-api-calls';
-import { escrowTokensBesu } from '../../remote-calls/besu-api-calls';
+import { escrowTokensFabric } from '../../api-calls/fabric-api';
+import { escrowTokensBesu } from '../../api-calls/besu-api';
 
 const useStyles = makeStyles((theme) => ({
   errorMessage: {

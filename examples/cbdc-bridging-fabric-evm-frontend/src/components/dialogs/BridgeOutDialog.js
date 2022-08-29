@@ -8,7 +8,7 @@ import Select from '@material-ui/core/Select';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
-import { bridgeOutTokensFabric, getAssetReferencesFabric } from '../../remote-calls/fabric-api-calls';
+import { bridgeOutTokensFabric, getAssetReferencesFabric } from '../../api-calls/fabric-api';
 
 export default function BridgeOutDialog(props) {
   const [assetRefs, setAssetRefs] = useState([]);

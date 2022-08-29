@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Grid from "@material-ui/core/Grid";
 import Ledger from "../components/Ledger";
-import { checkApiServer1Connection, checkApiServer2Connection } from "../remote-calls/common";
+import { checkApiServer1Connection, checkApiServer2Connection } from "../api-calls/common";
 import ConnectionErrorDialog from "../components/dialogs/ConnectionErrorDialog";
 
 const useStyles = makeStyles((theme) => ({
@@ -35,18 +35,17 @@ export default function HomePage() {
 
   useEffect(() => {
     async function checkConnection() {
-      const response1 = await checkApiServer1Connection();
-      const response2 = await checkApiServer2Connection();
-    
-      if (!response1 || !response2) {
-        //setErrorDialog(true);
-      } else {
-        setErrorDialog(false);
-      }
+      await checkApiServer1Connection()
+        .then(() => setErrorDialog(false))
+        .catch(() => setErrorDialog(true));
+
+      await checkApiServer2Connection()
+        .then(() => setErrorDialog(false))
+        .catch(() => setErrorDialog(true));
     }
 
     checkConnection();
-  }, [])
+  }, []);
   
 
   return (

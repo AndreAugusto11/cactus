@@ -10,8 +10,8 @@ import Select from "@material-ui/core/Select";
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
-import { transferTokensFabric } from '../../remote-calls/fabric-api-calls';
-import { transferTokensBesu } from '../../remote-calls/besu-api-calls';
+import { transferTokensFabric } from '../../api-calls/fabric-api';
+import { transferTokensBesu } from '../../api-calls/besu-api';
 
 const recipients = [
   "Alice",

@@ -8,8 +8,8 @@ import TransferDialog from "./dialogs/TransferDialog";
 import EscrowDialog from "./dialogs/EscrowDialog";
 import BridgeOutDialog from "./dialogs/BridgeOutDialog";
 import BridgeBackDialog from "./dialogs/BridgeBackDialog";
-import { getFabricBalance } from "../remote-calls/fabric-api-calls";
-import { getBesuBalance } from "../remote-calls/besu-api-calls";
+import { getFabricBalance } from "../api-calls/fabric-api";
+import { getBesuBalance } from "../api-calls/besu-api";
 
 const useStyles = makeStyles((theme) => ({
   buttonTransfer: {
@@ -103,13 +103,11 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "13px",
     marginBottom: "1rem",
   },
-  grid: {
-  },
   blur: {
-    opacity: "0.5"
+    opacity: "0.5",
   },
   progress: {
-    marginTop: "1rem"
+    marginTop: "1rem",
   }
 }));
 
@@ -144,7 +142,7 @@ export default function Ledger(props) {
   return (
     <div>
       { loading ? <CircularProgress className={classes.progress}/> :
-        <Grid container spacing={1} className={classes.grid}>
+        <Grid container spacing={1}>
           <Grid item lg={5} className={classes.username}>
             <span>{props.user}</span>
           </Grid>
@@ -214,7 +212,7 @@ export default function Ledger(props) {
             <Grid item xs={12} lg={6}>
               <Button
               variant="contained"
-              disabled={props.assetRefs.filter(asset => asset.recipient == props.user).length === 0}
+              disabled={props.assetRefs.filter(asset => asset.recipient === props.user).length === 0}
               onClick={() => setBridgeOutDialog(true)}
               className={classes.buttonBridge}
               >
@@ -227,7 +225,7 @@ export default function Ledger(props) {
             <Grid item xs={12} lg={6}>
               <Button
               variant="contained"
-              disabled={props.assetRefs.filter(asset => asset.recipient == props.user).length === 0}
+              disabled={props.assetRefs.filter(asset => asset.recipient === props.user).length === 0}
               onClick={() => setBridgeBackDialog(true)}
               className={classes.buttonBridge}
               >

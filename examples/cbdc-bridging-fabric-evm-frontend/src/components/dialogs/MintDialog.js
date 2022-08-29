@@ -8,7 +8,7 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import Alert from "@material-ui/lab/Alert";
-import { mintTokensFabric } from '../../remote-calls/fabric-api-calls';
+import { mintTokensFabric } from '../../api-calls/fabric-api';
 
 const useStyles = makeStyles((theme) => ({
   errorMessage: {

@@ -27,7 +27,6 @@ export async function getFabricBalance(frontendUser) {
 }
 
 export async function mintTokensFabric(frontendUser, amount) {
-  console.log("minting tokens in Fabric " + frontendUser + amount)
   const response = await axios.post(
     "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
     {
@@ -49,7 +48,6 @@ export async function mintTokensFabric(frontendUser, amount) {
 }
 
 export async function transferTokensFabric(frontendUserFrom, frontendUserTo, amount) {
-  console.log("transfer tokens in Fabric from " + frontendUserFrom + " to " + frontendUserTo)
   const to = getFabricId(frontendUserTo);
   const response = await axios.post(
     "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
