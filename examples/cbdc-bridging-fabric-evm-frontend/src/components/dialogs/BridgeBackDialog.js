@@ -36,7 +36,7 @@ export default function BridgeBackDialog(props) {
       setErrorMessage("Please choose a valid Asset Reference ID");
     } else {
       const amount = assetRefs.find(asset => asset.id === assetRefID).numberTokens;
-      bridgeBackTokensBesu(props.user, amount, assetRefID);
+      await bridgeBackTokensBesu(props.user, amount, assetRefID);
       props.onClose();
     }
   }

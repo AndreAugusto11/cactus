@@ -9,7 +9,7 @@
     "Fabric",
     "Besu",
     "Blockchain",
-    "Distributed Ledger Technology"
+    "CBDC"
   ],
   "homepage": "https://github.com/hyperledger/cactus#readme",
   "bugs": {
@@ -26,6 +26,11 @@
     "url": "https://www.hyperledger.org/use/cactus"
   },
   "contributors": [
+    {
+      "name": "Please add yourself to the list of contributors",
+      "email": "your.name@example.com",
+      "url": "https://example.com"
+    },
     {
       "name": "André Augusto",
       "email": "andre.augusto@tecnico.ulisboa.pt"

@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
-import { getAssetReferencesFabric } from "../remote-calls/fabric-api-calls";
-import { getAssetReferencesBesu } from "../remote-calls/besu-api-calls";
 
 const headCells = [
   {
@@ -50,29 +48,16 @@ function ItemsTableHead() {
 }
 
 export default function AssetReferencesTable(props) {
-  const [assets, setAssets] = useState([]);
-
   useEffect(() => {
-    async function fetchData() {
-      if (props.ledger === "Fabric") {
-        let list = await getAssetReferencesFabric("Alice");
-        setAssets(list);
-      } else {
-        let list = await getAssetReferencesBesu("Alice");
-        setAssets(list);
-      }
-    }
-
-    fetchData();
-  }, []);
+  }, [props.ledger, props.assetRefs]);
 
   return (
     <div>
-      {assets && <TableContainer>
+      {props.assetRefs && <TableContainer>
         <Table size="small" aria-label="a dense table">
           <ItemsTableHead />
           <TableBody>
-            {assets.map((row) => (
+            {props.assetRefs.map((row) => (
               <TableRow
                 key={row.id}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}

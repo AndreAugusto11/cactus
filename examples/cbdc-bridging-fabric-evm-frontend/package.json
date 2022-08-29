@@ -1,15 +1,41 @@
 {
   "name": "cbdc-bridging-fabric-evm-frontend",
   "version": "0.1.0",
-  "private": true,
+  "description": "An example UI showing how to use Cactus when implementing a CBDC bridging application between Hyperledger Fabric and Hyperledger Besu.",
+  "keywords": [
+    "Hyperledger",
+    "Cactus",
+    "ODAP",
+    "Fabric",
+    "Besu",
+    "Blockchain",
+    "CBDC"
+  ],
+  "homepage": "https://github.com/hyperledger/cactus#readme",
+  "bugs": {
+    "url": "https://github.com/hyperledger/cactus/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperledger/cactus.git"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Please add yourself to the list of contributors",
+      "email": "your.name@example.com",
+      "url": "https://example.com"
+    },
+    {
+      "name": "André Augusto",
+      "email": "andre.augusto@tecnico.ulisboa.pt"
+    }
+  ],
   "dependencies": {
     "@material-ui/core": "^4.12.4",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@mui/material": "^5.10.2",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "axios": "^0.27.2",
     "mui": "^0.0.1",
     "react": "^17.0.0",

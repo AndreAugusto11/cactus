@@ -122,7 +122,6 @@ export default function Ledger(props) {
   const [escrowDialog, setEscrowDialog] = useState(false);
   const [bridgeOutDialog, setBridgeOutDialog] = useState(false);
   const [bridgeBackDialog, setBridgeBackDialog] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -134,18 +133,16 @@ export default function Ledger(props) {
         response = await getBesuBalance(props.user);
         setAmount(response);
       }
-      setLoading(false);
     }
 
-    setLoading(true);
     fetchData();
 
   }, [props.user, props.ledger]);
 
   return (
     <div>
-      { loading ? <CircularProgress className={classes.progress}/> :
-        <Grid container spacing={1} className={loading ? classes.blur : classes.grid}>
+      { false ? <CircularProgress className={classes.progress}/> :
+        <Grid container spacing={1} className={classes.grid}>
           <Grid item lg={5} className={classes.username}>
             <span>{props.user}</span>
           </Grid>
@@ -166,6 +163,7 @@ export default function Ledger(props) {
               <Button
               variant="contained"
               fullWidth
+              disabled={amount === 0}
               onClick={() => setTransferDialog(true)}
               className={classes.buttonTransferFullWidth}
               >
@@ -177,6 +175,7 @@ export default function Ledger(props) {
               <Grid item xs={12} lg={12}>
                 <Button
                 variant="contained"
+                disabled={amount === 0}
                 onClick={() => setTransferDialog(true)}
                 className={classes.buttonTransferFullWidth}
                 >
@@ -186,6 +185,7 @@ export default function Ledger(props) {
               <Grid item xs={12} lg={6}>
                 <Button
                 variant="contained"
+                disabled={amount === 0}
                 onClick={() => setTransferDialog(true)}
                 className={classes.buttonTransfer}
                 >
@@ -199,6 +199,7 @@ export default function Ledger(props) {
           <Grid item xs={12} lg={6}>
             <Button
             variant="contained"
+            disabled={amount === 0}
             onClick={() => setEscrowDialog(true)}
             className={classes.buttonEscrow}
           >
@@ -211,6 +212,7 @@ export default function Ledger(props) {
             <Grid item xs={12} lg={6}>
               <Button
               variant="contained"
+              disabled={props.assetRefs.filter(asset => asset.recipient == props.user).length === 0}
               onClick={() => setBridgeOutDialog(true)}
               className={classes.buttonBridge}
               >
@@ -223,6 +225,7 @@ export default function Ledger(props) {
             <Grid item xs={12} lg={6}>
               <Button
               variant="contained"
+              disabled={props.assetRefs.filter(asset => asset.recipient == props.user).length === 0}
               onClick={() => setBridgeBackDialog(true)}
               className={classes.buttonBridge}
               >

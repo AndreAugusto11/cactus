@@ -25,7 +25,7 @@ export default function BridgeOutDialog(props) {
       setAssetRefID("");
       fetchData();
     }
-  }, [props.open]);
+  }, [props.open, props.user]);
 
   const handleChangeAssetRefID = (event) => {
     setAssetRefID(event.target.value);
@@ -36,7 +36,7 @@ export default function BridgeOutDialog(props) {
       setErrorMessage("Please choose a valid Asset Reference ID");
     } else {
       const amount = assetRefs.find(asset => asset.id === assetRefID).numberTokens;
-      bridgeOutTokensFabric(props.user, amount, assetRefID);
+      await bridgeOutTokensFabric(props.user, amount, assetRefID);
       props.onClose();
     }
   }

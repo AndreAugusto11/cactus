@@ -1,9 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import AssetReferencesTable from "./AssetReferencesTable";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import ActionsContainer from "./ActionsContainer";
+import { getAssetReferencesFabric } from "../remote-calls/fabric-api-calls";
+import { getAssetReferencesBesu } from "../remote-calls/besu-api-calls";
 
 const useStyles = makeStyles((theme) => ({
   container: {
@@ -37,11 +39,20 @@ const useStyles = makeStyles((theme) => ({
 
 export default function Ledger(props) {
   const classes = useStyles();
+  const [assetReferences, setAssetReferences] = useState([]);
 
   useEffect(() => {
-    if (props.ledger) {
-
+    async function fetchData() {
+      if (props.ledger === "Fabric") {
+        let list = await getAssetReferencesFabric("Alice");
+        setAssetReferences(list);
+      } else {
+        let list = await getAssetReferencesBesu("Alice");
+        setAssetReferences(list);
+      }
     }
+
+    fetchData();
   }, [props.ledger]);
 
   return (
@@ -55,12 +66,12 @@ export default function Ledger(props) {
       <Grid container spacing={2}>
         <Grid item sm={12} md={6}>
           <Paper elevation={0} className={classes.userContainer}>
-            <ActionsContainer user={"Alice"} ledger={props.ledger}/>
+            <ActionsContainer user={"Alice"} ledger={props.ledger} assetRefs={assetReferences}/>
           </Paper>
         </Grid>
         <Grid item sm={12} md={6}>
           <Paper elevation={0} className={classes.userContainer}>
-            <ActionsContainer user={"Charlie"} ledger={props.ledger}/>
+            <ActionsContainer user={"Charlie"} ledger={props.ledger} assetRefs={assetReferences}/>
           </Paper>
         </Grid>
       </Grid>
@@ -70,10 +81,10 @@ export default function Ledger(props) {
         <div className={classes.spacing}></div>
       }
       <Paper elevation={0} className={classes.userContainer}>
-        <ActionsContainer user={"Bridge"} ledger={props.ledger}/>
+        <ActionsContainer user={"Bridge"} ledger={props.ledger} assetRefs={assetReferences}/>
       </Paper>
       <p className={classes.label}>Asset References</p>
-      <AssetReferencesTable ledger={props.ledger}/>
+      <AssetReferencesTable ledger={props.ledger} assetRefs={assetReferences}/>
     </Paper>
   );
 }
