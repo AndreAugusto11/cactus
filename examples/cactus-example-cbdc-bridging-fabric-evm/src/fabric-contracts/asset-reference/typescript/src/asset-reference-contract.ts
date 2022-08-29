@@ -63,7 +63,6 @@ export class AssetReferenceContract extends Contract {
     );
     const exists: boolean = await this.AssetReferenceExists(ctx, assetId);
     if (exists) {
-      console.log(`The asset reference with ID ${assetId} already exists`);
       throw new Error(`The asset reference with ID ${assetId} already exists`);
     }
 
