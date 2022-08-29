@@ -16,16 +16,18 @@ const useStyles = makeStyles((theme) => ({
   },
   amountField: {
     margin: "1rem 0"
-  }
+  },
 }));
 
 export default function MintDialog(props) {
   const classes = useStyles();
   const [amount, setAmount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (props.open) {
+      setSending(false);
       setAmount(0);
     }
   }, [props.open]);
@@ -46,8 +48,8 @@ export default function MintDialog(props) {
     if (parseInt(amount) === 0) {
       setErrorMessage("Amount must be a positive value");
     } else {
+      setSending(true);
       await mintTokensFabric(props.user, amount.toString());
-
       props.onClose();
     }
   }
@@ -82,8 +84,14 @@ export default function MintDialog(props) {
         }
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={performMintTransaction}>Confirm</Button>
+        {
+          sending ?
+          <Button disabled>Sending...</Button> :
+          <div>
+            <Button onClick={props.onClose}>Cancel</Button>
+            <Button onClick={performMintTransaction}>Confirm</Button>
+          </div> 
+        }
       </DialogActions>
     </Dialog>
   );

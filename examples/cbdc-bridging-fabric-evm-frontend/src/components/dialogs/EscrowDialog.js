@@ -26,9 +26,11 @@ export default function EscrowDialog(props) {
   const [assetRefID, setAssetRefID] = useState("");
   const [amount, setAmount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (props.open) {
+      setSending(false);
       setAssetRefID(uuidv4());
       setAmount(0);
     }
@@ -50,6 +52,7 @@ export default function EscrowDialog(props) {
     if (parseInt(amount) === 0) {
       setErrorMessage("Amount must be a positive value");
     } else {
+      setSending(true);
       if (props.ledger === "Fabric") {
         await escrowTokensFabric(props.user, amount.toString(), assetRefID);
       } else {
@@ -101,8 +104,14 @@ export default function EscrowDialog(props) {
         }
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={performEscrowTransaction}>Confirm</Button>
+        {
+          sending ?
+          <Button disabled>Sending...</Button> :
+          <div>
+            <Button onClick={props.onClose}>Cancel</Button>
+            <Button onClick={performEscrowTransaction}>Confirm</Button>
+          </div> 
+        }
       </DialogActions>
     </Dialog>
   );

@@ -109,7 +109,6 @@ const useStyles = makeStyles((theme) => ({
     opacity: "0.5"
   },
   progress: {
-    zIndex: 1000,
     marginTop: "1rem"
   }
 }));
@@ -122,6 +121,7 @@ export default function Ledger(props) {
   const [escrowDialog, setEscrowDialog] = useState(false);
   const [bridgeOutDialog, setBridgeOutDialog] = useState(false);
   const [bridgeBackDialog, setBridgeBackDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -133,15 +133,17 @@ export default function Ledger(props) {
         response = await getBesuBalance(props.user);
         setAmount(response);
       }
+      setLoading(false);
     }
 
+    setLoading(true);
     fetchData();
 
   }, [props.user, props.ledger]);
 
   return (
     <div>
-      { false ? <CircularProgress className={classes.progress}/> :
+      { loading ? <CircularProgress className={classes.progress}/> :
         <Grid container spacing={1} className={classes.grid}>
           <Grid item lg={5} className={classes.username}>
             <span>{props.user}</span>

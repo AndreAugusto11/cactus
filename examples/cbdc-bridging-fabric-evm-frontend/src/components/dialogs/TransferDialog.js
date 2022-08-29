@@ -33,9 +33,11 @@ export default function TransferDialog(props) {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (props.open) {
+      setSending(false);
       setRecipient("");
       setAmount(0);
     }
@@ -61,6 +63,7 @@ export default function TransferDialog(props) {
     if (parseInt(amount) === 0) {
       setErrorMessage("Amount must be a positive value");
     } else {
+      setSending(true);
       if (props.ledger === "Fabric") {
         await transferTokensFabric(props.user, recipient, amount.toString());
       } else {
@@ -116,8 +119,14 @@ export default function TransferDialog(props) {
         }
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={performTransferTransaction}>Confirm</Button>
+        {
+          sending ?
+          <Button disabled>Sending...</Button> :
+          <div>
+            <Button onClick={props.onClose}>Cancel</Button>
+            <Button onClick={performTransferTransaction}>Confirm</Button>
+          </div> 
+        }
       </DialogActions>
     </Dialog>
   );

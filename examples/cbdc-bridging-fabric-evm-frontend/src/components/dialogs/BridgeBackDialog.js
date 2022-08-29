@@ -14,6 +14,7 @@ export default function BridgeBackDialog(props) {
   const [assetRefs, setAssetRefs] = useState([]);
   const [assetRefID, setAssetRefID] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -22,6 +23,7 @@ export default function BridgeBackDialog(props) {
     }
 
     if (props.open) {
+      setSending(false);
       setAssetRefID("");
       fetchData();
     }
@@ -35,6 +37,7 @@ export default function BridgeBackDialog(props) {
     if (assetRefID === "") {
       setErrorMessage("Please choose a valid Asset Reference ID");
     } else {
+      setSending(true);
       const amount = assetRefs.find(asset => asset.id === assetRefID).numberTokens;
       await bridgeBackTokensBesu(props.user, amount, assetRefID);
       props.onClose();
@@ -76,8 +79,14 @@ export default function BridgeBackDialog(props) {
         }
       </DialogContent>
       <DialogActions>
-        <Button onClick={props.onClose}>Cancel</Button>
-        <Button onClick={performBridgeBackTransaction}>Confirm</Button>
+        {
+          sending ?
+          <Button disabled>Sending...</Button> :
+          <div>
+            <Button onClick={props.onClose}>Cancel</Button>
+            <Button onClick={performBridgeBackTransaction}>Confirm</Button>
+          </div> 
+        }
       </DialogActions>
     </Dialog>
   );
