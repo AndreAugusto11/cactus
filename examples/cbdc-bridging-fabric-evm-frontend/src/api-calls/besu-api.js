@@ -5,7 +5,11 @@ import { getEthAddress, getEthUserPrKey, getFabricId } from "./common";
 const BESU_CONTRACT_CBDC_ERC20_NAME = "CBDCcontract";
 const BESU_CONTRACT_ASSET_REF_NAME = "AssetReferenceContract";
 
-export async function transferTokensBesu(frontendUserFrom, frontendUserTo, amount) {
+export async function transferTokensBesu(
+  frontendUserFrom,
+  frontendUserTo,
+  amount,
+) {
   const from = getEthAddress(frontendUserFrom);
   const to = getEthAddress(frontendUserTo);
   await axios.post(
@@ -47,10 +51,9 @@ export async function escrowTokensBesu(frontendUserFrom, amount, assetRefID) {
   );
 }
 
-
 export async function getAssetReferencesBesu(frontendUser) {
   const from = getEthAddress(frontendUser);
-  
+
   const response = await axios.post(
     "http://localhost:4100/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-besu/invoke-contract",
     {
@@ -68,12 +71,12 @@ export async function getAssetReferencesBesu(frontendUser) {
     },
   );
 
-  return response.data.callOutput.map(asset => {
+  return response.data.callOutput.map((asset) => {
     return {
       id: asset[0],
       numberTokens: asset[2],
-      recipient: getUserFromEthAddress(asset[3])
-    }
+      recipient: getUserFromEthAddress(asset[3]),
+    };
   });
 }
 

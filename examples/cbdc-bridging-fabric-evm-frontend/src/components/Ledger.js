@@ -7,7 +7,7 @@ import ActionsContainer from "./ActionsContainer";
 import { getAssetReferencesFabric } from "../api-calls/fabric-api";
 import { getAssetReferencesBesu } from "../api-calls/besu-api";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(() => ({
   container: {
     width: "95%",
   },
@@ -18,23 +18,23 @@ const useStyles = makeStyles((theme) => ({
   },
   button: {
     margin: "auto",
-    width: "130px"
+    width: "130px",
   },
   buttonItem: {
-    width: "130px"
+    width: "130px",
   },
   userContainer: {
     background: "#EAEAEA",
     padding: "0.5rem 1.1rem 1.1rem 1.1rem",
   },
   spacing: {
-    marginTop: "5rem"
+    marginTop: "5rem",
   },
   label: {
     textAlign: "left",
     margin: "3rem 0 1rem 0.5rem",
-    color: "#999999"
-  }
+    color: "#999999",
+  },
 }));
 
 export default function Ledger(props) {
@@ -58,33 +58,45 @@ export default function Ledger(props) {
   return (
     <Paper elevation={1} className={classes.paper}>
       <h2>Hyperledger {props.ledger}</h2>
-      {
-        props.ledger === "Fabric" ?
-        <p className={classes.label}>Org1</p> :
+      {props.ledger === "Fabric" ? (
+        <p className={classes.label}>Org1</p>
+      ) : (
         <div className={classes.spacing}></div>
-      }
+      )}
       <Grid container spacing={2}>
         <Grid item sm={12} md={6}>
           <Paper elevation={0} className={classes.userContainer}>
-            <ActionsContainer user={"Alice"} ledger={props.ledger} assetRefs={assetReferences}/>
+            <ActionsContainer
+              user={"Alice"}
+              ledger={props.ledger}
+              assetRefs={assetReferences}
+            />
           </Paper>
         </Grid>
         <Grid item sm={12} md={6}>
           <Paper elevation={0} className={classes.userContainer}>
-            <ActionsContainer user={"Charlie"} ledger={props.ledger} assetRefs={assetReferences}/>
+            <ActionsContainer
+              user={"Charlie"}
+              ledger={props.ledger}
+              assetRefs={assetReferences}
+            />
           </Paper>
         </Grid>
       </Grid>
-      {
-        props.ledger === "Fabric" ? 
-        <p className={classes.label}>Org2</p> :
+      {props.ledger === "Fabric" ? (
+        <p className={classes.label}>Org2</p>
+      ) : (
         <div className={classes.spacing}></div>
-      }
+      )}
       <Paper elevation={0} className={classes.userContainer}>
-        <ActionsContainer user={"Bridge"} ledger={props.ledger} assetRefs={assetReferences}/>
+        <ActionsContainer
+          user={"Bridge"}
+          ledger={props.ledger}
+          assetRefs={assetReferences}
+        />
       </Paper>
       <p className={classes.label}>Asset References</p>
-      <AssetReferencesTable ledger={props.ledger} assetRefs={assetReferences}/>
+      <AssetReferencesTable ledger={props.ledger} assetRefs={assetReferences} />
     </Paper>
   );
 }

@@ -30,6 +30,8 @@ import { makeSessionDataChecks } from "../make-checks";
 
 import { BesuOdapGateway } from "../gateways/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -98,6 +100,8 @@ test("runs ODAP between two gateways via openApi", async () => {
     dltIDs: ["DLT2"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   const odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions = {
@@ -105,6 +109,8 @@ test("runs ODAP between two gateways via openApi", async () => {
     dltIDs: ["DLT1"],
     instanceId: uuidv4(),
     ipfsPath: ipfsApiHost,
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
   };
 
   pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);

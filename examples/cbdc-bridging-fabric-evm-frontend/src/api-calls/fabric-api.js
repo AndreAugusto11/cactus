@@ -41,13 +41,17 @@ export async function mintTokensFabric(frontendUser, amount) {
       },
     },
   );
-  
+
   if (response.status === 200) {
     // throw error
   }
 }
 
-export async function transferTokensFabric(frontendUserFrom, frontendUserTo, amount) {
+export async function transferTokensFabric(
+  frontendUserFrom,
+  frontendUserTo,
+  amount,
+) {
   const to = getFabricId(frontendUserTo);
   const response = await axios.post(
     "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
@@ -63,7 +67,7 @@ export async function transferTokensFabric(frontendUserFrom, frontendUserTo, amo
       },
     },
   );
-  
+
   if (response.status === 200) {
     // throw error
   }
@@ -84,7 +88,7 @@ export async function escrowTokensFabric(frontendUser, amount, assetRefID) {
       },
     },
   );
-  
+
   if (response.status === 200) {
     // throw error
   }
@@ -157,10 +161,10 @@ export async function getAssetReferencesFabric(frontendUser) {
   );
 
   return JSON.parse(response.data.functionOutput)
-    .filter(asset => typeof asset === "object")
-    .map(asset => {
+    .filter((asset) => typeof asset === "object")
+    .map((asset) => {
       asset.recipient = getUserFromFabricId(asset.recipient);
-      return asset; 
+      return asset;
     });
 }
 
