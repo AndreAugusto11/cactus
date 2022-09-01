@@ -103,9 +103,13 @@ export class CarbonAccountingApp {
 
     const sshConfig = await this.ledgers.fabric.getSshConfig();
     const connectionProfile = await this.ledgers.fabric.getConnectionProfileOrg1();
-    const enrollAdminOut = await this.ledgers.fabric.enrollAdmin();
+    const enrollAdminOut = await this.ledgers.fabric.enrollAdmin("org1");
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await this.ledgers.fabric.enrollUser(adminWallet);
+    const [userIdentity] = await this.ledgers.fabric.enrollUser(
+      adminWallet,
+      "user",
+      "org1",
+    );
     const keychainEntryKey = "fabric_user2";
     const keychainEntryValue = JSON.stringify(userIdentity);
     await this.keychain.set(keychainEntryKey, keychainEntryValue);

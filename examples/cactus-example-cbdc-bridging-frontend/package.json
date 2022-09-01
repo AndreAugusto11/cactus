@@ -1,0 +1,68 @@
+{
+  "name": "cactus-example-cbdc-bridging-frontend",
+  "version": "0.1.0",
+  "description": "An example UI showing how to use Cactus when implementing a CBDC bridging application between Hyperledger Fabric and Hyperledger Besu.",
+  "keywords": [
+    "Hyperledger",
+    "Cactus",
+    "ODAP",
+    "Fabric",
+    "Besu",
+    "Blockchain",
+    "CBDC"
+  ],
+  "bugs": {
+    "url": "https://github.com/hyperledger/cactus/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperledger/cactus.git"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Please add yourself to the list of contributors",
+      "email": "your.name@example.com",
+      "url": "https://example.com"
+    },
+    {
+      "name": "André Augusto",
+      "email": "andre.augusto@tecnico.ulisboa.pt"
+    }
+  ],
+  "dependencies": {
+    "@material-ui/core": "^4.12.4",
+    "@material-ui/icons": "^4.11.3",
+    "@material-ui/lab": "^4.0.0-alpha.61",
+    "@mui/material": "^5.10.2",
+    "axios": "^0.27.2",
+    "eslint-config-react-app": "^7.0.1",
+    "mui": "^0.0.1",
+    "react": "^17.0.0",
+    "react-dom": "^17.0.0",
+    "react-scripts": "5.0.1",
+    "uuid": "^8.3.2",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

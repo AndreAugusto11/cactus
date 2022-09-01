@@ -166,15 +166,16 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return `${this.envVars.get("FABRIC_VERSION")}`;
   }
 
-  public getDefaultMspId(): string {
-    return "Org1MSP";
+  public getDefaultMspId(organization: string): string {
+    return organization.charAt(0).toUpperCase() + organization.slice(1) + "MSP";
   }
 
-  public async createCaClient(): Promise<FabricCAServices> {
+  public async createCaClient(organization: string): Promise<FabricCAServices> {
     const fnTag = `${this.className}#createCaClient()`;
     try {
-      const ccp = await this.getConnectionProfileOrg1();
-      const caInfo = ccp.certificateAuthorities["ca.org1.example.com"];
+      const ccp = await this.getConnectionProfileOrgX(organization);
+      const caInfo =
+        ccp.certificateAuthorities["ca." + organization + ".example.com"];
       const { tlsCACerts, url: caUrl, caName } = caInfo;
       const { pem: caTLSCACertPem } = tlsCACerts;
       const tlsOptions = { trustedRoots: caTLSCACertPem, verify: false };
@@ -187,12 +188,17 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(wallet: Wallet): Promise<any> {
+  public async enrollUser(
+    wallet: Wallet,
+    enrollmentID: string,
+    organization: string,
+  ): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
-      const mspId = this.getDefaultMspId();
-      const enrollmentID = "user";
-      const connectionProfile = await this.getConnectionProfileOrg1();
+      const mspId = this.getDefaultMspId(organization);
+      const connectionProfile = await this.getConnectionProfileOrgX(
+        organization,
+      );
       // Create a new gateway for connecting to our peer node.
       const gateway = new Gateway();
       const discovery = { enabled: true, asLocalhost: true };
@@ -205,12 +211,12 @@ export class FabricTestLedgerV1 implements ITestLedger {
 
       // Get the CA client object from the gateway for interacting with the CA.
       // const ca = gateway.getClient().getCertificateAuthority();
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClient(organization);
       const adminIdentity = gateway.getIdentity();
 
       // Register the user, enroll the user, and import the new identity into the wallet.
       const registrationRequest = {
-        affiliation: "org1.department1",
+        affiliation: organization + ".department1",
         enrollmentID,
         role: "client",
       };
@@ -255,10 +261,12 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return ["admin", "adminpw"];
   }
 
-  public async enrollAdmin(): Promise<[X509Identity, Wallet]> {
+  public async enrollAdmin(
+    organization: string,
+  ): Promise<[X509Identity, Wallet]> {
     const fnTag = `${this.className}#enrollAdmin()`;
     try {
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClient(organization);
       const wallet = await Wallets.newInMemoryWallet();
 
       // Enroll the admin user, and import the new identity into the wallet.
@@ -268,7 +276,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
       };
       const enrollment = await ca.enroll(request);
 
-      const mspId = this.getDefaultMspId();
+      const mspId = this.getDefaultMspId(organization);
       const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
