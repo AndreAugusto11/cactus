@@ -98,25 +98,13 @@
       "path": "./packages/cactus-plugin-ledger-connector-sawtooth-socketio/tsconfig.json"
     },
     {
+      "path": "./packages/cactus-plugin-odap-hermes/tsconfig.json"
+    },
+    {
       "path": "./packages/cactus-test-tooling/tsconfig.json"
     },
     {
-      "path": "./examples/cactus-example-carbon-accounting-backend/tsconfig.json"
-    },
-    {
-      "path": "./examples/cactus-example-carbon-accounting-business-logic-plugin/tsconfig.json"
-    },
-    {
-      "path": "./examples/cactus-example-carbon-accounting-frontend/tsconfig.json"
-    },
-    {
-      "path": "./examples/cactus-example-supply-chain-backend/tsconfig.json"
-    },
-    {
-      "path": "./examples/cactus-example-supply-chain-business-logic-plugin/tsconfig.json"
-    },
-    {
-      "path": "./examples/cactus-example-supply-chain-frontend/tsconfig.json"
+      "path": "./examples/cactus-example-cbdc-bridging-backend/tsconfig.json"
     },
     {
       "path": "./extensions/cactus-plugin-object-store-ipfs/tsconfig.json"

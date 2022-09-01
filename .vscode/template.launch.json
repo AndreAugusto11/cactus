@@ -67,7 +67,7 @@
       ]
     },
     {
-      "name": "Example: Bridging Fabric-EVM App",
+      "name": "Example: CBDC Bridging Fabric-EVM App",
       "type": "node",
       "request": "launch",
       "protocol": "inspector",
@@ -75,8 +75,8 @@
         "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
       },
       "args": [
-        "${workspaceFolder}/examples/cactus-example-cbdc-bridging-fabric-evm/src/main/typescript/cbdc-bridging-app-cli.ts",
-        "dotenv_config_path=process.env"
+        "${workspaceFolder}/examples/cactus-example-cbdc-bridging-backendsrc/main/typescript/cbdc-bridging-app-cli.ts",
+        "dotenv_config_path=${workspaceFolder}/examples/cactus-example-cbdc-bridging-backend/process.env"
       ],
       "runtimeArgs": [
         "-r",
