@@ -35,10 +35,6 @@ import {
   Constants,
 } from "@hyperledger/cactus-core-api";
 import {
-  IPluginOdapGatewayConstructorOptions,
-  PluginOdapGateway,
-} from "../../../main/typescript/gateway/plugin-odap-gateway";
-import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
@@ -57,29 +53,18 @@ import {
   Web3SigningCredential,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
 import Web3 from "web3";
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+
 import { makeSessionDataChecks } from "../make-checks";
 import {
-  sendTransferCommenceRequest,
-  checkValidTransferCommenceResponse,
-} from "../../../main/typescript/gateway/client/transfer-commence";
+  BesuOdapGateway,
+  IBesuOdapGatewayConstructorOptions,
+} from "../../../main/typescript/gateway/besu-odap-gateway";
 import {
-  sendTransferInitializationRequest,
-  checkValidInitializationResponse,
-} from "../../../main/typescript/gateway/client/transfer-initialization";
-import {
-  checkValidtransferCommenceRequest,
-  sendTransferCommenceResponse,
-} from "../../../main/typescript/gateway/server/transfer-commence";
-import {
-  checkValidInitializationRequest,
-  sendTransferInitializationResponse,
-} from "../../../main/typescript/gateway/server/transfer-initialization";
-import {
-  isFabricAssetLocked,
-  fabricAssetExists,
-  besuAssetExists,
-} from "../make-checks-ledgers";
+  FabricOdapGateway,
+  IFabricOdapGatewayConstructorOptions,
+} from "../../../main/typescript/gateway/fabric-odap-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 /**
  * Use this to debug issues with the fabric node SDK
  * ```sh
@@ -89,7 +74,7 @@ import {
 let ipfsApiHost: string;
 
 let fabricSigningCredential: FabricSigningCredential;
-const logLevel: LogLevelDesc = "TRACE";
+const logLevel: LogLevelDesc = "INFO";
 
 let ipfsServer: Server;
 let sourceGatewayServer: Server;
@@ -113,10 +98,10 @@ let besuKeychainId: string;
 let fabricConnector: PluginLedgerConnectorFabric;
 let besuConnector: PluginLedgerConnectorBesu;
 
-let odapClientGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let odapServerGatewayPluginOptions: IPluginOdapGatewayConstructorOptions;
-let pluginSourceGateway: PluginOdapGateway;
-let pluginRecipientGateway: PluginOdapGateway;
+let odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions;
+let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
+let pluginSourceGateway: FabricOdapGateway;
+let pluginRecipientGateway: BesuOdapGateway;
 
 let odapClientGatewayApiHost: string;
 let odapServerGatewayApiHost: string;
@@ -204,9 +189,13 @@ beforeAll(async () => {
     const connectionProfile = await fabricLedger.getConnectionProfileOrg1();
     expect(connectionProfile).not.toBeUndefined();
 
-    const enrollAdminOut = await fabricLedger.enrollAdmin();
+    const enrollAdminOut = await fabricLedger.enrollAdmin("org1");
     const adminWallet = enrollAdminOut[1];
-    const [userIdentity] = await fabricLedger.enrollUser(adminWallet);
+    const [userIdentity] = await fabricLedger.enrollUser(
+      adminWallet,
+      "user",
+      "org1",
+    );
     const sshConfig = await fabricLedger.getSshConfig();
 
     const keychainInstanceId = uuidv4();
@@ -581,8 +570,8 @@ beforeAll(async () => {
       fabricSigningCredential: fabricSigningCredential,
       fabricChannelName: fabricChannelName,
       fabricContractName: fabricContractName,
-      fabricAssetID: FABRIC_ASSET_ID,
-      knexConfig: knexClientConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
     odapServerGatewayPluginOptions = {
@@ -591,16 +580,16 @@ beforeAll(async () => {
       instanceId: uuidv4(),
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       ipfsPath: ipfsApiHost,
-      besuAssetID: BESU_ASSET_ID,
       besuPath: besuPath,
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
       besuKeychainId: besuKeychainId,
-      knexConfig: knexServerConnection,
+      clientHelper: new ClientGatewayHelper(),
+      serverHelper: new ServerGatewayHelper(),
     };
 
-    pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
-    pluginRecipientGateway = new PluginOdapGateway(
+    pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
+    pluginRecipientGateway = new BesuOdapGateway(
       odapServerGatewayPluginOptions,
     );
 
@@ -684,11 +673,13 @@ test("client gateway crashes after lock fabric asset", async () => {
     serverIdentityPubkey: "",
     maxRetries: MAX_RETRIES,
     maxTimeout: MAX_TIMEOUT,
+    sourceLedgerAssetID: FABRIC_ASSET_ID,
+    recipientLedgerAssetID: BESU_ASSET_ID,
   };
 
   const sessionID = pluginSourceGateway.configureOdapSession(odapClientRequest);
 
-  const transferInitializationRequest = await sendTransferInitializationRequest(
+  const transferInitializationRequest = await pluginSourceGateway.clientHelper.sendTransferInitializationRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -699,12 +690,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidInitializationRequest(
+  await pluginRecipientGateway.serverHelper.checkValidInitializationRequest(
     transferInitializationRequest,
     pluginRecipientGateway,
   );
 
-  const transferInitializationResponse = await sendTransferInitializationResponse(
+  const transferInitializationResponse = await pluginRecipientGateway.serverHelper.sendTransferInitializationResponse(
     transferInitializationRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -715,12 +706,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidInitializationResponse(
+  await pluginSourceGateway.clientHelper.checkValidInitializationResponse(
     transferInitializationResponse,
     pluginSourceGateway,
   );
 
-  const transferCommenceRequest = await sendTransferCommenceRequest(
+  const transferCommenceRequest = await pluginSourceGateway.clientHelper.sendTransferCommenceRequest(
     sessionID,
     pluginSourceGateway,
     false,
@@ -731,12 +722,12 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidtransferCommenceRequest(
+  await pluginRecipientGateway.serverHelper.checkValidtransferCommenceRequest(
     transferCommenceRequest,
     pluginRecipientGateway,
   );
 
-  const transferCommenceResponse = await sendTransferCommenceResponse(
+  const transferCommenceResponse = await pluginRecipientGateway.serverHelper.sendTransferCommenceResponse(
     transferCommenceRequest.sessionID,
     pluginRecipientGateway,
     false,
@@ -747,23 +738,17 @@ test("client gateway crashes after lock fabric asset", async () => {
     return;
   }
 
-  await checkValidTransferCommenceResponse(
+  await pluginSourceGateway.clientHelper.checkValidTransferCommenceResponse(
     transferCommenceResponse,
     pluginSourceGateway,
   );
 
-  await pluginSourceGateway.lockFabricAsset(sessionID);
+  await pluginSourceGateway.lockAsset(sessionID);
 
   // check if asset was successfully locked
-  expect(
-    await isFabricAssetLocked(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
-  ).toBe(true);
+  expect(await pluginSourceGateway.isFabricAssetLocked(FABRIC_ASSET_ID)).toBe(
+    true,
+  );
 
   // now we simulate the crash of the client gateway
   pluginSourceGateway.database?.destroy();
@@ -780,7 +765,7 @@ test("client gateway crashes after lock fabric asset", async () => {
 
   await Servers.listen(listenOptions);
 
-  pluginSourceGateway = new PluginOdapGateway(odapClientGatewayPluginOptions);
+  pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(expressApp);
 
   // client gateway self-healed and is back online
@@ -793,23 +778,11 @@ test("client gateway crashes after lock fabric asset", async () => {
   );
 
   await expect(
-    fabricAssetExists(
-      pluginSourceGateway,
-      fabricContractName,
-      fabricChannelName,
-      FABRIC_ASSET_ID,
-      fabricSigningCredential,
-    ),
+    pluginSourceGateway.fabricAssetExists(FABRIC_ASSET_ID),
   ).resolves.toBe(false);
 
   await expect(
-    besuAssetExists(
-      pluginRecipientGateway,
-      besuContractName,
-      besuKeychainId,
-      BESU_ASSET_ID,
-      besuWeb3SigningCredential,
-    ),
+    pluginRecipientGateway.besuAssetExists(BESU_ASSET_ID),
   ).resolves.toBe(true);
 });
 
