@@ -33,6 +33,7 @@ import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
 import { envMapToDocker } from "../common/env-map-to-docker";
+import { RuntimeError } from "run-time-error";
 
 export interface organizationDefinitionFabricV2 {
   path: string;
@@ -41,6 +42,12 @@ export interface organizationDefinitionFabricV2 {
   certificateAuthority: boolean;
   stateDatabase: STATE_DATABASE;
   port: string;
+}
+
+export interface EnrollFabricIdentityOptionsV1 {
+  readonly wallet: Wallet;
+  readonly enrollmentID: string;
+  readonly organization: string;
 }
 
 /*
@@ -173,33 +180,58 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return `${this.envVars.get("FABRIC_VERSION")}`;
   }
 
+  public capitalizedMspIdOfOrg(organization: string): string {
+    return organization.charAt(0).toUpperCase() + organization.slice(1) + "MSP";
+  }
+
   public getDefaultMspId(): string {
     return "Org1MSP";
+  }
+
+  public async createCaClientV2(
+    organization: string,
+  ): Promise<FabricCAServices> {
+    const fnTag = `${this.className}#createCaClientV2()`;
+    try {
+      const ccp = await this.getConnectionProfileOrgX(organization);
+      const caInfo =
+        ccp.certificateAuthorities["ca." + organization + ".example.com"];
+      const { tlsCACerts, url: caUrl, caName } = caInfo;
+      const { pem: caTLSCACertPem } = tlsCACerts;
+      const tlsOptions = { trustedRoots: caTLSCACertPem, verify: false };
+      this.log.debug(`createCaClientV2() caName=%o caUrl=%o`, caName, caUrl);
+      this.log.debug(`createCaClientV2() tlsOptions=%o`, tlsOptions);
+      return new FabricCAServices(caUrl, tlsOptions, caName);
+    } catch (ex) {
+      this.log.error(`createCaClientV2() Failure:`, ex);
+      throw new RuntimeError(`${fnTag} Inner Exception:`, ex);
+    }
   }
 
   public async createCaClient(): Promise<FabricCAServices> {
     const fnTag = `${this.className}#createCaClient()`;
     try {
-      const ccp = await this.getConnectionProfileOrg1();
-      const caInfo = ccp.certificateAuthorities["ca.org1.example.com"];
-      const { tlsCACerts, url: caUrl, caName } = caInfo;
-      const { pem: caTLSCACertPem } = tlsCACerts;
-      const tlsOptions = { trustedRoots: caTLSCACertPem, verify: false };
-      this.log.debug(`createCaClient() caName=%o caUrl=%o`, caName, caUrl);
-      this.log.debug(`createCaClient() tlsOptions=%o`, tlsOptions);
-      return new FabricCAServices(caUrl, tlsOptions, caName);
+      return this.createCaClientV2("org1");
     } catch (ex) {
       this.log.error(`createCaClient() Failure:`, ex);
-      throw new Error(`${fnTag} Inner Exception: ${ex}`);
+      throw new RuntimeError(`${fnTag} Inner Exception:`, ex);
     }
   }
 
-  public async enrollUser(wallet: Wallet): Promise<any> {
-    const fnTag = `${this.className}#enrollUser()`;
+  public async enrollUserV2(opts: EnrollFabricIdentityOptionsV1): Promise<any> {
+    const fnTag = `${this.className}#enrollUserV2()`;
+
+    Checks.truthy(opts, "enrollUserV2 opts");
+    Checks.nonBlankString(opts.organization, "enrollUserV2 opts.organization");
+    Checks.nonBlankString(opts.enrollmentID, "enrollUserV2 opts.enrollmentID");
+    Checks.truthy(opts.wallet, "enrollUserV2 opts.wallet");
+
+    const { enrollmentID, organization, wallet } = opts;
     try {
-      const mspId = this.getDefaultMspId();
-      const enrollmentID = "user";
-      const connectionProfile = await this.getConnectionProfileOrg1();
+      const mspId = this.capitalizedMspIdOfOrg(organization);
+      const connectionProfile = await this.getConnectionProfileOrgX(
+        organization,
+      );
       // Create a new gateway for connecting to our peer node.
       const gateway = new Gateway();
       const discovery = { enabled: true, asLocalhost: true };
@@ -212,17 +244,17 @@ export class FabricTestLedgerV1 implements ITestLedger {
 
       // Get the CA client object from the gateway for interacting with the CA.
       // const ca = gateway.getClient().getCertificateAuthority();
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClientV2(opts.organization);
       const adminIdentity = gateway.getIdentity();
 
       // Register the user, enroll the user, and import the new identity into the wallet.
       const registrationRequest = {
-        affiliation: "org1.department1",
-        enrollmentID,
+        affiliation: opts.organization + ".department1",
+        enrollmentID: opts.enrollmentID,
         role: "client",
       };
 
-      const provider = wallet
+      const provider = opts.wallet
         .getProviderRegistry()
         .getProvider(adminIdentity.type);
       const adminUser = await provider.getUserContext(adminIdentity, "admin");
@@ -250,8 +282,22 @@ export class FabricTestLedgerV1 implements ITestLedger {
 
       return [x509Identity, wallet];
     } catch (ex) {
-      this.log.error(`enrollUser() Failure:`, ex);
-      throw new Error(`${fnTag} Exception: ${ex}`);
+      this.log.error(`${fnTag} failed with inner exception:`, ex);
+      throw new RuntimeError(`${fnTag} failed with inner exception:`, ex);
+    }
+  }
+
+  public async enrollUser(wallet: Wallet): Promise<any> {
+    const fnTag = `${this.className}#enrollUser()`;
+    try {
+      const mspId = this.getDefaultMspId();
+      const enrollmentID = "user";
+      const opts = { enrollmentID, organization: mspId, wallet };
+      const out = await this.enrollUserV2(opts);
+      return out;
+    } catch (ex) {
+      this.log.error(`${fnTag} failed with inner exception:`, ex);
+      throw new RuntimeError(`${fnTag} failed with inner exception:`, ex);
     }
   }
 
@@ -262,10 +308,19 @@ export class FabricTestLedgerV1 implements ITestLedger {
     return ["admin", "adminpw"];
   }
 
-  public async enrollAdmin(): Promise<[X509Identity, Wallet]> {
-    const fnTag = `${this.className}#enrollAdmin()`;
+  public async enrollAdminV2(
+    opts: Partial<EnrollFabricIdentityOptionsV1>,
+  ): Promise<[X509Identity, Wallet]> {
+    const fnTag = `${this.className}#enrollAdminV2()`;
+
+    const { organization } = opts;
+    if (!organization) {
+      throw new RuntimeError(`${fnTag} opts.organization cannot be falsy.`);
+    }
+    Checks.nonBlankString(organization, `${fnTag}:opts.organization`);
+
     try {
-      const ca = await this.createCaClient();
+      const ca = await this.createCaClientV2(organization);
       const wallet = await Wallets.newInMemoryWallet();
 
       // Enroll the admin user, and import the new identity into the wallet.
@@ -275,7 +330,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
       };
       const enrollment = await ca.enroll(request);
 
-      const mspId = this.getDefaultMspId();
+      const mspId = this.capitalizedMspIdOfOrg(organization);
       const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
@@ -291,8 +346,20 @@ export class FabricTestLedgerV1 implements ITestLedger {
       await wallet.put("admin", x509Identity);
       return [x509Identity, wallet];
     } catch (ex) {
-      this.log.error(`enrollAdmin() Failure:`, ex);
-      throw new Error(`${fnTag} Exception: ${ex}`);
+      this.log.error(`${fnTag} Failure:`, ex);
+      throw new RuntimeError(`${fnTag} Exception:`, ex);
+    }
+  }
+
+  public async enrollAdmin(): Promise<[X509Identity, Wallet]> {
+    const fnTag = `${this.className}#enrollAdmin()`;
+    try {
+      const mspId = this.getDefaultMspId();
+      const out = await this.enrollAdminV2({ organization: mspId });
+      return out;
+    } catch (ex) {
+      this.log.error(`${fnTag} Failure:`, ex);
+      throw new RuntimeError(`${fnTag} Exception:`, ex);
     }
   }
 
