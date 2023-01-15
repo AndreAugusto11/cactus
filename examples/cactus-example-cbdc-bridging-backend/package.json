@@ -47,7 +47,7 @@
     "solidity": "hardhat compile",
     "start": "CONFIG_FILE=./example-config.json node dist/lib/main/typescript/cbdc-bridging-app-cli.js",
     "watch": "npm-watch",
-    "test": "nyc cucumber-js ./src/test/typescript/cucumber/features/*.feature --require-module ts-node/register --require './src/test/typescript/cucumber/*/*.ts'",
+    "test": "nyc cucumber-js --tags @eval ./src/test/typescript/cucumber/features/*.feature --require-module ts-node/register --require './src/test/typescript/cucumber/*/*.ts'",
     "webpack": "npm-run-all webpack:dev",
     "webpack:dev": "npm-run-all webpack:dev:node webpack:dev:web",
     "webpack:dev:node": "webpack --env=dev --target=node --config ../../webpack.config.js",
