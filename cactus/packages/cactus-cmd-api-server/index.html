@@ -4131,7 +4131,7 @@
 <p><img alt="deployment-production-example.png" src="https://github.com/hyperledger/cactus/raw/4a337be719a9d2e2ccb877edccd7849f4be477ec/whitepaper/deployment-production-example.png" /></p>
 <h3 id="low-resource-deployment-example">Low Resource Deployment Example<a class="headerlink" href="#low-resource-deployment-example" title="Permanent link">&para;</a></h3>
 <p>This is an example to showcase how you can pull up a full consortium even from within a single operating system process (API server) with multiple members and their respective nodes. It is not something that’s recommended for a production grade environment, ever, but it is great for demos and integration tests where you have to simulate a fully functioning consortium with as little hardware footprint as possible to save on time and cost.</p>
-<p>The individual nodes/API servers are isolated by listening on seperate TCP ports of the machine they are hosted on:</p>
+<p>The individual nodes/API servers are isolated by listening on separate TCP ports of the machine they are hosted on:</p>
 <p><img alt="deployment-low-resource-example.png" src="https://github.com/hyperledger/cactus/raw/4a337be719a9d2e2ccb877edccd7849f4be477ec/whitepaper/deployment-low-resource-example.png" /></p>
 <h2 id="containerization">Containerization<a class="headerlink" href="#containerization" title="Permanent link">&para;</a></h2>
 <h3 id="building-the-container-image-locally">Building the container image locally<a class="headerlink" href="#building-the-container-image-locally" title="Permanent link">&para;</a></h3>
@@ -4276,7 +4276,7 @@
 <h2 id="prometheus-exporter">Prometheus Exporter<a class="headerlink" href="#prometheus-exporter" title="Permanent link">&para;</a></h2>
 <p>This class creates a prometheus exporter, which scrapes the total Cactus node count.</p>
 <h3 id="usage-prometheus">Usage Prometheus<a class="headerlink" href="#usage-prometheus" title="Permanent link">&para;</a></h3>
-<p>The prometheus exporter object is initialized in the <code>ApiServer</code> class constructor itself, so instantiating the object of the <code>ApiServer</code> class, gives access to the exporter object. You can also initialize the prometheus exporter object seperately and then pass it to the <code>IApiServerConstructorOptions</code> interface for <code>ApiServer</code> constructor.</p>
+<p>The prometheus exporter object is initialized in the <code>ApiServer</code> class constructor itself, so instantiating the object of the <code>ApiServer</code> class, gives access to the exporter object. You can also initialize the prometheus exporter object separately and then pass it to the <code>IApiServerConstructorOptions</code> interface for <code>ApiServer</code> constructor.</p>
 <p><code>getPrometheusMetricsV1</code> function returns the prometheus exporter metrics, currently displaying the total plugins imported, which currently refreshes to match the plugin count, everytime <code>setTotalPluginImports</code> method is called.</p>
 <h3 id="prometheus-integration">Prometheus Integration<a class="headerlink" href="#prometheus-integration" title="Permanent link">&para;</a></h3>
 <p>To use Prometheus with this exporter make sure to install <a href="https://prometheus.io/download/">Prometheus main component</a>. Once Prometheus is setup, the corresponding scrape_config needs to be added to the prometheus.yml</p>
