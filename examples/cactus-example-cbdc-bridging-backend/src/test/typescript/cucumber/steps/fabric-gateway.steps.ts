@@ -28,12 +28,14 @@ After({ timeout: 20 * 1000, tags: "@fabric" }, async function () {
 Given(
   "{string} with {int} CBDC available in the source chain",
   async function (user: string, amount: number) {
+    const fabricID = getFabricId(user)
+
     await axios.post(
       "http://localhost:4000/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction",
       {
         contractName: FABRIC_CONTRACT_CBDC_ERC20_NAME,
         channelName: FABRIC_CHANNEL_NAME,
-        params: [amount.toString()],
+        params: [amount.toString(), fabricID],
         methodName: "Mint",
         invocationType: "FabricContractInvocationType.SEND",
         signingCredential: {
