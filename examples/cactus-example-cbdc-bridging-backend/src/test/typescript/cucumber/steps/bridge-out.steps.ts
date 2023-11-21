@@ -55,7 +55,7 @@ When(
     };
 
     const response = await axios.post(
-      "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
+      "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-satp-hermes/clientrequest",
       {
         clientGatewayConfiguration: {
           apiHost: `http://localhost:4000`,
@@ -118,7 +118,7 @@ Then(
 
     await axios
       .post(
-        "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-odap-hermes/clientrequest",
+        "http://localhost:4000/api/v1/@hyperledger/cactus-plugin-satp-hermes/clientrequest",
         {
           clientGatewayConfiguration: {
             apiHost: `http://localhost:4000`,
