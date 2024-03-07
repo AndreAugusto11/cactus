@@ -742,6 +742,7 @@ test("client gateway crashes after lock fabric asset", async () => {
 
   // now we simulate the crash of the client gateway
   pluginSourceGateway.localRepository?.destroy();
+  pluginSourceGateway.remoteRepository?.destroy();
   await Servers.shutdown(sourceGatewayServer);
 
   const expressApp = express();
@@ -803,6 +804,8 @@ afterAll(async () => {
 
   pluginSourceGateway.localRepository?.destroy();
   pluginRecipientGateway.localRepository?.destroy();
+  pluginSourceGateway.remoteRepository?.destroy();
+  pluginRecipientGateway.remoteRepository?.destroy();
 
   await Servers.shutdown(besuServer);
   await Servers.shutdown(fabricServer);
