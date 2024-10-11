@@ -58,6 +58,7 @@ export class SATPManager {
   public static readonly CLASS_NAME = "SATPManager";
   private readonly logger: Logger;
   private readonly instanceId: string;
+  private status: boolean;
   private endpoints: any[] | undefined;
   private signer: JsObjectSigner;
   public supportedDLTs: SupportedChain[] = [];
@@ -85,6 +86,7 @@ export class SATPManager {
     this.logger = LoggerProvider.getOrCreate({ level, label });
     this.instanceId = options.instanceId;
     this.logger.info(`Instantiated ${this.className} OK`);
+    this.status = true;
     this.supportedDLTs = options.supportedDLTs;
     this.signer = options.signer;
     this.bridgesManager = options.bridgeManager;
@@ -162,6 +164,10 @@ export class SATPManager {
 
   public get className(): string {
     return SATPManager.CLASS_NAME;
+  }
+
+  public healthCheck(): boolean {
+    return this.status;
   }
 
   public getSessions(): Map<string, SATPSession> {

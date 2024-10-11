@@ -131,8 +131,6 @@ export async function GetStatusService(
   };
 
   logger.info(req);
-  // logger.error("GetStatusService not implemented");
-  // throw new GetStatusError(req.sessionID, "GetStatusService not implemented");
 
   return mock;
 }

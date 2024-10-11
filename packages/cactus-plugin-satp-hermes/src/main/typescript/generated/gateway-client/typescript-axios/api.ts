@@ -247,68 +247,6 @@ export interface CancelResponse {
     'cancelSuccessful': boolean;
 }
 /**
- * 
- * @export
- * @interface Chain
- */
-export interface Chain {
-    /**
-     * A unique identifier for the blockchain network.
-     * @type {string}
-     * @memberof Chain
-     */
-    'chainId': string;
-    /**
-     * The name of the blockchain network.
-     * @type {string}
-     * @memberof Chain
-     */
-    'chainName': string;
-    /**
-     * The type of blockchain network (e.g., \'evm\', \'fabric\').
-     * @type {string}
-     * @memberof Chain
-     */
-    'chainType': string;
-    /**
-     * The specific network name within the blockchain (e.g., \'mainnet\', \'testnet\').
-     * @type {string}
-     * @memberof Chain
-     */
-    'networkName': string;
-}
-/**
- * 
- * @export
- * @interface Chains1Inner
- */
-export interface Chains1Inner {
-    /**
-     * A unique identifier for the blockchain network.
-     * @type {string}
-     * @memberof Chains1Inner
-     */
-    'chainId': string;
-    /**
-     * The name of the blockchain network.
-     * @type {string}
-     * @memberof Chains1Inner
-     */
-    'chainName': string;
-    /**
-     * The type of blockchain network (e.g., \'evm\', \'fabric\').
-     * @type {string}
-     * @memberof Chains1Inner
-     */
-    'chainType': string;
-    /**
-     * The specific network name within the blockchain (e.g., \'mainnet\', \'testnet\').
-     * @type {string}
-     * @memberof Chains1Inner
-     */
-    'networkName': string;
-}
-/**
  * Response schema for a continue request, returning the status of the SATP session.
  * @export
  * @interface Continue200Response
@@ -618,10 +556,54 @@ export interface GetAuditResponse {
 export interface GetHealthCheck200Response {
     /**
      * 
-     * @type {string}
+     * @type {boolean}
      * @memberof GetHealthCheck200Response
      */
-    'status'?: string;
+    'status'?: boolean;
+}
+/**
+ * List of chains or systems and related metadata
+ * @export
+ * @interface GetIntegrations200Response
+ */
+export interface GetIntegrations200Response {
+    /**
+     * 
+     * @type {Array<GetIntegrations200ResponseIntegrationsInner>}
+     * @memberof GetIntegrations200Response
+     */
+    'integrations': Array<GetIntegrations200ResponseIntegrationsInner>;
+}
+/**
+ * 
+ * @export
+ * @interface GetIntegrations200ResponseIntegrationsInner
+ */
+export interface GetIntegrations200ResponseIntegrationsInner {
+    /**
+     * A unique identifier for the blockchain network/system.
+     * @type {string}
+     * @memberof GetIntegrations200ResponseIntegrationsInner
+     */
+    'id': string;
+    /**
+     * The name of the blockchain network/system.
+     * @type {string}
+     * @memberof GetIntegrations200ResponseIntegrationsInner
+     */
+    'name': string;
+    /**
+     * The type of network (e.g., \'evm\', \'fabric\', \'SQL Database\').
+     * @type {string}
+     * @memberof GetIntegrations200ResponseIntegrationsInner
+     */
+    'type': string;
+    /**
+     * The specific network name (e.g., \'mainnet\', \'testnet\').
+     * @type {string}
+     * @memberof GetIntegrations200ResponseIntegrationsInner
+     */
+    'environment'?: string;
 }
 /**
  * A collection of available and unavailable routes
@@ -1172,10 +1154,10 @@ export interface GetRoutes200ResponseRoutesInnerStepsInnerToolDetails {
 export interface HealthCheckResponse {
     /**
      * 
-     * @type {string}
+     * @type {boolean}
      * @memberof HealthCheckResponse
      */
-    'status'?: string;
+    'status'?: boolean;
 }
 /**
  * Details a single step within a route including actions and estimates.
@@ -1261,6 +1243,37 @@ export const InsuranceStateEnum = {
 export type InsuranceStateEnum = typeof InsuranceStateEnum[keyof typeof InsuranceStateEnum];
 
 /**
+ * 
+ * @export
+ * @interface Integration
+ */
+export interface Integration {
+    /**
+     * A unique identifier for the blockchain network/system.
+     * @type {string}
+     * @memberof Integration
+     */
+    'id': string;
+    /**
+     * The name of the blockchain network/system.
+     * @type {string}
+     * @memberof Integration
+     */
+    'name': string;
+    /**
+     * The type of network (e.g., \'evm\', \'fabric\', \'SQL Database\').
+     * @type {string}
+     * @memberof Integration
+     */
+    'type': string;
+    /**
+     * The specific network name (e.g., \'mainnet\', \'testnet\').
+     * @type {string}
+     * @memberof Integration
+     */
+    'environment'?: string;
+}
+/**
  * Describes integration or tool details such as bridges or exchanges involved in the transaction.
  * @export
  * @interface IntegrationDetails
@@ -1284,6 +1297,19 @@ export interface IntegrationDetails {
      * @memberof IntegrationDetails
      */
     'logoURI': string;
+}
+/**
+ * List of chains or systems and related metadata
+ * @export
+ * @interface IntegrationsResponse
+ */
+export interface IntegrationsResponse {
+    /**
+     * 
+     * @type {Array<GetIntegrations200ResponseIntegrationsInner>}
+     * @memberof IntegrationsResponse
+     */
+    'integrations': Array<GetIntegrations200ResponseIntegrationsInner>;
 }
 /**
  * Response for a pause transaction request. Returns the current status of the SATP session post-pause action.
@@ -2676,7 +2702,7 @@ export const TransactionApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getIntegrations(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Chains1Inner>>> {
+        async getIntegrations(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetIntegrations200Response>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getIntegrations(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -2734,7 +2760,7 @@ export const TransactionApiFactory = function (configuration?: Configuration, ba
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getIntegrations(options?: any): AxiosPromise<Array<Chains1Inner>> {
+        getIntegrations(options?: any): AxiosPromise<GetIntegrations200Response> {
             return localVarFp.getIntegrations(options).then((request) => request(axios, basePath));
         },
         /**

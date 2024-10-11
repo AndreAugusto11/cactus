@@ -14,18 +14,24 @@ import { GetStatusEndpointV1 } from "../web-services/status-endpoint";
 
 //import { GetAuditRequest, GetAuditResponse } from "../generated/gateway-client/typescript-axios";
 import {
+  HealthCheckResponse,
+  IntegrationsResponse,
   StatusRequest,
   StatusResponse,
   TransactRequest,
   TransactResponse,
 } from "../generated/gateway-client/typescript-axios/api";
-import { ExecuteGetStatus } from "./admin/get-status-handler-service";
+import { ExecuteGetIntegrations } from "./admin/get-integrations-handler-service";
 import { ISATPManagerOptions, SATPManager } from "../gol/satp-manager";
 import { GatewayOrchestrator } from "../gol/gateway-orchestrator";
 import { SATPBridgesManager } from "../gol/satp-bridges-manager";
 import { ExecuteTransact } from "./transaction/transact-handler-service";
 import { TransactEndpointV1 } from "../web-services/transact-endpoint";
 import { GetSessionIdsEndpointV1 } from "../web-services/get-all-session-ids-endpoints";
+import { ExecuteGetHealthCheck } from "./admin/get-healthcheck-handler-service";
+import { HealthCheckEndpointV1 } from "../web-services/healthcheck-endpoint";
+import { IntegrationsEndpointV1 } from "../web-services/integrations-endpoint";
+import { ExecuteGetStatus } from "./admin/get-status-handler-service";
 
 export interface BLODispatcherOptions {
   logger: Logger;
@@ -92,12 +98,28 @@ export class BLODispatcher {
       dispatcher: this,
       logLevel: this.options.logLevel,
     });
+
+    const getHealthCheckEndpoint = new HealthCheckEndpointV1({
+      dispatcher: this,
+      logLevel: this.options.logLevel,
+    });
+
+    const getIntegrationsEndpointV1 = new IntegrationsEndpointV1({
+      dispatcher: this,
+      logLevel: this.options.logLevel,
+    });
+
     const getSessionIdsEndpointV1 = new GetSessionIdsEndpointV1({
       dispatcher: this,
       logLevel: this.options.logLevel,
     });
 
-    const theEndpoints = [getStatusEndpointV1, getSessionIdsEndpointV1];
+    const theEndpoints = [
+      getStatusEndpointV1,
+      getHealthCheckEndpoint,
+      getIntegrationsEndpointV1,
+      getSessionIdsEndpointV1,
+    ];
     this.endpoints = theEndpoints;
     return theEndpoints;
   }
@@ -137,6 +159,14 @@ export class BLODispatcher {
     } else {
       return channels[0];
     }
+  }
+
+  public async HealthCheck(): Promise<HealthCheckResponse> {
+    return ExecuteGetHealthCheck(this.logger, this.manager);
+  }
+
+  public async GetIntegrations(): Promise<IntegrationsResponse> {
+    return ExecuteGetIntegrations(this.logger, this.manager);
   }
 
   public async GetStatus(req: StatusRequest): Promise<StatusResponse> {

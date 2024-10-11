@@ -469,32 +469,36 @@ ContinueResponse:
       $ref: ./schemas.yml#/StatusResponse
   required:
     - statusResponse
-Chain:
+IntegrationsResponse:
+  description: "List of chains or systems and related metadata"
+  type: object
+  x-category: response
+  properties:
+    integrations:
+      type: array
+      items:
+        $ref: ./schemas.yml#/Integration
+  required:
+    - integrations
+Integration:
   type: object
   properties:
-    chainId:
+    id:
       type: string
-      description: A unique identifier for the blockchain network.
-    chainName:
+      description: A unique identifier for the blockchain network/system.
+    name:
       type: string
-      description: The name of the blockchain network.
-    chainType:
+      description: The name of the blockchain network/system.
+    type:
       type: string
-      description: The type of blockchain network (e.g., 'evm', 'fabric').
-    networkName:
+      description: The type of network (e.g., 'evm', 'fabric', 'SQL Database').
+    environment:
       type: string
-      description: The specific network name within the blockchain (e.g., 'mainnet', 'testnet').
+      description: The specific network name (e.g., 'mainnet', 'testnet').
   required:
-    - chainId
-    - chainName
-    - chainType
-    - networkName
-Chains:
-  title: Chains
-  type: array
-  description: List of chains and related metadata
-  items:
-    $ref: ./schemas.yml#/Chain
+    - id
+    - name
+    - type
 Token:
   type: object
   description: Metadata detailing a supported token
@@ -551,8 +555,8 @@ HealthCheckResponse:
   type: object
   properties:
     status:
-      type: string
-      example: 'OK'
+      type: boolean
+      example: true
 BridgeInfo:
   type: object
   description: Information about the bridge used for the token transfer.
